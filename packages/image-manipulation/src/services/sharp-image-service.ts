@@ -1,6 +1,7 @@
 import { Effect, Layer, Schema, Context } from 'effect'
 import sharp from 'sharp'
 import type { OverlayOptions } from 'sharp'
+import { MAX_DECODE_INPUT_PIXELS } from '../constants'
 
 export class SharpError extends Schema.TaggedErrorClass<SharpError>()('SharpError', {
   message: Schema.String,
@@ -38,7 +39,11 @@ export class SharpImageService extends Context.Service<
 const makeSharpImageService = Effect.gen(function* () {
   const makeSharpImage = (image: Uint8Array<ArrayBufferLike>) =>
     Effect.try({
-      try: () => sharp(image),
+      try: () =>
+        sharp(image, {
+          sequentialRead: true,
+          limitInputPixels: MAX_DECODE_INPUT_PIXELS,
+        }),
       catch: (error) =>
         new SharpError({
           cause: error,

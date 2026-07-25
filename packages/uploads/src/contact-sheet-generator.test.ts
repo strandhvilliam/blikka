@@ -9,7 +9,7 @@ import {
 } from '@blikka/db'
 import type { CompetitionClass } from '@blikka/db'
 import { ContactSheetBuilder, type ContactSheetImageFile } from '@blikka/image-manipulation'
-import { EmailService } from '@blikka/email'
+import { EmailService, SendEmailError } from '@blikka/email'
 import type { SendEmailParams } from '@blikka/email'
 import { type ParticipantState, UploadSessionRepository } from '@blikka/kv-store'
 import { Effect, Layer, Option, Ref } from 'effect'
@@ -101,6 +101,7 @@ interface TestState {
     }>
     tags?: Array<{ name: string; value: string }>
   }>
+  readonly emailResult: Effect.Effect<{ id: string }, SendEmailError>
   readonly sheetInputs: ReadonlyArray<{
     reference: string
     images: ReadonlyArray<ContactSheetImageFile>
@@ -144,6 +145,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
     logoUrl: 'https://example.com/marathon-logo.png',
   },
   emailSends: [],
+  emailResult: Effect.succeed({ id: 'email-1' }),
   builderResult: Effect.succeed(sheetBytes),
   sheetInputs: [],
   files: createFileMap([
@@ -253,10 +255,14 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
 
   const emailService = EmailService.of({
     send: ({ to, subject, attachments, tags }: SendEmailParams) =>
-      updateTestState(stateRef, (state) => ({
-        ...state,
-        emailSends: [...state.emailSends, { to, subject, attachments, tags }],
-      })).pipe(Effect.as({ id: 'email-1' })),
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        yield* updateTestState(stateRef, (current) => ({
+          ...current,
+          emailSends: [...current.emailSends, { to, subject, attachments, tags }],
+        }))
+        return yield* state.emailResult
+      }),
     sendBatch: () => Effect.succeed([]),
   } as unknown as EmailService['Service'])
 
@@ -329,6 +335,7 @@ describe('ContactSheetGenerator', () => {
       assert.strictEqual(state.filePuts[0]?.file, sheetBytes)
       assert.deepStrictEqual(state.participantUpdates, [
         { contactSheetKey: state.filePuts[0]?.key },
+        { contactSheetEmailSent: true },
       ])
       assert.deepStrictEqual(state.contactSheetWrites, [
         {
@@ -402,6 +409,7 @@ describe('ContactSheetGenerator', () => {
 
       assert.lengthOf(state.filePuts, 1)
       assert.deepStrictEqual(state.emailSends, [])
+      assert.deepStrictEqual(state.participantUpdates[1], { contactSheetEmailSent: true })
     }),
   )
 
@@ -441,12 +449,13 @@ describe('ContactSheetGenerator', () => {
     }),
   )
 
-  it.effect('skips participants that already have a contact sheet', () =>
+  it.effect('skips participants that already have a contact sheet and were emailed', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
         makeInitialState({
           participantState: makeParticipantState({
             contactSheetKey: 'existing-sheet.jpg',
+            contactSheetEmailSent: true,
           }),
         }),
         () =>
@@ -460,6 +469,67 @@ describe('ContactSheetGenerator', () => {
       assert.deepStrictEqual(state.filePuts, [])
       assert.deepStrictEqual(state.participantUpdates, [])
       assert.deepStrictEqual(state.contactSheetWrites, [])
+      assert.deepStrictEqual(state.emailSends, [])
+    }),
+  )
+
+  it.effect('resends only the email when the sheet exists but the email was never sent', () =>
+    Effect.gen(function* () {
+      const files = new Map(makeInitialState().files)
+      files.set('contact-sheets/existing-sheet.jpg', sheetBytes)
+
+      const { state } = yield* runWithState(
+        makeInitialState({
+          files,
+          participantState: makeParticipantState({
+            contactSheetKey: 'existing-sheet.jpg',
+          }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const generator = yield* ContactSheetGenerator
+            yield* generator.generate(input)
+          }),
+      )
+
+      assert.deepStrictEqual(state.sheetInputs, [])
+      assert.deepStrictEqual(state.filePuts, [])
+      assert.deepStrictEqual(state.contactSheetWrites, [])
+      assert.lengthOf(state.emailSends, 1)
+      assert.strictEqual(state.emailSends[0]?.to, 'ada@example.com')
+      assert.deepStrictEqual(state.emailSends[0]?.attachments, [
+        {
+          filename: 'contact-sheet-REF123.jpg',
+          content: Buffer.from(sheetBytes),
+          contentType: 'image/jpeg',
+        },
+      ])
+      assert.deepStrictEqual(state.participantUpdates, [{ contactSheetEmailSent: true }])
+    }),
+  )
+
+  it.effect('keeps the generated sheet and fails the record when the email send fails', () =>
+    Effect.gen(function* () {
+      const { result: error, state } = yield* runWithState(
+        makeInitialState({
+          emailResult: Effect.fail(new SendEmailError({ message: 'rate limited' })),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const generator = yield* ContactSheetGenerator
+            return yield* Effect.flip(generator.generate(input))
+          }),
+      )
+
+      assert.instanceOf(error, SendEmailError)
+      assert.strictEqual(error.message, 'rate limited')
+      assert.lengthOf(state.filePuts, 1)
+      assert.lengthOf(state.contactSheetWrites, 1)
+      // The sheet key is persisted but the sent-flag is not, so a redelivery lands in the
+      // send-missing-email branch instead of skipping.
+      assert.deepStrictEqual(state.participantUpdates, [
+        { contactSheetKey: state.filePuts[0]?.key },
+      ])
     }),
   )
 

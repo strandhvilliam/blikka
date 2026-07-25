@@ -136,13 +136,18 @@ function getRelevantExifData(exif: Record<string, unknown>): Record<string, stri
 function ByCameraSelectedPhotoPreview({ photo }: { photo: SelectedPhoto }) {
   const t = useTranslations('FlowPage.uploadStep')
   const [previewLoadFailed, setPreviewLoadFailed] = useState(false)
+  const skippedLarge = photo.previewSkipReason === 'large-file'
 
-  if (previewLoadFailed) {
+  if (skippedLarge || !photo.preview || previewLoadFailed) {
     return (
       <div className="flex min-h-[min(52dvh,12rem)] w-full flex-col items-center justify-center gap-2 bg-muted px-6 py-10 text-center">
         <Info className="h-8 w-8 text-muted-foreground" aria-hidden />
-        <p className="text-sm font-medium text-foreground">{t('previewUnavailable')}</p>
-        <p className="text-xs text-muted-foreground">{t('previewUnavailableHint')}</p>
+        <p className="text-sm font-medium text-foreground">
+          {skippedLarge ? t('previewSkippedLarge') : t('previewUnavailable')}
+        </p>
+        <p className="text-xs text-muted-foreground">
+          {skippedLarge ? t('previewSkippedLargeHint') : t('previewUnavailableHint')}
+        </p>
       </div>
     )
   }

@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { useTranslations } from 'next-intl'
 import { Check } from 'lucide-react'
 
 import { PreviewDialog } from '@/components/staff/preview-dialog'
@@ -14,6 +15,7 @@ import { getSelectedTopics } from '@/lib/upload-utils'
 import type { UploadMarathonMode } from '@/lib/types'
 
 export function StaffUploadedPhotoGrid() {
+  const t = useTranslations('FlowPage.uploadStep')
   const domain = useDomain()
   const trpc = useTRPC()
   const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
@@ -73,13 +75,26 @@ export function StaffUploadedPhotoGrid() {
                 key={photo.id}
                 type="button"
                 className="group relative aspect-square overflow-hidden rounded-xl border border-border bg-muted text-left"
-                onClick={() => setPreviewUrl(photo.previewUrl)}
+                onClick={() => {
+                  if (photo.previewUrl) setPreviewUrl(photo.previewUrl)
+                }}
+                disabled={!photo.previewUrl}
               >
-                <img
-                  src={photo.previewUrl}
-                  alt={topicName}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
+                {photo.previewUrl ? (
+                  <img
+                    src={photo.previewUrl}
+                    alt={topicName}
+                    className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center px-2 text-center">
+                    <p className="text-[11px] leading-snug text-muted-foreground">
+                      {photo.previewSkipReason === 'large-file'
+                        ? t('previewSkippedLarge')
+                        : t('previewUnavailable')}
+                    </p>
+                  </div>
+                )}
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-8">
                   <p className="truncate text-[11px] font-medium text-white">
                     #{photo.orderIndex + 1} {topicName}

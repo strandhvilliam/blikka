@@ -57,13 +57,17 @@ export interface GenerateContactSheetInput {
   uploadSessionId: string
 }
 
-type ContactSheetSkipDecision =
+type ContactSheetAction =
   | {
-      readonly shouldSkip: true
+      readonly action: 'skip'
       readonly message: string
     }
   | {
-      readonly shouldSkip: false
+      readonly action: 'send-missing-email'
+      readonly contactSheetKey: string
+    }
+  | {
+      readonly action: 'generate'
     }
 
 export class ContactSheetGenerator extends Context.Service<
@@ -107,32 +111,41 @@ function formatParticipantName(participant: { firstname: string; lastname: strin
   return `${participant.firstname} ${participant.lastname}`.trim() || 'there'
 }
 
-function shouldSkipGeneration(
+function decideContactSheetAction(
   kvData: ParticipantState,
   uploadSessionId: string,
-): ContactSheetSkipDecision {
+): ContactSheetAction {
   if (kvData.uploadSessionId !== uploadSessionId) {
     return {
-      shouldSkip: true,
+      action: 'skip',
       message: 'Dropping contact sheet event for non-current upload session',
     }
   }
 
   if (kvData.contactSheetKey) {
+    if (kvData.contactSheetEmailSent) {
+      return {
+        action: 'skip',
+        message: 'Contact sheet already generated and emailed, skipping',
+      }
+    }
+
+    // A redelivery after the email failed: the sheet exists but the participant never got
+    // it. Without this branch the redelivery would skip and the email would be lost.
     return {
-      shouldSkip: true,
-      message: 'Contact sheet already generated, skipping',
+      action: 'send-missing-email',
+      contactSheetKey: kvData.contactSheetKey,
     }
   }
 
   if (kvData.expectedCount === 1) {
     return {
-      shouldSkip: true,
+      action: 'skip',
       message: 'Single-photo participant, skipping contact sheet generation',
     }
   }
 
-  return { shouldSkip: false }
+  return { action: 'generate' }
 }
 
 const makeContactSheetGenerator = Effect.gen(function* () {
@@ -191,7 +204,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
             buffer: file.value,
           }
         }),
-      { concurrency: 5 },
+      { concurrency: 2 },
     )
   })
 
@@ -212,6 +225,110 @@ const makeContactSheetGenerator = Effect.gen(function* () {
     return file.value
   })
 
+  const sendContactSheetEmail = Effect.fn('ContactSheetGenerator.sendContactSheetEmail')(
+    function* (params: {
+      domain: string
+      reference: string
+      participant: { firstname: string; lastname: string; email: string | null }
+      marathon: { name: string; logoUrl: string | null }
+      sheet: Buffer
+      photoCount: number
+    }) {
+      const { domain, reference, participant, marathon, sheet, photoCount } = params
+
+      // The sent-flag is written after a successful send, so a crash in between can produce a
+      // duplicate email on redelivery — preferred over the reverse order, which loses the email.
+      const markEmailSent = kvStore.updateParticipantSession(domain, reference, {
+        contactSheetEmailSent: true,
+      })
+
+      if (!participant.email) {
+        yield* Effect.logWarning('Participant has no email, skipping contact sheet email')
+        yield* markEmailSent
+        return
+      }
+
+      if (participant.email.startsWith('seed') && participant.email.endsWith('invalid')) {
+        yield* Effect.logWarning('Seeded participant, skipping email')
+        yield* markEmailSent
+        return
+      }
+
+      const contactSheetFilename = createContactSheetFilename(reference)
+      const emailProps = {
+        participantName: formatParticipantName(participant),
+        participantReference: reference,
+        marathonName: marathon.name,
+        marathonLogoUrl: marathon.logoUrl,
+        contactSheetFilename,
+        photoCount,
+      }
+
+      yield* emailService.send({
+        to: participant.email,
+        subject: contactSheetReadyEmailSubject(emailProps),
+        template: ContactSheetReadyEmail(emailProps),
+        attachments: [
+          {
+            filename: contactSheetFilename,
+            content: sheet,
+            contentType: 'image/jpeg',
+          },
+        ],
+        tags: [
+          { name: 'event', value: 'contact-sheet-ready' },
+          { name: 'domain', value: domain },
+          { name: 'participant-reference', value: reference },
+        ],
+      })
+      yield* markEmailSent
+    },
+  )
+
+  const sendMissingEmail = Effect.fn('ContactSheetGenerator.sendMissingEmail')(function* (params: {
+    domain: string
+    reference: string
+    contactSheetKey: string
+    photoCount: number
+  }) {
+    const { domain, reference, contactSheetKey, photoCount } = params
+
+    yield* Effect.logWarning('Contact sheet already generated but email not sent, resending email')
+
+    const participantOpt = yield* participantsRepository.getParticipantByReference({
+      reference,
+      domain,
+    })
+    if (Option.isNone(participantOpt)) {
+      return yield* new InvalidSheetGenerationDataError({
+        message: 'Participant not found',
+      })
+    }
+
+    const marathonOpt = yield* marathonsRepository.getMarathonByDomain({ domain })
+    if (Option.isNone(marathonOpt)) {
+      return yield* new InvalidSheetGenerationDataError({
+        message: 'Marathon not found',
+      })
+    }
+
+    const sheet = yield* s3.getFile(config.contactSheetsBucketName, contactSheetKey)
+    if (Option.isNone(sheet)) {
+      return yield* new InvalidSheetGenerationDataError({
+        message: `Contact sheet not found: ${contactSheetKey}`,
+      })
+    }
+
+    yield* sendContactSheetEmail({
+      domain,
+      reference,
+      participant: participantOpt.value,
+      marathon: marathonOpt.value,
+      sheet: Buffer.from(sheet.value),
+      photoCount,
+    })
+  })
+
   const generate = Effect.fn('ContactSheetGenerator.generate')(
     function* (params: GenerateContactSheetInput) {
       const { domain, reference, uploadSessionId } = params
@@ -224,10 +341,18 @@ const makeContactSheetGenerator = Effect.gen(function* () {
       }
       const participantState = participantStateOpt.value
 
-      const skipDecision = shouldSkipGeneration(participantState, uploadSessionId)
-      if (skipDecision.shouldSkip) {
-        yield* Effect.logWarning(skipDecision.message)
+      const decision = decideContactSheetAction(participantState, uploadSessionId)
+      if (decision.action === 'skip') {
+        yield* Effect.logWarning(decision.message)
         return
+      }
+      if (decision.action === 'send-missing-email') {
+        return yield* sendMissingEmail({
+          domain,
+          reference,
+          contactSheetKey: decision.contactSheetKey,
+          photoCount: participantState.expectedCount,
+        })
       }
 
       const participantOpt = yield* participantsRepository.getParticipantByReference({
@@ -303,42 +428,13 @@ const makeContactSheetGenerator = Effect.gen(function* () {
         },
       })
 
-      if (!participant.email) {
-        yield* Effect.logWarning('Participant has no email, skipping contact sheet email')
-        return
-      }
-
-      if (participant.email.startsWith('seed') && participant.email.endsWith('invalid')) {
-        yield* Effect.logWarning('Seeded participant, skipping email')
-        return
-      }
-
-      const contactSheetFilename = createContactSheetFilename(reference)
-      const emailProps = {
-        participantName: formatParticipantName(participant),
-        participantReference: reference,
-        marathonName: marathonOpt.value.name,
-        marathonLogoUrl: marathonOpt.value.logoUrl,
-        contactSheetFilename,
+      yield* sendContactSheetEmail({
+        domain,
+        reference,
+        participant,
+        marathon: marathonOpt.value,
+        sheet: buffer,
         photoCount: keys.length,
-      }
-
-      yield* emailService.send({
-        to: participant.email,
-        subject: contactSheetReadyEmailSubject(emailProps),
-        template: ContactSheetReadyEmail(emailProps),
-        attachments: [
-          {
-            filename: contactSheetFilename,
-            content: buffer,
-            contentType: 'image/jpeg',
-          },
-        ],
-        tags: [
-          { name: 'event', value: 'contact-sheet-ready' },
-          { name: 'domain', value: domain },
-          { name: 'participant-reference', value: reference },
-        ],
       })
     },
     (effect, params) => Effect.annotateLogs(effect, { ...params }),

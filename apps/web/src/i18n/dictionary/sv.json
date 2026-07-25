@@ -65,14 +65,22 @@
         "titleExists": "Välkommen tillbaka!",
         "titleNew": "Ny deltagare",
         "titlePrepared": "Förberedd deltagare hittad",
+        "titleReplace": "Ersätt din uppladdning?",
         "description": "Deltagarnummer {ref} har redan sparade uppgifter. Om du fortsätter uppdateras registreringen för det numret.",
         "descriptionExists": "Vi hittade en session för deltagarnummer {ref}. Fortsätt för att gå vidare.",
         "descriptionNew": "Detta kommer att skapa en ny uppladdningssession för detta deltagarnummer. Fortsätt?",
         "descriptionPrepared": "Deltagarnummer {ref} är redan förberett. Fortsätt för att starta den riktiga uppladdningen nu?",
+        "descriptionReplace": "Det ser ut som att någon redan har laddat upp för deltagare <number>{ref}</number>! Är det du? Du kan ersätta uppladdningen. Om det inte var du, prata med en funktionär.",
         "cancel": "Använd annat nummer",
         "cancelPrepared": "Avbryt",
         "confirm": "Uppdatera registrering",
-        "confirmPrepared": "Fortsätt"
+        "confirmPrepared": "Fortsätt",
+        "confirmReplace": "Ersätt uppladdning"
+      },
+      "alreadyUploadedDialog": {
+        "title": "Redan uppladdat",
+        "description": "Det ser ut som att någon redan har laddat upp för deltagare <number>{ref}</number>! Om det inte var du, prata med en funktionär.",
+        "confirm": "Okej"
       }
     },
     "steps": {
@@ -163,6 +171,8 @@
       "photoPreview": "Förhandsvisning",
       "previewUnavailable": "Förhandsvisningen kunde inte visas.",
       "previewUnavailableHint": "Du kan fortfarande ladda upp fotot.",
+      "previewSkippedLarge": "Förhandsvisning hoppas över för den här stora filen.",
+      "previewSkippedLargeHint": "Fotot laddas fortfarande upp som vanligt.",
       "missingRequiredInfo": "Deltagarinformation saknas",
       "missingRequiredInfoDetailed": "Saknad information: {fields}",
       "missingParticipantNumber": "deltagarnummer",

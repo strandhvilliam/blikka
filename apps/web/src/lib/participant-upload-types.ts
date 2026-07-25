@@ -12,11 +12,15 @@ export const PARTICIPANT_UPLOAD_PHASE = {
 export type ParticipantUploadPhase =
   (typeof PARTICIPANT_UPLOAD_PHASE)[keyof typeof PARTICIPANT_UPLOAD_PHASE]
 
+export type ParticipantPreviewSkipReason = 'large-file'
+
 export interface ParticipantSelectedPhoto {
   id: string
   file: File
   exif: Record<string, unknown>
-  previewUrl: string
+  previewUrl: string | null
+  /** Set when preview is intentionally skipped (e.g. large file) — not a failure. */
+  previewSkipReason?: ParticipantPreviewSkipReason
   orderIndex: number
   preconvertedExif?: Record<string, unknown> | null
 }

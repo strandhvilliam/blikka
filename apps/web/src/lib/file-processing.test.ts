@@ -188,12 +188,12 @@ describe('file-processing', () => {
       },
     )
 
-    const { generateThumbnailUrl } = await importFileProcessing()
+    const { generateClientPreview } = await importFileProcessing()
     const file = new File(['original'], 'capture.jpg', { type: 'image/jpeg' })
 
-    const thumbnailUrl = await generateThumbnailUrl(file)
+    const preview = await generateClientPreview(file)
 
-    expect(thumbnailUrl).toBe('blob:thumb')
+    expect(preview).toEqual({ status: 'ready', url: 'blob:thumb' })
     expect(createImageBitmap).toHaveBeenCalledWith(file, {
       resizeWidth: 400,
       resizeQuality: 'medium',
@@ -209,17 +209,34 @@ describe('file-processing', () => {
     expect(closeSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('falls back to a direct object url when thumbnail generation fails', async () => {
+  it('skips preview for large files without treating it as a failure', async () => {
+    const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:fallback')
+    const createImageBitmapSpy = vi.fn()
+    vi.stubGlobal('createImageBitmap', createImageBitmapSpy)
+
+    const { CLIENT_PREVIEW_MAX_FILE_BYTES, generateClientPreview } = await importFileProcessing()
+    const file = new File([new Uint8Array(CLIENT_PREVIEW_MAX_FILE_BYTES)], 'pro.jpg', {
+      type: 'image/jpeg',
+    })
+
+    const preview = await generateClientPreview(file)
+
+    expect(preview).toEqual({ status: 'skipped-large', reason: 'large-file' })
+    expect(createImageBitmapSpy).not.toHaveBeenCalled()
+    expect(createObjectURLSpy).not.toHaveBeenCalled()
+  })
+
+  it('returns unavailable when thumbnail generation fails without full-file object urls', async () => {
     const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:fallback')
 
     vi.stubGlobal('createImageBitmap', vi.fn().mockRejectedValue(new Error('decode failed')))
 
-    const { generateThumbnailUrl } = await importFileProcessing()
+    const { generateClientPreview } = await importFileProcessing()
     const file = new File(['original'], 'capture.jpg', { type: 'image/jpeg' })
 
-    const thumbnailUrl = await generateThumbnailUrl(file)
+    const preview = await generateClientPreview(file)
 
-    expect(thumbnailUrl).toBe('blob:fallback')
-    expect(createObjectURLSpy).toHaveBeenCalledWith(file)
+    expect(preview).toEqual({ status: 'unavailable' })
+    expect(createObjectURLSpy).not.toHaveBeenCalled()
   })
 })

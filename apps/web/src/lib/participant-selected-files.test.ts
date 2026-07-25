@@ -18,7 +18,10 @@ async function importParticipantSelectedFiles() {
     .mockReturnValueOnce('generated-1')
     .mockReturnValueOnce('generated-2')
     .mockReturnValue('generated-next')
-  const generateThumbnailUrl = vi.fn(async (file: File) => `blob:${file.name}`)
+  const generateClientPreview = vi.fn(async (file: File) => ({
+    status: 'ready' as const,
+    url: `blob:${file.name}`,
+  }))
 
   const getCapturedAtDate = (exif?: Record<string, unknown> | null) => {
     if (!exif) return null
@@ -45,7 +48,7 @@ async function importParticipantSelectedFiles() {
     return {
       ...actual,
       createClientPhotoId,
-      generateThumbnailUrl,
+      generateClientPreview,
     }
   })
 
@@ -56,7 +59,7 @@ async function importParticipantSelectedFiles() {
     mocks: {
       parseExifData,
       createClientPhotoId,
-      generateThumbnailUrl,
+      generateClientPreview,
     },
   }
 }
@@ -125,7 +128,7 @@ describe('participant-upload/participant-selected-files', () => {
     })
     expect(mocks.parseExifData).toHaveBeenCalledTimes(1)
     expect(mocks.parseExifData).toHaveBeenCalledWith(expect.objectContaining({ name: 'third.jpg' }))
-    expect(mocks.generateThumbnailUrl).toHaveBeenCalledTimes(2)
+    expect(mocks.generateClientPreview).toHaveBeenCalledTimes(2)
   })
 
   it('preserves normalization warnings and enforces duplicate and max-count rules', async () => {
@@ -161,7 +164,7 @@ describe('participant-upload/participant-selected-files', () => {
     expect(result.photos).toHaveLength(2)
     expect(result.photos.map((photo) => photo.file.name)).toContain('first.jpg')
     expect(mocks.createClientPhotoId).toHaveBeenCalledTimes(1)
-    expect(mocks.generateThumbnailUrl).toHaveBeenCalledTimes(1)
+    expect(mocks.generateClientPreview).toHaveBeenCalledTimes(1)
     expect(mocks.parseExifData).toHaveBeenCalledTimes(1)
     expect(mocks.parseExifData).toHaveBeenCalledWith(expect.objectContaining({ name: 'first.jpg' }))
   })
@@ -252,7 +255,10 @@ describe('participant-upload/participant-selected-files', () => {
       return {
         ...actual,
         createClientPhotoId: vi.fn(() => crypto.randomUUID()),
-        generateThumbnailUrl: vi.fn(async (file: File) => `blob:${file.name}`),
+        generateClientPreview: vi.fn(async (file: File) => ({
+          status: 'ready' as const,
+          url: `blob:${file.name}`,
+        })),
       }
     })
 

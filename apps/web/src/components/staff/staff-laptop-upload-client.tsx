@@ -96,14 +96,6 @@ function getStaffInitials(name?: string | null, email?: string | null) {
     .toUpperCase()
 }
 
-function getBlockedMessage(status: ParticipantExistenceStatus) {
-  if (status === 'verified') {
-    return 'This participant has already been verified. Upload changes must be handled from the admin dashboard.'
-  }
-
-  return 'This participant has already completed upload. Use the admin dashboard if the upload needs to be changed.'
-}
-
 function getUploadDisabledReason({
   isBusy,
   termsRequired,
@@ -153,6 +145,9 @@ export function StaffLaptopUploadClient({
   )
   const byCameraReplaceCompletedParticipantUpload = useStaffUploadStore(
     (s) => s.byCameraReplaceCompletedParticipantUpload,
+  )
+  const marathonReplaceCompletedUpload = useStaffUploadStore(
+    (s) => s.marathonReplaceCompletedUpload,
   )
 
   const resetForm = useStaffUploadStore((s) => s.resetForm)
@@ -332,6 +327,9 @@ export function StaffLaptopUploadClient({
       await uploadStatusQuery.refetch()
     },
     setStep,
+    // Marathon staff uploads finish once the photos reach S3 — they don't wait for
+    // server-side processing/finalization.
+    completeOnUpload: marathonMode === 'marathon',
   })
 
   async function runUpload(
@@ -359,6 +357,11 @@ export function StaffLaptopUploadClient({
     })
     resetCompletion()
 
+    // Tracks whether initialization succeeded and file uploads began. If init fails
+    // first, we send staff back to the photo step instead of stranding them on an
+    // empty progress screen.
+    let reachedUpload = false
+
     try {
       const commonPayload = {
         domain,
@@ -383,6 +386,9 @@ export function StaffLaptopUploadClient({
               termsAcceptanceSource: 'staff-on-behalf',
               uploadContentTypes: orderedPhotos.map((photo) => photo.file.type || 'image/jpeg'),
               uploadExif: buildUploadExifPayload(orderedPhotos),
+              ...(options?.replaceCompletedParticipantUpload
+                ? { replaceCompletedParticipantUpload: true }
+                : {}),
             })
           : await initializeStaffByCameraUploadMutation.mutateAsync({
               domain,
@@ -443,12 +449,22 @@ export function StaffLaptopUploadClient({
         submittedReference: resolvedReference,
       })
 
+      const isMarathon = marathonMode === 'marathon'
+      reachedUpload = true
+
       const { successKeys, failedKeys } = await uploadManualFiles({
         files: preparedUploads,
         onFileStateChange: updateUploadFileState,
+        // Staff marathon uploads treat the S3 upload itself as done, so each file reads
+        // as "Completed" the moment it lands instead of sitting on "Processing" while the
+        // rest of the batch uploads. The status sync hook completes the flow once every
+        // file is COMPLETED. By-camera keeps the default (PROCESSING) and polls.
+        ...(isMarathon ? { uploadedPhase: PARTICIPANT_UPLOAD_PHASE.COMPLETED } : {}),
       })
 
-      if (successKeys.length > 0) {
+      // By-camera waits for server-side processing via polling; marathon completes
+      // through the `completeOnUpload` path in useStaffUploadStatusSync.
+      if (!isMarathon && successKeys.length > 0) {
         patchUpload({ isPollingStatus: true })
       }
 
@@ -463,6 +479,13 @@ export function StaffLaptopUploadClient({
       const message = error instanceof Error ? error.message : 'Failed to initialize upload'
       patchUpload({ uploadErrorMessage: message })
       toast.error(message)
+      // Initialization failed before any file uploaded: surface the reason on the
+      // photo step and send staff back there rather than leaving them on an empty
+      // progress screen with no files to retry.
+      if (!reachedUpload) {
+        patchPhotos({ filesError: message })
+        void setStep('upload')
+      }
     } finally {
       patchUpload({ isUploadingFiles: false })
     }
@@ -477,6 +500,7 @@ export function StaffLaptopUploadClient({
       showOverwriteDialog: false,
       byCameraReplaceExistingTopicUpload: false,
       byCameraReplaceCompletedParticipantUpload: false,
+      marathonReplaceCompletedUpload: false,
     })
     patchPhotos({ filesError: null })
     resetPhotoSelection()
@@ -498,12 +522,24 @@ export function StaffLaptopUploadClient({
       patchParticipant({ participantStatus: resolvedStatus })
 
       if (outcome.kind === 'blocked') {
+        // A finished participant (completed or verified) is no longer a dead end: let
+        // staff replace the upload after an explicit confirmation. Verification can be
+        // automatic (verificationMode), so a verified status isn't necessarily a
+        // deliberate admin decision. Photos are never deleted from storage, so a
+        // mistaken replace can be corrected by an admin.
+        const participant = await queryClient.fetchQuery(
+          trpc.participants.getByReference.queryOptions({
+            domain,
+            reference: normalizedReference,
+          }),
+        )
+
         patchParticipant({
-          existingParticipant: null,
-          lookupErrorMessage: getBlockedMessage(resolvedStatus),
+          existingParticipant: participant as StaffParticipant,
+          marathonReplaceCompletedUpload: true,
+          lookupErrorMessage: null,
         })
-        resetForm(normalizedReference)
-        void setStep('reference')
+        void setStep('upload')
         return
       }
 
@@ -547,6 +583,7 @@ export function StaffLaptopUploadClient({
       showOverwriteDialog: false,
       byCameraReplaceExistingTopicUpload: false,
       byCameraReplaceCompletedParticipantUpload: false,
+      marathonReplaceCompletedUpload: false,
     })
     patchPhotos({ filesError: null })
     resetPhotoSelection()
@@ -762,7 +799,7 @@ export function StaffLaptopUploadClient({
         }
       : formValues
 
-    if (requiresOverwriteWarning) {
+    if (requiresOverwriteWarning || marathonReplaceCompletedUpload) {
       patchParticipant({ showOverwriteDialog: true })
       return
     }
@@ -770,7 +807,8 @@ export function StaffLaptopUploadClient({
     void setStep('progress')
     await runUpload(participantSummary.reference, selectedPhotos, participantPayload, {
       replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
-      replaceCompletedParticipantUpload: byCameraReplaceCompletedParticipantUpload,
+      replaceCompletedParticipantUpload:
+        byCameraReplaceCompletedParticipantUpload || marathonReplaceCompletedUpload,
     })
   }
 
@@ -792,7 +830,8 @@ export function StaffLaptopUploadClient({
       },
       {
         replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
-        replaceCompletedParticipantUpload: byCameraReplaceCompletedParticipantUpload,
+        replaceCompletedParticipantUpload:
+          byCameraReplaceCompletedParticipantUpload || marathonReplaceCompletedUpload,
       },
     )
   }
@@ -918,6 +957,7 @@ export function StaffLaptopUploadClient({
                       participantStatus: null,
                       byCameraReplaceExistingTopicUpload: false,
                       byCameraReplaceCompletedParticipantUpload: false,
+                      marathonReplaceCompletedUpload: false,
                     })
                     patchPhotos({ filesError: null })
 
@@ -966,6 +1006,7 @@ export function StaffLaptopUploadClient({
                         showOverwriteDialog: false,
                         byCameraReplaceExistingTopicUpload: false,
                         byCameraReplaceCompletedParticipantUpload: false,
+                        marathonReplaceCompletedUpload: false,
                       })
                       void setStep(marathonMode === 'by-camera' ? 'phone' : 'reference')
                       return
@@ -1046,11 +1087,33 @@ export function StaffLaptopUploadClient({
           }
         >
           <AlertDialogHeader>
-            <AlertDialogTitle>Replace existing upload?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This participant already has an upload in progress. Starting again will replace that
-              upload.
-            </AlertDialogDescription>
+            {marathonReplaceCompletedUpload ? (
+              <>
+                <AlertDialogTitle>Replace this participant&apos;s upload?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  {participantSummary?.reference ? (
+                    <>
+                      <span className="font-medium text-foreground">
+                        {participantSummary.reference}
+                      </span>{' '}
+                    </>
+                  ) : (
+                    'This participant '
+                  )}
+                  has already uploaded. Only continue if this is the right participant — replacing
+                  swaps in the new photos. The previous upload stays in storage and can be restored
+                  by an admin if needed.
+                </AlertDialogDescription>
+              </>
+            ) : (
+              <>
+                <AlertDialogTitle>Replace existing upload?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This participant already has an upload in progress. Starting again will replace
+                  that upload.
+                </AlertDialogDescription>
+              </>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-row gap-3">
             <AlertDialogCancel className="h-12 flex-1 rounded-full" disabled={isUploadBusy}>

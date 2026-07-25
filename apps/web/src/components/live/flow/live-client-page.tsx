@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
+import { parseAsStringLiteral, useQueryState } from 'nuqs'
 import { useTRPC } from '@/lib/trpc/client'
 import { useTranslations, useLocale, Locale } from 'next-intl'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,10 @@ import { changeLocaleAction } from '@/lib/actions/change-locale-action'
 import { useRouter } from 'next/navigation'
 import { useDomain } from '@/lib/domain-provider'
 import { getByCameraLiveAccessState } from '@/lib/by-camera/by-camera-live-access-state'
+import {
+  LIVE_PARTICIPATION_MODE_QUERY_PARAM,
+  LIVE_PARTICIPATION_MODES,
+} from '@/lib/flow/live-participation-mode'
 import { resolveLiveLandingSponsor } from '@/lib/sponsors/live-landing-sponsor'
 
 const LIVE_LANGUAGE_OPTIONS = [
@@ -42,6 +47,10 @@ export function LiveClientPage() {
   const locale = useLocale()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
+  const [preselectedMode] = useQueryState(
+    LIVE_PARTICIPATION_MODE_QUERY_PARAM,
+    parseAsStringLiteral(LIVE_PARTICIPATION_MODES),
+  )
 
   const setLocale = (locale: Locale) => {
     startTransition(async () => {
@@ -129,6 +138,7 @@ export function LiveClientPage() {
                 onUploadClick={handleStartUpload}
                 onPrepareClick={handleStartPrepare}
                 disabled={!termsAccepted}
+                preselectedMode={preselectedMode}
                 byCameraAccessState={byCameraAccessState}
                 activeTopic={byCameraAccessState?.activeTopic ?? null}
               />

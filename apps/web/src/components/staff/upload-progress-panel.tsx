@@ -1,12 +1,14 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { AlertTriangle, DownloadIcon, Loader2, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { PrimaryButton } from '@/components/ui/primary-button'
 import { useDomain } from '@/lib/domain-provider'
+import { useTRPC } from '@/lib/trpc/client'
 import { getUploadPhaseClassName, getUploadPhaseLabel } from '@/lib/upload-utils'
 import { PARTICIPANT_UPLOAD_PHASE } from '@/lib/participant-upload-types'
 import { uploadManualFiles } from '@/lib/manual-upload'
@@ -27,8 +29,13 @@ const POLLING_STALL_TIMEOUT_MS = 25_000
 
 export function UploadProgressPanel() {
   const domain = useDomain()
+  const trpc = useTRPC()
   const [, setStep] = useStaffUploadStep()
   const participantSummary = useStaffUploadParticipantSummary()
+
+  // Cached by the parent client's suspense query, so this resolves synchronously.
+  const { data: marathon } = useSuspenseQuery(trpc.marathons.getByDomain.queryOptions({ domain }))
+  const isMarathon = marathon.mode === 'marathon'
 
   const files = useStaffUploadStore((s) => s.uploadFiles)
   const isUploadingFiles = useStaffUploadStore((s) => s.isUploadingFiles)
@@ -76,9 +83,12 @@ export function UploadProgressPanel() {
       const { successKeys, failedKeys } = await uploadManualFiles({
         files: failedUploads,
         onFileStateChange: updateUploadFileState,
+        // Mirror the initial upload: marathon marks files COMPLETED on upload (the
+        // status sync hook then finishes the flow), by-camera polls for processing.
+        ...(isMarathon ? { uploadedPhase: PARTICIPANT_UPLOAD_PHASE.COMPLETED } : {}),
       })
 
-      if (successKeys.length > 0) {
+      if (!isMarathon && successKeys.length > 0) {
         patchUpload({ isPollingStatus: true })
       }
 

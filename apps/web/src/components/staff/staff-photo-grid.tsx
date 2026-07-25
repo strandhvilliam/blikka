@@ -138,12 +138,22 @@ export function StaffPhotoList({
                   STATUS_BORDER[status],
                 )}
               >
-                <div className="relative shrink-0 overflow-hidden rounded-lg bg-muted">
-                  <img
-                    src={photo.previewUrl}
-                    alt={photo.file.name}
-                    className="h-20 w-20 object-cover sm:h-24 sm:w-24"
-                  />
+                <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-muted sm:h-24 sm:w-24">
+                  {photo.previewUrl ? (
+                    <img
+                      src={photo.previewUrl}
+                      alt={photo.file.name}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="px-1.5 text-center">
+                      <p className="text-[10px] leading-tight text-muted-foreground">
+                        {photo.previewSkipReason === 'large-file'
+                          ? t('previewSkippedLarge')
+                          : t('previewUnavailable')}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5 py-0.5">

@@ -11,6 +11,7 @@ import {
   type UploadSessionRepositoryError,
 } from '@blikka/kv-store'
 import {
+  ABUSE_MAX_OBJECT_BYTES,
   ExifParser,
   ExifParserLayer,
   SharpImageService,
@@ -158,7 +159,8 @@ const makeSubmissionProcessor = Effect.gen(function* () {
   ) {
     const { key, domain, reference, orderIndex } = params
 
-    const submissionStateOpt = yield* uploadKv.getSubmissionState(domain, reference, orderIndex)
+    const { submission: submissionStateOpt, participant: participantStateOpt } =
+      yield* uploadKv.getSubmissionAndParticipantState(domain, reference, orderIndex)
     if (Option.isNone(submissionStateOpt)) {
       yield* Effect.logWarning('Missing initialized submission state', { key })
       return Option.none<ReadySubmissionContext>()
@@ -171,7 +173,6 @@ const makeSubmissionProcessor = Effect.gen(function* () {
 
     const uploadSessionId = submissionStateOpt.value.uploadSessionId ?? ''
 
-    const participantStateOpt = yield* uploadKv.getParticipantState(domain, reference)
     if (Option.isNone(participantStateOpt)) {
       yield* Effect.logWarning('Missing initialized participant state', { key })
       return Option.none<ReadySubmissionContext>()
@@ -195,6 +196,35 @@ const makeSubmissionProcessor = Effect.gen(function* () {
 
     if (submission.uploaded) {
       yield* Effect.logWarning('Submission already uploaded, continuing finalization')
+      return
+    }
+
+    const head = yield* s3.getHead(config.submissionsBucketName, key).pipe(
+      Effect.mapError((error) => {
+        return new PhotoNotFoundError({
+          message: 'Failed to get photo head from submissions bucket',
+          cause: error,
+          key,
+        })
+      }),
+    )
+
+    const contentLength = head.ContentLength ?? 0
+    if (contentLength > ABUSE_MAX_OBJECT_BYTES) {
+      yield* Effect.logWarning(
+        'Object exceeds abuse size ceiling; skipping decode and continuing without artifacts',
+        {
+          key,
+          contentLength,
+          abuseMaxObjectBytes: ABUSE_MAX_OBJECT_BYTES,
+        },
+      )
+      yield* uploadKv.updateSubmissionSession(domain, reference, orderIndex, {
+        uploaded: true,
+        orderIndex,
+        thumbnailKey: null,
+        exifProcessed: false,
+      })
       return
     }
 
@@ -228,12 +258,14 @@ const makeSubmissionProcessor = Effect.gen(function* () {
     )
     const seededExif = Option.filter(existingExifState, hasExifFields)
 
-    const [exifResult, thumbnailResult] = yield* Effect.all(
-      [
-        processExif(photo, domain, reference, orderIndex, seededExif),
-        generateThumbnail(photo, domain, reference, orderIndex, fileName),
-      ],
-      { concurrency: 2 },
+    // Sequential to keep peak RAM to one Sharp decode at a time for large Fine JPEGs.
+    const exifResult = yield* processExif(photo, domain, reference, orderIndex, seededExif)
+    const thumbnailResult = yield* generateThumbnail(
+      photo,
+      domain,
+      reference,
+      orderIndex,
+      fileName,
     )
 
     yield* uploadKv.updateSubmissionSession(domain, reference, orderIndex, {

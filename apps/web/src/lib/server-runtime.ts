@@ -4,20 +4,15 @@ import { createRuntime, type CoreServices } from '@blikka/runtime'
 import { AuthLayer } from './auth/layer'
 // import { TelemetryLayer } from "@blikka/telemetry"
 import { ApiLayer } from '@blikka/api/trpc'
-import type { BetterAuthService } from '@blikka/auth'
 
-const AppSpecificLayers = Layer.mergeAll(AuthLayer, ApiLayer)
+const AppLayer = Layer.mergeAll(AuthLayer, ApiLayer)
 
+/** Single shared runtime for web server entrypoints (tRPC, auth, route handlers). */
 export const serverRuntime = createRuntime({
-  additionalLayers: AppSpecificLayers,
+  additionalLayers: AppLayer,
 })
 
-/** Auth-only runtime — avoids building the full ApiLayer graph for session checks. */
-export const authServerRuntime = createRuntime({
-  additionalLayers: AuthLayer,
-})
-
-type ApiLayerServices = Layer.Success<typeof ApiLayer>
+type AppLayerServices = Layer.Success<typeof AppLayer>
 // type TelemetryServices = Layer.Success<ReturnType<typeof TelemetryLayer>>
 
-export type RuntimeDependencies = CoreServices | ApiLayerServices | BetterAuthService
+export type RuntimeDependencies = CoreServices | AppLayerServices

@@ -292,8 +292,8 @@ function generateParticipantReferenceSvg({
 
   const seqSvg = `
       <svg width="${seqWidth}" height="${seqHeight}">
-        <text x="${seqWidth / 2}" y="${seqHeight - layout.sequenceBottomMargin}" 
-              font-family="Arial, sans-serif" 
+        <text x="${seqWidth / 2}" y="${seqHeight - layout.sequenceBottomMargin}"
+              font-family="Liberation Sans, Arial, sans-serif"
               font-size="${seqFontSize}" 
               font-weight="bold"
               fill="black" 
@@ -314,8 +314,8 @@ function generateTextLabelSvg({
 }) {
   const textSvg = `
         <svg width="${sheetVariables.cellWidth}" height="${sheetVariables.textHeight}">
-          <text x="${Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)}" y="${sheetVariables.textHeight * layout.textVerticalPosition}" 
-                font-family="Arial, sans-serif" 
+          <text x="${Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)}" y="${sheetVariables.textHeight * layout.textVerticalPosition}"
+                font-family="Liberation Sans, Arial, sans-serif"
                 font-size="${layout.labelFontSize}" 
                 font-weight="medium"
                 fill="black" 
@@ -479,7 +479,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
 
             return []
           }),
-        { concurrency: 8 },
+        { concurrency: 2 },
       ).pipe(Effect.map((data) => data.flat()))
 
       const participantReferenceSvg = generateParticipantReferenceSvg({

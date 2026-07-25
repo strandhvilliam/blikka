@@ -65,14 +65,22 @@
         "titleExists": "Welcome back!",
         "titleNew": "New participant",
         "titlePrepared": "Prepared participant found",
+        "titleReplace": "Replace your upload?",
         "description": "Participant number {ref} already has saved details. Continuing will update the saved registration for this number.",
         "descriptionExists": "We found a session for participant number {ref}. Continue to proceed.",
         "descriptionNew": "This will create a new upload session for this participant number. Continue?",
         "descriptionPrepared": "Participant number {ref} is already prepared. Continue to start the actual upload flow now?",
+        "descriptionReplace": "Looks like someone already uploaded for participant <number>{ref}</number>! Is this you? You can replace the upload. If it wasn't you, please talk to a crew member.",
         "cancel": "Use another number",
         "cancelPrepared": "Cancel",
         "confirm": "Update registration",
-        "confirmPrepared": "Continue"
+        "confirmPrepared": "Continue",
+        "confirmReplace": "Replace upload"
+      },
+      "alreadyUploadedDialog": {
+        "title": "Already uploaded",
+        "description": "Looks like someone already uploaded for participant <number>{ref}</number>! If this wasn't you, please talk to a crew member.",
+        "confirm": "Got it"
       }
     },
     "steps": {
@@ -163,6 +171,8 @@
       "photoPreview": "Photo Preview",
       "previewUnavailable": "Preview could not be shown.",
       "previewUnavailableHint": "You can still upload this photo.",
+      "previewSkippedLarge": "Preview skipped for this large file.",
+      "previewSkippedLargeHint": "The photo will still upload normally.",
       "missingRequiredInfo": "Missing required participant information",
       "missingRequiredInfoDetailed": "Missing required information: {fields}",
       "missingParticipantNumber": "participant number",

@@ -5,6 +5,7 @@
   "private": true,
   "exports": {
     ".": "./src/index.ts",
+    "./constants": "./src/constants.ts",
     "./sharp": "./src/services/sharp-image-service.ts",
     "./canvas": "./src/services/canvas-image-service.ts",
     "./contact-sheet": "./src/services/contact-sheet-service.ts",

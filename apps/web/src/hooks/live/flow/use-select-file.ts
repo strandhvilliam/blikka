@@ -98,6 +98,7 @@ export function useSelectFile({ maxPhotos, t }: UseSelectFileOptions): UseSelect
               file: photo.file,
               exif: photo.exif,
               previewUrl: photo.preview,
+              previewSkipReason: photo.previewSkipReason,
               orderIndex: photo.orderIndex,
               preconvertedExif: photo.preconvertedExif,
             }),
@@ -154,6 +155,7 @@ export function useSelectFile({ maxPhotos, t }: UseSelectFileOptions): UseSelect
           exif: photo.exif,
           preconvertedExif: photo.preconvertedExif,
           preview: photo.previewUrl,
+          previewSkipReason: photo.previewSkipReason,
           orderIndex: photo.orderIndex,
         }))
 

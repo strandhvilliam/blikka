@@ -55,6 +55,7 @@ export function ParticipantNumberStep() {
   const trpc = useTRPC()
 
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+  const [blockedDialogOpen, setBlockedDialogOpen] = useState(false)
   const [pendingRef, setPendingRef] = useState('')
   const [existingParticipantStatus, setExistingParticipantStatus] = useState<string | null>(null)
   const [isCheckingParticipant, setIsCheckingParticipant] = useState(false)
@@ -62,6 +63,7 @@ export function ParticipantNumberStep() {
   const isMountedRef = useRef(true)
 
   useEffect(() => {
+    isMountedRef.current = true
     return () => {
       isMountedRef.current = false
     }
@@ -91,8 +93,14 @@ export function ParticipantNumberStep() {
           reference: paddedRef,
         })
 
-        if (participantCheck.status === 'completed' || participantCheck.status === 'verified') {
-          toast.error(t('participantNumber.blocked'))
+        const isFinalized =
+          participantCheck.status === 'completed' || participantCheck.status === 'verified'
+
+        // In the upload flow a finished participant can still re-upload (a confirmed
+        // replace). Prepare cannot re-prepare them — surface that in an informational
+        // dialog (not a dead-end toast) so crew know the number is already used.
+        if (isFinalized && flowVariant !== 'upload') {
+          setBlockedDialogOpen(true)
           return
         }
 
@@ -106,7 +114,11 @@ export function ParticipantNumberStep() {
           setConfirmDialogOpen(true)
         } else {
           setExistingParticipantStatus(null)
-          setUploadFlowState((prev) => ({ ...prev, participantRef: paddedRef }))
+          setUploadFlowState((prev) => ({
+            ...prev,
+            participantRef: paddedRef,
+            replaceCompletedParticipantUpload: null,
+          }))
           handleNextStep()
         }
       } catch (error) {
@@ -125,8 +137,15 @@ export function ParticipantNumberStep() {
     },
   })
 
+  const isFinalizedReplace =
+    existingParticipantStatus === 'completed' || existingParticipantStatus === 'verified'
+
   const handleConfirm = () => {
-    setUploadFlowState((prev) => ({ ...prev, participantRef: pendingRef }))
+    setUploadFlowState((prev) => ({
+      ...prev,
+      participantRef: pendingRef,
+      replaceCompletedParticipantUpload: isFinalizedReplace ? true : null,
+    }))
     setConfirmDialogOpen(false)
     handleNextStep()
   }
@@ -241,30 +260,73 @@ export function ParticipantNumberStep() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {existingParticipantStatus === 'prepared' && flowVariant === 'upload'
-                ? t('participantNumber.confirmDialog.titlePrepared')
-                : flowVariant === 'prepare'
-                  ? t('participantNumber.confirmDialog.title')
-                  : t('participantNumber.confirmDialog.titleExists')}
+              {isFinalizedReplace
+                ? t('participantNumber.confirmDialog.titleReplace')
+                : existingParticipantStatus === 'prepared' && flowVariant === 'upload'
+                  ? t('participantNumber.confirmDialog.titlePrepared')
+                  : flowVariant === 'prepare'
+                    ? t('participantNumber.confirmDialog.title')
+                    : t('participantNumber.confirmDialog.titleExists')}
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              {existingParticipantStatus === 'prepared' && flowVariant === 'upload'
-                ? t('participantNumber.confirmDialog.descriptionPrepared', { ref: pendingRef })
-                : flowVariant === 'prepare'
-                  ? t('participantNumber.confirmDialog.description', { ref: pendingRef })
-                  : t('participantNumber.confirmDialog.descriptionExists', { ref: pendingRef })}
+            <AlertDialogDescription className={isFinalizedReplace ? 'text-base leading-relaxed' : undefined}>
+              {isFinalizedReplace
+                ? t.rich('participantNumber.confirmDialog.descriptionReplace', {
+                    ref: pendingRef,
+                    number: (chunks) => (
+                      <span className="font-gothic font-medium text-foreground">{chunks}</span>
+                    ),
+                  })
+                : existingParticipantStatus === 'prepared' && flowVariant === 'upload'
+                  ? t('participantNumber.confirmDialog.descriptionPrepared', { ref: pendingRef })
+                  : flowVariant === 'prepare'
+                    ? t('participantNumber.confirmDialog.description', { ref: pendingRef })
+                    : t('participantNumber.confirmDialog.descriptionExists', { ref: pendingRef })}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className={isFinalizedReplace ? 'flex-row gap-3' : undefined}>
+            <AlertDialogCancel className={isFinalizedReplace ? 'mt-0 h-12 flex-1 rounded-full' : undefined}>
+              {isFinalizedReplace
+                ? t('participantNumber.confirmDialog.cancel')
+                : flowVariant === 'upload'
+                  ? t('participantNumber.confirmDialog.cancelPrepared')
+                  : t('participantNumber.confirmDialog.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirm}
+              className={
+                isFinalizedReplace
+                  ? 'h-12 flex-1 rounded-full bg-brand-primary text-white hover:bg-brand-primary hover:opacity-90'
+                  : undefined
+              }
+            >
+              {isFinalizedReplace
+                ? t('participantNumber.confirmDialog.confirmReplace')
+                : flowVariant === 'upload'
+                  ? t('participantNumber.confirmDialog.confirmPrepared')
+                  : t('participantNumber.confirmDialog.confirm')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={blockedDialogOpen} onOpenChange={setBlockedDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {t('participantNumber.alreadyUploadedDialog.title')}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-base leading-relaxed">
+              {t.rich('participantNumber.alreadyUploadedDialog.description', {
+                ref: pendingRef,
+                number: (chunks) => (
+                  <span className="font-gothic font-medium text-foreground">{chunks}</span>
+                ),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>
-              {flowVariant === 'upload'
-                ? t('participantNumber.confirmDialog.cancelPrepared')
-                : t('participantNumber.confirmDialog.cancel')}
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirm}>
-              {flowVariant === 'upload'
-                ? t('participantNumber.confirmDialog.confirmPrepared')
-                : t('participantNumber.confirmDialog.confirm')}
+            <AlertDialogAction className="h-12 w-full rounded-full bg-brand-primary text-white hover:bg-brand-primary hover:opacity-90">
+              {t('participantNumber.alreadyUploadedDialog.confirm')}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -31,6 +31,14 @@ interface UseStaffUploadStatusSyncOptions {
   uploadStatusData: UploadStatusData | undefined
   refetchUploadStatus: () => Promise<unknown>
   setStep: SetStepFn
+  /**
+   * When true, the flow finishes as soon as every file reaches the COMPLETED phase,
+   * without waiting for server-side processing or participant finalization. Used by
+   * staff marathon uploads, where staff only care that the photos reached S3. This
+   * also disables the status polling/realtime subscription, since there is nothing
+   * left to wait for.
+   */
+  completeOnUpload?: boolean
 }
 
 /**
@@ -45,6 +53,7 @@ export function useStaffUploadStatusSync({
   uploadStatusData,
   refetchUploadStatus,
   setStep,
+  completeOnUpload = false,
 }: UseStaffUploadStatusSyncOptions) {
   const trpc = useTRPC()
   const queryClient = useQueryClient()
@@ -155,6 +164,7 @@ export function useStaffUploadStatusSync({
     domain,
     reference: submittedReference,
     enabled:
+      !completeOnUpload &&
       submittedReference.length > 0 &&
       uploadFiles.length > 0 &&
       (isUploadingFiles || isPollingStatus),
@@ -222,6 +232,19 @@ export function useStaffUploadStatusSync({
 
     maybeHandleCompletion(true)
   }, [maybeHandleCompletion, uploadFiles])
+
+  // Marathon staff uploads finish on upload: complete as soon as every file reaches
+  // COMPLETED, ignoring participant finalization. `maybeHandleCompletion` already
+  // requires all files to be COMPLETED, so passing `true` here only skips the wait
+  // on the server-driven finalized signal. Also covers the retry path, which simply
+  // flips failed files back to COMPLETED once they re-upload.
+  useEffect(() => {
+    if (!completeOnUpload || completionHandledRef.current) {
+      return
+    }
+
+    maybeHandleCompletion(true)
+  }, [completeOnUpload, maybeHandleCompletion, uploadFiles])
 
   const resetCompletion = () => {
     completionHandledRef.current = false

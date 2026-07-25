@@ -36,7 +36,8 @@ import {
   ACCEPTED_IMAGE_TYPES,
   CONTACT_SHEET_FORMATS,
   CONTACT_SHEET_PHOTO_COUNTS,
-  MAX_IMAGE_FILE_BYTES,
+  formatMaxImageFileBytes,
+  getMaxImageFileBytesForType,
   SPONSOR_POSITIONS,
   type ContactSheetFormatKey,
   type ContactSheetPhotoCount,
@@ -57,8 +58,9 @@ function validateFile(file: File) {
     return false
   }
 
-  if (file.size > MAX_IMAGE_FILE_BYTES) {
-    toast.error(`"${file.name}" is larger than 25 MB`)
+  const maxBytes = getMaxImageFileBytesForType(file.type)
+  if (file.size > maxBytes) {
+    toast.error(`"${file.name}" is larger than ${formatMaxImageFileBytes(maxBytes)}`)
     return false
   }
 

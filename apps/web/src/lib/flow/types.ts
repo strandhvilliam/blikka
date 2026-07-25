@@ -20,12 +20,16 @@ export const FINALIZATION_STATE = {
 
 export type FinalizationState = (typeof FINALIZATION_STATE)[keyof typeof FINALIZATION_STATE]
 
+export type SelectedPhotoPreviewSkipReason = 'large-file'
+
 // Selected photo before upload
 export interface SelectedPhoto {
   id: string
   file: File
   exif: Record<string, unknown>
-  preview: string // Object URL for preview
+  preview: string | null // Object URL for preview; null when skipped/unavailable
+  /** Set when preview is intentionally skipped (e.g. large file) — not a failure. */
+  previewSkipReason?: SelectedPhotoPreviewSkipReason
   orderIndex: number
   preconvertedExif?: Record<string, unknown> | null // EXIF from before HEIC conversion
 }
@@ -44,7 +48,7 @@ export interface UploadFileState {
   orderIndex: number
   file: File
   presignedUrl: string
-  preview: string
+  preview: string | null
   contentType?: string
 
   // Upload state

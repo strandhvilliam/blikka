@@ -310,7 +310,7 @@ function ExifSection({ submission }: { submission: Submission }) {
           <button
             type="button"
             onClick={() => setShowAll((prev) => !prev)}
-            className="flex w-full items-center justify-between rounded-md px-1 py-1 text-[11.5px] font-medium text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+            className="flex w-full items-center justify-between rounded-lg border border-border/60 bg-white px-3 py-2 text-[11.5px] font-medium text-muted-foreground shadow-sm transition-colors hover:border-border hover:bg-[#fafaf8] hover:text-foreground focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
             aria-expanded={showAll}
           >
             <span className="inline-flex items-center gap-1.5">

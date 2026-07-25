@@ -7,7 +7,7 @@ import {
   type SubmissionState,
   UploadSessionRepository,
 } from '@blikka/kv-store'
-import { ExifParser, SharpImageService } from '@blikka/image-manipulation'
+import { ABUSE_MAX_OBJECT_BYTES, ExifParser, SharpImageService } from '@blikka/image-manipulation'
 import { Effect, Layer, Option, Ref } from 'effect'
 import { UploadsConfig } from './config'
 import {
@@ -33,6 +33,8 @@ interface TestState {
   readonly participant: ParticipantState | undefined
   readonly participantAfterIncrement: ParticipantState | undefined
   readonly files: Record<string, Uint8Array | undefined>
+  /** Optional HeadObject ContentLength override (defaults to file byteLength). */
+  readonly contentLengths: Record<string, number | undefined>
   readonly exif: Record<number, ExifState | undefined>
   readonly parseResult: Effect.Effect<ExifState, unknown>
   readonly resizeResult: Effect.Effect<Buffer, unknown>
@@ -96,6 +98,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   files: {
     [input.key]: photoBytes,
   },
+  contentLengths: {},
   exif: {},
   parseResult: Effect.succeed({ Make: 'Nikon', ISO: 200 }),
   resizeResult: Effect.succeed(thumbnailBytes),
@@ -117,6 +120,15 @@ const updateTestState = (ref: Ref.Ref<TestState>, f: (state: TestState) => TestS
 
 const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
   const s3 = S3Service.of({
+    getHead: (_bucket: string, key: string) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        const override = state.contentLengths[key]
+        const file = state.files[key]
+        return {
+          ContentLength: override ?? file?.byteLength ?? 0,
+        }
+      }),
     getFile: (bucket: string, key: string) =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
@@ -147,6 +159,18 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
         return Option.fromNullishOr(state.submissions[orderIndex])
+      }),
+    getSubmissionAndParticipantState: (_domain: string, _reference: string, orderIndex: number) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        const participant =
+          state.increments.length > 0 && state.participantAfterIncrement !== undefined
+            ? state.participantAfterIncrement
+            : state.participant
+        return {
+          submission: Option.fromNullishOr(state.submissions[orderIndex]),
+          participant: Option.fromNullishOr(participant),
+        }
       }),
     getAllSubmissionStates: () =>
       Effect.gen(function* () {
@@ -388,6 +412,38 @@ describe('SubmissionProcessor', () => {
       assert.deepStrictEqual(state.thumbnailPuts, [])
       assert.deepStrictEqual(state.increments, [])
       assert.deepStrictEqual(state.finalizedEvents, [])
+    }),
+  )
+
+  it.effect('skips decode when object exceeds abuse size ceiling', () =>
+    Effect.gen(function* () {
+      const { state } = yield* runWithState(
+        makeInitialState({
+          contentLengths: {
+            [input.key]: ABUSE_MAX_OBJECT_BYTES + 1,
+          },
+        }),
+        () =>
+          Effect.gen(function* () {
+            const processor = yield* SubmissionProcessor
+            yield* processor.process(input)
+          }),
+      )
+
+      assert.deepStrictEqual(state.s3Gets, [])
+      assert.deepStrictEqual(state.thumbnailPuts, [])
+      assert.deepStrictEqual(state.submissionUpdates, [
+        {
+          orderIndex: input.orderIndex,
+          state: {
+            uploaded: true,
+            orderIndex: input.orderIndex,
+            thumbnailKey: null,
+            exifProcessed: false,
+          },
+        },
+      ])
+      assert.deepStrictEqual(state.increments, [input.orderIndex])
     }),
   )
 

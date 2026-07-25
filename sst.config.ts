@@ -150,9 +150,9 @@ export default $config({
       {
         handler: './tasks/upload-processor/src/index.handler',
         timeout: '2 minutes',
-        // Headroom for Sharp decoding up to recordConcurrency*inputConcurrency full-res photos
-        // at once (avoids OOM on large HEIC/24MP uploads); also raises CPU for faster resize.
-        memory: '2048 MB',
+        // Headroom for Sharp decoding large Fine JPEGs (~45–100MP). In-invocation concurrency is
+        // kept low (recordConcurrency×inputConcurrency = 2) so peak RAM stays predictable.
+        memory: '3008 MB',
         environment: env,
         nodejs: {
           install: ['sharp'],
@@ -198,14 +198,29 @@ export default $config({
         timeout: '3 minutes',
         // Reserved floor so contact-sheet generation can't be starved by an upload-processor burst.
         concurrency: { reserved: 50 },
+        // Heaviest Sharp stage: holds all N originals (up to 24) in memory per sheet, decodes
+        // cells with concurrency 8 (~70-100 MB per decoded 24 MP photo), and composites a
+        // 33-52 MP canvas — two sheets in flight per invocation (recordConcurrency: 2).
+        memory: '4096 MB',
         nodejs: {
           install: ['sharp'],
         },
-        environment: env,
+        // The Lambda runtime ships with no fonts, so libvips (via Sharp) renders SVG
+        // <text> as .notdef boxes. Bundle Liberation Sans and point fontconfig at it.
+        copyFiles: [{ from: 'tasks/contact-sheet-generator/assets/fonts', to: 'fonts' }],
+        environment: {
+          ...env,
+          // Dir containing the bundled fonts.conf (copyFiles lands these at /var/task/fonts).
+          FONTCONFIG_PATH: '/var/task/fonts',
+        },
         link: [sheetGeneratorQueue, contactSheetsBucket, submissionsBucket, sponsorBucket],
       },
       {
         batch: {
+          // An OOM or timeout kills the whole invocation and redelivers every message in the
+          // batch (partial responses only cover per-record failures), so keep the blast radius
+          // at 2 sheets; reserved: 50 above carries the aggregate throughput.
+          size: 2,
           partialResponses: true,
         },
       },

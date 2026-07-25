@@ -8,7 +8,7 @@ import {
   COMMON_IMAGE_EXTENSIONS,
   createClientPhotoId,
   filterDuplicateImageCandidates,
-  generateThumbnailUrl,
+  generateClientPreview,
   limitImageCandidates,
   normalizeSelectedImageFiles,
   reassignOrderIndexes,
@@ -38,14 +38,15 @@ async function createParticipantSelectedPhoto(candidate: {
   const parsedExif = candidate.preconvertedExif
     ? candidate.preconvertedExif
     : await parseExifData(candidate.file)
-  const previewUrl = await generateThumbnailUrl(candidate.file)
+  const preview = await generateClientPreview(candidate.file)
 
   return {
     id: createClientPhotoId(),
     file: candidate.file,
     exif: candidate.preconvertedExif || parsedExif || {},
     preconvertedExif: candidate.preconvertedExif,
-    previewUrl,
+    previewUrl: preview.status === 'ready' ? preview.url : null,
+    previewSkipReason: preview.status === 'skipped-large' ? preview.reason : undefined,
     orderIndex: 0,
   }
 }
