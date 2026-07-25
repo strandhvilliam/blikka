@@ -26,7 +26,7 @@ const makePubSubService = Effect.gen(function* () {
       const channelString = yield* PubSubChannel.toString(channel)
       return yield* redis.use((client) => client.publish(channelString, message))
     },
-    Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
+    Effect.retry(Schedule.max([Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)])),
     Effect.mapError(
       (error) => new PubSubError({ cause: error, message: 'Failed to publish message' }),
     ),

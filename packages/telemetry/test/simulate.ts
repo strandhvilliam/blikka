@@ -34,4 +34,4 @@ const NodeSdkLive = NodeSdk.layer(() => ({
   spanProcessor: new BatchSpanProcessor(new OTLPTraceExporter()),
 }))
 
-Effect.runPromise(program.pipe(Effect.provide(NodeSdkLive), Effect.catchAllCause(Effect.logError)))
+Effect.runPromise(program.pipe(Effect.provide(NodeSdkLive), Effect.catchCause(Effect.logError)))

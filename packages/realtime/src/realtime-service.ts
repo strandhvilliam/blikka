@@ -35,7 +35,7 @@ const makeRealtimeService = Effect.gen(function* () {
       catch: (error) =>
         new RealtimeError({ message: 'Failed to emit realtime event', cause: error }),
     }).pipe(
-      Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
+      Effect.retry(Schedule.max([Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)])),
     )
   })
 

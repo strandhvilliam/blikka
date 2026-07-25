@@ -369,7 +369,7 @@ const makeZipDownloader = Effect.gen(function* () {
         ),
         Effect.retry({
           while: (error) => error._tag === 'S3ClientError',
-          schedule: Schedule.both(Schedule.exponential(Duration.millis(200)), Schedule.recurs(3)),
+          schedule: Schedule.max([Schedule.exponential(Duration.millis(200)), Schedule.recurs(3)]),
         }),
       )
 

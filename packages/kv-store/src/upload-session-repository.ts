@@ -245,7 +245,7 @@ const FINALIZE_EVENT_CLAIM_TTL_SECONDS = 60 * 60 * 24 * 30
 
 const makeUploadSessionRepository = Effect.gen(function* () {
   const redis = yield* RedisClient
-  const retryPolicy = Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))
+  const retryPolicy = Schedule.max([Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)])
 
   const parseKey = Effect.fnUntraced(function* (key: string) {
     const [domain, reference, formattedOrderIndex, fileName] = key.split('/')

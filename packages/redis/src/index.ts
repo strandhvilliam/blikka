@@ -35,7 +35,7 @@ export const RedisClientLayer = Layer.effect(
     //     })
     //     return client
     //   },
-    //   Effect.retry(Schedule.both(Schedule.exponential(Duration.seconds(1)), Schedule.recurs(3))),
+    //   Effect.retry(Schedule.max([Schedule.exponential(Duration.seconds(1)), Schedule.recurs(3)])),
     //   Effect.catchAll((error) =>
     //     Effect.logError(error.message ?? 'Redis connection failed after retries'),
     //   ),

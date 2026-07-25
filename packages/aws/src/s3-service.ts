@@ -221,7 +221,7 @@ const makeS3Service = Effect.gen(function* () {
       })
       return yield* s3Client.use((client) => client.send(putObjectCommand))
     },
-    Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
+    Effect.retry(Schedule.max([Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)])),
     Effect.mapError((error) => {
       return new S3ClientError({
         cause: error,
@@ -265,7 +265,7 @@ const makeS3Service = Effect.gen(function* () {
       })
       return yield* s3Client.use((client) => client.send(deleteObjectCommand))
     },
-    Effect.retry(Schedule.both(Schedule.exponential(Duration.millis(100)), Schedule.recurs(3))),
+    Effect.retry(Schedule.max([Schedule.exponential(Duration.millis(100)), Schedule.recurs(3)])),
     Effect.mapError((error) => {
       return new S3ClientError({
         cause: error,

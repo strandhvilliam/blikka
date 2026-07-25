@@ -43,6 +43,9 @@ yarn-error.log*
 # sst
 .sst
 
+# Vendored Effect source for local research (see scripts/prepare-effect.sh)
+.repos/effect
+
 
 */**/.prettierrc
 .prettierrc
@@ -54,7 +57,8 @@ yarn-error.log*
 # migrations
 
 
-scripts 
+scripts/*
+!scripts/prepare-effect.sh
 
 
 
