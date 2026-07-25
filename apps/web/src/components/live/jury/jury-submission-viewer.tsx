@@ -13,7 +13,7 @@ import {
 import { useTRPC } from '@/lib/trpc/client'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { parseAsInteger, useQueryState } from 'nuqs'
-import { ArrowLeft, ChevronLeft, ChevronRight, ImageOff, Loader2, Maximize2 } from 'lucide-react'
+import { ArrowLeft, ChevronLeft, ChevronRight, Loader2, Maximize2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { getParticipantAssetUrl } from '@/lib/jury/jury-utils'
@@ -29,10 +29,8 @@ import { useJuryLocalRatingSync } from '@/hooks/live/jury/use-jury-local-rating-
 import { useJuryNotesDebouncedSave } from '@/hooks/live/jury/use-jury-notes-debounced-save'
 import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
 import { useJuryShortlist } from '@/hooks/live/jury/use-jury-shortlist'
-import {
-  SubmissionOptimizedOriginalImage,
-  SubmissionRawOriginalImage,
-} from '@/components/submission-image'
+import { useJurySubmissionPreload } from '@/hooks/live/jury/use-jury-submission-preload'
+import { JurySubmissionPhoto } from './jury-submission-photo'
 
 export function JurySubmissionViewer({ initialIndex }: { initialIndex: number }) {
   const { selectedRatings, backToList } = useJuryReviewQueryState()
@@ -67,13 +65,26 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
   const [isSaving, setIsSaving] = useState(false)
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false)
 
-  const currentParticipant = participants[currentParticipantIndex] ?? participants[0] ?? null
+  const activeIndex = participants[currentParticipantIndex] ? currentParticipantIndex : 0
+  const currentParticipant = participants[activeIndex] ?? null
   const currentParticipantId = currentParticipant?.id ?? null
   const currentAssetUrl = getParticipantAssetUrl(currentParticipant, invitation)
   const currentAssetId = String(currentParticipant?.submission?.id ?? currentParticipant?.id ?? '')
+
   const canOpenFullscreen = Boolean(currentAssetUrl && !imageErrors.has(currentAssetId))
   const canGoToPrev = currentParticipantIndex > 0
   const canGoToNext = currentParticipantIndex < participants.length - 1
+
+  const assetUrls = useMemo(
+    () => participants.map((participant) => getParticipantAssetUrl(participant, invitation)),
+    [participants, invitation],
+  )
+
+  useJurySubmissionPreload({
+    assetUrls,
+    activeIndex,
+    isContactSheet: invitation.inviteType === 'class',
+  })
 
   const existingRating = useMemo(
     () =>
@@ -304,35 +315,13 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
         {/* Image + sidebar */}
         <div className="grid xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="group relative flex min-h-[55vh] items-center justify-center bg-neutral-100 xl:min-h-[65vh]">
-            {currentAssetUrl && !imageErrors.has(currentAssetId) ? (
-              invitation.inviteType === 'class' ? (
-                <SubmissionRawOriginalImage
-                  src={currentAssetUrl}
-                  alt={currentParticipant.reference}
-                  className="max-h-[75vh] max-w-full object-contain"
-                  onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
-                />
-              ) : (
-                <SubmissionOptimizedOriginalImage
-                  src={currentAssetUrl}
-                  alt={currentParticipant.reference}
-                  className="max-h-[75vh] max-w-full object-contain"
-                  onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
-                />
-              )
-            ) : (
-              <div className="flex max-w-sm flex-col items-center justify-center px-6 text-center">
-                <ImageOff className="mb-4 h-12 w-12 text-brand-gray/30" />
-                <p className="font-gothic text-lg font-bold text-brand-black/60">
-                  {invitation.inviteType === 'class'
-                    ? 'Contact sheet unavailable'
-                    : 'Image unavailable'}
-                </p>
-                <p className="mt-2 text-sm text-brand-gray">
-                  The asset could not be loaded for this participant.
-                </p>
-              </div>
-            )}
+            <JurySubmissionPhoto
+              key={currentAssetId}
+              src={imageErrors.has(currentAssetId) ? undefined : currentAssetUrl}
+              alt={currentParticipant.reference}
+              isContactSheet={invitation.inviteType === 'class'}
+              onError={() => setImageErrors((prev) => new Set(prev).add(currentAssetId))}
+            />
 
             {canOpenFullscreen ? (
               <button
