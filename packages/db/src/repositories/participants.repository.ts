@@ -5,11 +5,24 @@ import {
   participantTermsAcceptances,
   submissions,
   validationResults,
-  votingRound,
   votingRoundVote,
   votingSession,
 } from '../schema'
-import { eq, and, or, inArray, gt, lt, ilike, notInArray, isNotNull, count, sql } from 'drizzle-orm'
+import {
+  eq,
+  and,
+  or,
+  inArray,
+  gt,
+  lt,
+  ilike,
+  notInArray,
+  isNotNull,
+  count,
+  sql,
+  exists,
+  notExists,
+} from 'drizzle-orm'
 import type {
   CompetitionClass,
   ContactSheet,
@@ -216,7 +229,22 @@ export class ParticipantsRepository extends Context.Service<
 >()('@blikka/db/participants-repository') {}
 
 const makeParticipantsRepository = Effect.gen(function* () {
-  const { use } = yield* DrizzleClient
+  const { use, client } = yield* DrizzleClient
+
+  /**
+   * Scalar subquery for the newest round of a topic.
+   *
+   * Voted/not-voted always means "in the round currently being voted on", never
+   * "in any round the participant has ever seen".
+   */
+  const latestRoundIdForTopic = (topicId: number) => sql`(
+    select vr.id
+    from voting_round vr
+    where vr.topic_id = ${topicId}
+    order by vr.round_number desc, vr.id desc
+    limit 1
+  )`
+
   const getParticipantById: ParticipantsRepository['Service']['getParticipantById'] = Effect.fn(
     'ParticipantsRepository.getParticipantByIdQuery',
   )(function* ({ id }) {
@@ -376,96 +404,58 @@ const makeParticipantsRepository = Effect.gen(function* () {
       if (includeStatuses && includeStatuses.length > 0) {
         baseConditions.push(inArray(participants.status, [...includeStatuses]))
       }
+      // The three filters below correlate on `participants.id` rather than
+      // materialising an id list in the app and sending it back as a giant
+      // `IN (...)`. At event scale that list is the whole marathon.
       if (hasValidationErrors) {
-        const participantsWithErrors = yield* use((db) =>
-          db
-            .selectDistinct({
-              participantId: validationResults.participantId,
-            })
-            .from(validationResults)
-            .innerJoin(participants, eq(participants.id, validationResults.participantId))
-            .where(
-              and(
-                eq(participants.domain, domain),
-                eq(validationResults.outcome, VALIDATION_OUTCOME.FAILED),
-                or(
-                  eq(validationResults.severity, 'error'),
-                  eq(validationResults.severity, 'warning'),
+        baseConditions.push(
+          exists(
+            client
+              .select({ one: sql<number>`1` })
+              .from(validationResults)
+              .where(
+                and(
+                  eq(validationResults.participantId, participants.id),
+                  eq(validationResults.outcome, VALIDATION_OUTCOME.FAILED),
+                  or(
+                    eq(validationResults.severity, 'error'),
+                    eq(validationResults.severity, 'warning'),
+                  ),
                 ),
               ),
-            ),
+          ),
         )
-        const participantIdsWithErrors = participantsWithErrors.map((p) => p.participantId)
-        if (participantIdsWithErrors.length === 0) {
-          return {
-            participants: [],
-            nextCursor: null,
-          }
-        }
-        baseConditions.push(inArray(participants.id, participantIdsWithErrors))
       }
       if (topicId !== undefined) {
-        const participantsWithTopicSubmissions = yield* use((db) =>
-          db
-            .selectDistinct({ participantId: submissions.participantId })
-            .from(submissions)
-            .innerJoin(participants, eq(participants.id, submissions.participantId))
-            .where(and(eq(participants.domain, domain), eq(submissions.topicId, topicId))),
-        )
-        const participantIdsWithTopicSubmissions = participantsWithTopicSubmissions.map(
-          (p) => p.participantId,
-        )
-        if (participantIdsWithTopicSubmissions.length === 0) {
-          return {
-            participants: [],
-            nextCursor: null,
-          }
-        }
-        baseConditions.push(inArray(participants.id, participantIdsWithTopicSubmissions))
-      }
-      if ((votedFilter === 'voted' || votedFilter === 'not-voted') && topicId !== undefined) {
-        const participantsWhoVoted = yield* use((db) =>
-          db
-            .selectDistinct({
-              participantId: votingSession.connectedParticipantId,
-            })
-            .from(votingRoundVote)
-            .innerJoin(votingSession, eq(votingSession.id, votingRoundVote.sessionId))
-            .innerJoin(participants, eq(participants.id, votingSession.connectedParticipantId))
-            .innerJoin(votingRound, eq(votingRound.id, votingRoundVote.roundId))
-            .where(
-              and(
-                eq(participants.domain, domain),
-                eq(votingSession.topicId, topicId),
-                eq(
-                  votingRoundVote.roundId,
-                  sql`(
-                      select vr.id
-                      from voting_round vr
-                      where vr.topic_id = ${topicId}
-                      order by vr.round_number desc, vr.id desc
-                      limit 1
-                    )`,
+        baseConditions.push(
+          exists(
+            client
+              .select({ one: sql<number>`1` })
+              .from(submissions)
+              .where(
+                and(
+                  eq(submissions.participantId, participants.id),
+                  eq(submissions.topicId, topicId),
                 ),
               ),
-            ),
+          ),
         )
-        const participantIdsWhoVoted = participantsWhoVoted
-          .map((p) => p.participantId)
-          .filter((id): id is number => id !== null)
-        if (votedFilter === 'voted') {
-          if (participantIdsWhoVoted.length === 0) {
-            return {
-              participants: [],
-              nextCursor: null,
-            }
-          }
-          baseConditions.push(inArray(participants.id, participantIdsWhoVoted))
-        } else {
-          if (participantIdsWhoVoted.length > 0) {
-            baseConditions.push(notInArray(participants.id, participantIdsWhoVoted))
-          }
-        }
+      }
+      if ((votedFilter === 'voted' || votedFilter === 'not-voted') && topicId !== undefined) {
+        const votedInLatestRound = client
+          .select({ one: sql<number>`1` })
+          .from(votingRoundVote)
+          .innerJoin(votingSession, eq(votingSession.id, votingRoundVote.sessionId))
+          .where(
+            and(
+              eq(votingSession.connectedParticipantId, participants.id),
+              eq(votingSession.topicId, topicId),
+              eq(votingRoundVote.roundId, latestRoundIdForTopic(topicId)),
+            ),
+          )
+        baseConditions.push(
+          votedFilter === 'voted' ? exists(votedInLatestRound) : notExists(votedInLatestRound),
+        )
       }
       const whereCondition =
         baseConditions.length === 1 ? baseConditions[0] : and(...baseConditions)
