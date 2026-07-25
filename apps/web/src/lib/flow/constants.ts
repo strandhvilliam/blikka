@@ -1,3 +1,5 @@
+import { TRPCClientError } from '@trpc/client'
+
 export const PARTICIPANT_SUBMISSION_STEPS = {
   ParticipantNumberStep: 1,
   ParticipantDetailsStep: 2,
@@ -42,3 +44,29 @@ export const PARTICIPANT_FINALIZATION_TIMEOUT_MS = 1000 * 60 // 1 minute
 /** Retries for status queries during upload finalization (transient network). */
 export const UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT = 3
 export const UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS = 10_000
+
+/**
+ * A 429 from the reference rate limit is a ceiling, not a transient fault —
+ * retrying it is the exact behaviour the ceiling exists to stop. Everything else
+ * keeps the normal retry budget.
+ */
+export function shouldRetryStatusQuery(failureCount: number, error: unknown): boolean {
+  if (isTooManyRequestsError(error)) {
+    return false
+  }
+
+  return failureCount < UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT
+}
+
+function isTooManyRequestsError(error: unknown): boolean {
+  if (!(error instanceof TRPCClientError)) {
+    return false
+  }
+
+  const data: unknown = error.data
+  if (typeof data !== 'object' || data === null) {
+    return false
+  }
+
+  return Reflect.get(data, 'code') === 'TOO_MANY_REQUESTS'
+}

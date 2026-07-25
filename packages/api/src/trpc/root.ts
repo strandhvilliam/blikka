@@ -5,6 +5,7 @@ import type { BetterAuthService, Session } from '@blikka/auth'
 import type { CoreServices } from '@blikka/runtime'
 import { ApiLayer } from '../layer'
 import { assertMatchingInputDomain } from './domain-input-middleware'
+import { PollRateLimiter, pollRateLimitIdentifier } from './poll-rate-limit'
 
 type ApiLayerServices = Layer.Success<typeof ApiLayer>
 
@@ -67,6 +68,35 @@ export const authProcedure = t.procedure.use(async ({ next, ctx }) => {
 
 export const requireMatchingInputDomainMiddleware = t.middleware(async ({ next, ctx, input }) => {
   assertMatchingInputDomain(ctx.domain, input)
+  return next()
+})
+
+/**
+ * Backstop for the unauthenticated procedures that clients poll: it keeps a
+ * browser stuck in a retry loop from reaching Postgres unbounded.
+ *
+ * Chain it after `input(...)` so the parsed `(domain, reference)` pair is
+ * available to key on. Inputs without that pair pass through unlimited, which is
+ * why this belongs only on reference-scoped procedures.
+ */
+export const rateLimitByReferenceMiddleware = t.middleware(async ({ next, ctx, input }) => {
+  const identifier = pollRateLimitIdentifier(input)
+
+  if (!identifier) {
+    return next()
+  }
+
+  const decision = await ctx.runtime.runPromise(PollRateLimiter.use((s) => s.check(identifier)))
+
+  if (!decision.allowed) {
+    // Reaches a participant verbatim: `use-file-upload` toasts mutation error
+    // messages as-is, so this is phrased for them rather than for a log line.
+    throw new TRPCError({
+      code: 'TOO_MANY_REQUESTS',
+      message: `Too many requests. Please wait ${decision.retryAfterSeconds} seconds and try again.`,
+    })
+  }
+
   return next()
 })
 

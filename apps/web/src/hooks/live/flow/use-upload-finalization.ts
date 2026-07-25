@@ -12,7 +12,7 @@ import {
   PARTICIPANT_FINALIZATION_REALTIME_POLL_INTERVAL_MS,
   PARTICIPANT_FINALIZATION_TIMEOUT_MS,
   UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
-  UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
+  shouldRetryStatusQuery,
 } from '@/lib/flow/constants'
 import { useRealtimeHealth } from '@/lib/use-realtime-health'
 import { useUploadStatusRealtime } from '@/lib/use-upload-status-realtime'
@@ -147,7 +147,7 @@ export function useUploadFinalization({ domain, reference }: UseUploadFinalizati
             : PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS
           : false,
         refetchIntervalInBackground: true,
-        retry: UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
+        retry: shouldRetryStatusQuery,
         retryDelay: (attemptIndex) =>
           Math.min(1000 * 2 ** attemptIndex, UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS),
       },

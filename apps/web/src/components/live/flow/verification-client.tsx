@@ -29,6 +29,7 @@ import {
   type MarathonVerificationMode,
   type ValidationDecision,
 } from '@/lib/flow/verification-routing'
+import { shouldRetryStatusQuery } from '@/lib/flow/constants'
 
 interface VerificationClientProps {
   participantRef: string
@@ -49,6 +50,7 @@ const LIVE_QUERY_REFETCH_OPTIONS = {
   refetchOnMount: true,
   refetchOnWindowFocus: true,
   refetchOnReconnect: true,
+  retry: shouldRetryStatusQuery,
 } as const
 
 const VERIFICATION_TONE_STYLES = {
@@ -153,6 +155,7 @@ export function VerificationClient({
     data: participant,
     refetch: refetchParticipant,
     isLoading,
+    isError: participantIsError,
   } = useQuery(
     trpc.participants.getPublicParticipantByReference.queryOptions(
       {
@@ -194,10 +197,13 @@ export function VerificationClient({
       return
     }
 
-    if (!isLoading && !participant) {
+    // Only a resolved "no such participant" is a 404. A failed request (rate
+    // limited, offline, server error) leaves `participant` undefined too, and
+    // 404-ing on it would strand someone mid-verification over a transient blip.
+    if (!isLoading && !participantIsError && !participant) {
       notFound()
     }
-  }, [confirmationHref, isLoading, participant, router, verificationMode])
+  }, [confirmationHref, isLoading, participant, participantIsError, router, verificationMode])
 
   useEffect(() => {
     if (!shouldShowValidationCheck) return

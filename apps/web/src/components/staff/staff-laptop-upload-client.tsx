@@ -22,6 +22,7 @@ import {
   type ParticipantSelectedPhoto,
   type ParticipantUploadFileState,
 } from '@/lib/participant-upload-types'
+import { shouldRetryStatusQuery } from '@/lib/flow/constants'
 import { uploadManualFiles } from '@/lib/manual-upload'
 import { buildUploadExifPayload } from '@/lib/upload-exif'
 import { Button } from '@/components/ui/button'
@@ -228,6 +229,7 @@ export function StaffLaptopUploadClient({
         enabled: isPollingStatus && submittedReference.length > 0 && uploadFiles.length > 0,
         refetchInterval: POLLING_INTERVAL_MS,
         refetchIntervalInBackground: false,
+        retry: shouldRetryStatusQuery,
       },
     ),
   )

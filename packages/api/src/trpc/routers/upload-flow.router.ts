@@ -15,6 +15,7 @@ import {
   createTRPCRouter,
   domainProcedure,
   publicProcedure,
+  rateLimitByReferenceMiddleware,
   requireMatchingInputDomainMiddleware,
 } from '../root'
 import { UploadFlowService } from '../../core/upload-flow/service'
@@ -60,16 +61,20 @@ export const uploadFlowRouter = createTRPCRouter({
       ),
     ),
 
-  getUploadStatus: publicProcedure.input(Schema.toStandardSchemaV1(GetUploadStatusSchema)).query(
-    trpcEffect(
-      Effect.fn('UploadFlowRouter.getUploadStatus')(function* ({ input }) {
-        return yield* UploadFlowService.use((s) => s.getUploadStatus(input))
-      }),
+  getUploadStatus: publicProcedure
+    .input(Schema.toStandardSchemaV1(GetUploadStatusSchema))
+    .use(rateLimitByReferenceMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn('UploadFlowRouter.getUploadStatus')(function* ({ input }) {
+          return yield* UploadFlowService.use((s) => s.getUploadStatus(input))
+        }),
+      ),
     ),
-  ),
 
   getParticipantValidationStatus: publicProcedure
     .input(Schema.toStandardSchemaV1(GetParticipantValidationStatusSchema))
+    .use(rateLimitByReferenceMiddleware)
     .query(
       trpcEffect(
         Effect.fn('UploadFlowRouter.getParticipantValidationStatus')(function* ({ input }) {
@@ -80,6 +85,7 @@ export const uploadFlowRouter = createTRPCRouter({
 
   refreshPresignedUploads: publicProcedure
     .input(Schema.toStandardSchemaV1(RefreshPresignedUploadsSchema))
+    .use(rateLimitByReferenceMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn('UploadFlowRouter.refreshPresignedUploads')(function* ({ input }) {

@@ -2,6 +2,7 @@ import {
   createTRPCRouter,
   domainProcedure,
   publicProcedure,
+  rateLimitByReferenceMiddleware,
   requireMatchingInputDomainMiddleware,
 } from '../root'
 import { trpcEffect } from '../utils'
@@ -23,6 +24,7 @@ import { ParticipantsService } from '../../core/participants/service'
 export const participantRouter = createTRPCRouter({
   getPublicParticipantByReference: publicProcedure
     .input(Schema.toStandardSchemaV1(GetPublicParticipantByReferenceInputSchema))
+    .use(rateLimitByReferenceMiddleware)
     .query(
       trpcEffect(
         Effect.fn('ParticipantRouter.getPublicParticipantByReference')(function* ({ input }) {
@@ -39,6 +41,7 @@ export const participantRouter = createTRPCRouter({
   /** Status-only sibling of `getPublicParticipantByReference`; polled during upload finalization. */
   getPublicParticipantStatus: publicProcedure
     .input(Schema.toStandardSchemaV1(GetPublicParticipantByReferenceInputSchema))
+    .use(rateLimitByReferenceMiddleware)
     .query(
       trpcEffect(
         Effect.fn('ParticipantRouter.getPublicParticipantStatus')(function* ({ input }) {
