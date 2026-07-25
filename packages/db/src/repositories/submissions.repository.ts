@@ -3,13 +3,9 @@ import { DrizzleClient } from '../drizzle-client'
 import { participants, submissions, zippedSubmissions } from '../schema'
 import { eq, inArray } from 'drizzle-orm'
 import type {
-  CompetitionClass,
-  DeviceGroup,
   NewSubmission,
   NewZippedSubmission,
-  Participant,
   Submission,
-  Topic,
   ZippedSubmission,
 } from '../types'
 import { DbError } from '../utils'
@@ -24,14 +20,6 @@ interface SubmissionVoteRealtimePayload {
   participantReference: string
   participantFirstName: string
   participantLastName: string
-}
-
-interface SubmissionsForJuryQuery extends Submission {
-  topic: Topic
-  participant: Participant & {
-    competitionClass: CompetitionClass | null
-    deviceGroup: DeviceGroup | null
-  }
 }
 
 export class SubmissionsRepository extends Context.Service<
@@ -74,15 +62,6 @@ export class SubmissionsRepository extends Context.Service<
       participantId: number
       topicId: number
     }) => Effect.Effect<Option.Option<Submission>, DbError>
-    /** Jury submission query with participant, class, group, and topic data. */
-    readonly getSubmissionsForJuryQuery: (params: {
-      filters: {
-        domain: string
-        competitionClassId?: number | null
-        deviceGroupId?: number | null
-        topicId?: number | null
-      }
-    }) => Effect.Effect<SubmissionsForJuryQuery[], DbError>
     /** Insert a new submission row. */
     readonly createSubmission: (params: {
       data: NewSubmission
@@ -269,51 +248,6 @@ const makeSubmissionsRepository = Effect.gen(function* () {
       return Option.fromNullishOr(result)
     })
 
-  const getSubmissionsForJuryQuery: SubmissionsRepository['Service']['getSubmissionsForJuryQuery'] =
-    Effect.fn('SubmissionsRepository.getSubmissionsForJury')(function* ({ filters }) {
-      const marathon = yield* use((db) =>
-        db.query.marathons.findFirst({
-          where: (table, operators) => operators.eq(table.domain, filters.domain),
-        }),
-      )
-      if (!marathon) {
-        return []
-      }
-      const result = yield* use((db) =>
-        db.query.submissions.findMany({
-          where: (table, operators) =>
-            operators.and(
-              operators.eq(table.marathonId, marathon.id),
-              operators.eq(table.status, 'uploaded'),
-            ),
-          with: {
-            participant: {
-              with: {
-                competitionClass: true,
-                deviceGroup: true,
-              },
-            },
-            topic: true,
-          },
-        }),
-      )
-      let filteredResult = result
-      if (filters.competitionClassId !== null && filters.competitionClassId !== undefined) {
-        filteredResult = filteredResult.filter(
-          (s) => (s.participant as any).competitionClassId === filters.competitionClassId,
-        )
-      }
-      if (filters.deviceGroupId !== null && filters.deviceGroupId !== undefined) {
-        filteredResult = filteredResult.filter(
-          (s) => (s.participant as any).deviceGroupId === filters.deviceGroupId,
-        )
-      }
-      if (filters.topicId !== null && filters.topicId !== undefined) {
-        filteredResult = filteredResult.filter((s) => s.topicId === filters.topicId)
-      }
-      return filteredResult
-    })
-
   const createSubmission: SubmissionsRepository['Service']['createSubmission'] = Effect.fn(
     'SubmissionsRepository.createSubmission',
   )(function* ({ data }) {
@@ -498,7 +432,6 @@ const makeSubmissionsRepository = Effect.gen(function* () {
     getManySubmissionsByKeys,
     getSubmissionsByParticipantId,
     getSubmissionByParticipantIdAndTopicId,
-    getSubmissionsForJuryQuery,
     createSubmission,
     createMultipleSubmissions,
     updateSubmissionByKey,
