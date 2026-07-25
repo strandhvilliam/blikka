@@ -15,7 +15,6 @@ import { captureByCameraS3UploadFailed } from '@/lib/sentry-by-camera'
 import { useDomain } from '@/lib/domain-provider'
 import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
 import { useUploadFinalization } from '@/hooks/live/flow/use-upload-finalization'
-import { useUploadProcessingReconciliation } from '@/hooks/live/flow/use-upload-processing-reconciliation'
 
 export function useFileUpload() {
   const trpc = useTRPC()
@@ -49,8 +48,6 @@ export function useFileUpload() {
     markUploadUiStartedNow,
     markFinalizationUploading,
   } = useUploadFinalization({ domain, reference })
-
-  useUploadProcessingReconciliation({ domain, reference })
 
   const { mutateAsync: refreshPresignedUploads } = useMutation(
     trpc.uploadFlow.refreshPresignedUploads.mutationOptions(),

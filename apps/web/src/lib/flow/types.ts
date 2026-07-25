@@ -54,7 +54,6 @@ export interface UploadFileState {
   // Upload state
   phase: UploadPhase
   progress: number // 0-100
-  isProcessingComplete?: boolean
   error?: FileUploadError
 
   // Timestamps

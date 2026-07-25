@@ -17,7 +17,6 @@ interface UploadStore {
     key: string,
     uploadTarget: Pick<UploadFileState, 'presignedUrl' | 'contentType'>,
   ) => void
-  setFileProcessingComplete: (key: string) => void
   setFileError: (key: string, error: FileUploadError) => void
   setFileProgress: (key: string, progress: number) => void
   clearFiles: () => void
@@ -47,7 +46,6 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         contentType: photo.contentType,
         phase: UPLOAD_PHASE.PRESIGNED,
         progress: 0,
-        isProcessingComplete: false,
         startedAt: new Date(),
       })
     })
@@ -65,7 +63,6 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
         ...file,
         phase,
         progress: progress ?? file.progress,
-        isProcessingComplete: phase === UPLOAD_PHASE.UPLOADED ? file.isProcessingComplete : false,
         error: phase === UPLOAD_PHASE.ERROR ? file.error : undefined,
       }
 
@@ -90,20 +87,6 @@ export const useUploadStore = create<UploadStore>((set, get) => ({
       newFiles.set(key, {
         ...file,
         ...uploadTarget,
-      })
-      set({ files: newFiles })
-    }
-  },
-
-  setFileProcessingComplete: (key) => {
-    const state = get()
-    const file = state.files.get(key)
-
-    if (file && file.phase === UPLOAD_PHASE.UPLOADED && !file.isProcessingComplete) {
-      const newFiles = new Map(state.files)
-      newFiles.set(key, {
-        ...file,
-        isProcessingComplete: true,
       })
       set({ files: newFiles })
     }
