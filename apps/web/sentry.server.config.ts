@@ -3,11 +3,16 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from '@sentry/nextjs'
+import { isProductionEnvironment, sentryEnvironment } from './src/lib/sentry-environment'
 
 const SENTRY_DSN = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN
 
 Sentry.init({
   dsn: SENTRY_DSN,
+
+  // Never report from local dev or preview deploys — SDK calls become no-ops.
+  enabled: isProductionEnvironment,
+  environment: sentryEnvironment,
 
   // Define how likely traces are sampled. Adjust this value in production, or use tracesSampler for greater control.
   tracesSampleRate: 1,

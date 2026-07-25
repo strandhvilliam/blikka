@@ -3,11 +3,16 @@
 // https://docs.sentry.io/platforms/javascript/guides/nextjs/
 
 import * as Sentry from '@sentry/nextjs'
+import { isProductionEnvironment, sentryEnvironment } from './lib/sentry-environment'
 
 const SENTRY_DSN = process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN
 
 Sentry.init({
   dsn: SENTRY_DSN,
+
+  // Never report from local dev or preview deploys — SDK calls become no-ops.
+  enabled: isProductionEnvironment,
+  environment: sentryEnvironment,
 
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],
