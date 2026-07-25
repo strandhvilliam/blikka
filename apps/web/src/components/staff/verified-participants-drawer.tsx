@@ -19,25 +19,42 @@ interface VerifiedParticipantsDrawerProps {
   onFetchNextPage: () => void
   searchQuery: string
   onSearchChange: (value: string) => void
-  searchResult: StaffVerification | null
+  /** Participant matching the searched reference, regardless of how they were verified. */
+  searchParticipant: StaffParticipant | null
+  /** When a staff verification record exists for that participant. */
+  searchVerifiedAt: string | null
   isSearchLoading: boolean
+  /** Normalized reference actually queried, so "no result" names what was looked up. */
+  searchReference: string
   topics: Topic[]
-  currentStaffId: string
+}
+
+function formatVerifiedAt(verifiedAt: string) {
+  return new Date(verifiedAt).toLocaleString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
 }
 
 function ParticipantRow({
-  verification,
+  participant,
+  verifiedAt,
   onClick,
 }: {
-  verification: StaffVerification
+  participant: StaffParticipant
+  /** Timestamp from the verification record, absent when the participant was verified elsewhere. */
+  verifiedAt: string | null
   onClick: () => void
 }) {
-  const warnings = verification.participant.validationResults.filter(
+  const warnings = participant.validationResults.filter(
     (result) => result.outcome === 'failed' && result.severity === 'warning' && !result.overruled,
   ).length
-  const errors = verification.participant.validationResults.filter(
+  const errors = participant.validationResults.filter(
     (result) => result.outcome === 'failed' && result.severity === 'error' && !result.overruled,
   ).length
+  const isVerified = participant.status === 'verified'
 
   return (
     <button
@@ -46,22 +63,25 @@ function ParticipantRow({
       className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-muted/40 active:bg-muted/60"
     >
       <span className="w-14 shrink-0 text-right font-mono text-sm text-muted-foreground">
-        #{verification.participant.reference}
+        #{participant.reference}
       </span>
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-foreground">
-          {verification.participant.firstname} {verification.participant.lastname}
+          {participant.firstname} {participant.lastname}
         </p>
         <p className="text-[11px] text-muted-foreground">
-          {new Date(verification.createdAt).toLocaleString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
+          {verifiedAt
+            ? formatVerifiedAt(verifiedAt)
+            : isVerified
+              ? 'Verified — no staff record'
+              : 'Not verified yet'}
         </p>
       </div>
-      {errors > 0 ? (
+      {!isVerified ? (
+        <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-medium text-amber-700">
+          Pending
+        </span>
+      ) : errors > 0 ? (
         <span className="shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-medium text-red-700">
           {errors}
         </span>
@@ -86,10 +106,11 @@ export function VerifiedParticipantsDrawer({
   onFetchNextPage,
   searchQuery,
   onSearchChange,
-  searchResult,
+  searchParticipant,
+  searchVerifiedAt,
   isSearchLoading,
+  searchReference,
   topics,
-  currentStaffId,
 }: VerifiedParticipantsDrawerProps) {
   const [selectedParticipant, setSelectedParticipant] = useState<StaffParticipant | null>(null)
   const [participantOpen, setParticipantOpen] = useState(false)
@@ -102,8 +123,10 @@ export function VerifiedParticipantsDrawer({
         <div className="flex h-full flex-col">
           <div className="border-b bg-white px-5 pb-4 pt-6">
             <h2 className="font-gothic text-2xl font-medium tracking-tight">Verified</h2>
+            {/* Only loaded pages are counted, so an unexhausted list reads "20+". */}
             <p className="mt-1 text-sm text-muted-foreground">
-              {ownVerifications.length} verification{ownVerifications.length !== 1 ? 's' : ''}
+              {ownVerifications.length}
+              {hasNextPage ? '+' : ''} verification{ownVerifications.length !== 1 ? 's' : ''}
             </p>
             <div className="relative mt-4">
               <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -137,17 +160,18 @@ export function VerifiedParticipantsDrawer({
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Searching…
                   </div>
-                ) : searchResult ? (
+                ) : searchParticipant ? (
                   <ParticipantRow
-                    verification={searchResult}
+                    participant={searchParticipant}
+                    verifiedAt={searchVerifiedAt}
                     onClick={() => {
-                      setSelectedParticipant(searchResult.participant)
+                      setSelectedParticipant(searchParticipant)
                       setParticipantOpen(true)
                     }}
                   />
                 ) : (
                   <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                    No verification found for #{searchQuery}.
+                    No participant #{searchReference || searchQuery.trim()} in this marathon.
                   </p>
                 )}
                 <div className="mx-3 border-b" />
@@ -167,7 +191,8 @@ export function VerifiedParticipantsDrawer({
                   {ownVerifications.map((verification) => (
                     <ParticipantRow
                       key={verification.id}
-                      verification={verification}
+                      participant={verification.participant}
+                      verifiedAt={verification.createdAt}
                       onClick={() => {
                         setSelectedParticipant(verification.participant)
                         setParticipantOpen(true)
@@ -208,7 +233,6 @@ export function VerifiedParticipantsDrawer({
         participant={selectedParticipant}
         participantLoading={false}
         topics={topics}
-        currentStaffId={currentStaffId}
         readOnly={true}
       />
     </>

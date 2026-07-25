@@ -48,13 +48,20 @@ export function StaffManualEntryDialog({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4 py-4">
+          {/*
+            Digits only. `type="number"` also accepts `e`, `+`, `-` and `.`, which reach
+            the API as a reference that can never match.
+          */}
           <Input
             autoFocus
-            type="number"
+            type="text"
             inputMode="numeric"
+            pattern="[0-9]*"
             placeholder="0000"
             value={reference}
-            onChange={(event) => setReference(event.target.value)}
+            onChange={(event) => setReference(event.target.value.replace(/\D/g, ''))}
+            maxLength={6}
+            enterKeyHint="go"
             className="h-16 text-center font-mono text-4xl tracking-[0.25em]"
           />
           <div className="flex gap-3">

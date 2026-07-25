@@ -6,14 +6,21 @@ export const RunValidationsSchema = Schema.Struct({
 })
 
 export const CreateParticipantVerificationSchema = Schema.Struct({
+  domain: Schema.String,
   data: Schema.Struct({
     participantId: Schema.Number,
-    staffId: Schema.String,
     notes: Schema.optional(Schema.String),
+    /**
+     * Overrule every blocking (failed + error, not already overruled) validation on the
+     * participant as part of the same call, instead of the client issuing one overrule
+     * mutation per finding and then verifying.
+     */
+    overruleBlockingValidations: Schema.optional(Schema.Boolean),
   }),
 })
 
 export const UpdateValidationResultSchema = Schema.Struct({
+  domain: Schema.String,
   id: Schema.Number,
   data: Schema.Struct({
     overruled: Schema.Boolean,
@@ -34,8 +41,12 @@ export type GetParticipantVerificationByReference = Schema.Schema.Type<
   typeof GetParticipantVerificationByReferenceSchema
 >
 
-/** Router merges `staffId` from the session onto wire `CreateParticipantVerification` payload. */
-export type CreateParticipantVerificationServiceInput = Omit<
-  CreateParticipantVerification['data'],
-  'staffId'
-> & { staffId: string }
+/**
+ * Service-side payload. `staffId` comes from the session and `domain` from the verified
+ * request domain — neither is taken from the wire, so a caller cannot attribute a
+ * verification to another user or reach a participant in another marathon.
+ */
+export type CreateParticipantVerificationServiceInput = CreateParticipantVerification['data'] & {
+  staffId: string
+  domain: string
+}

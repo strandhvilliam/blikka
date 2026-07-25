@@ -17,11 +17,29 @@ import { ValidationsService, ValidationsServiceLayerNoDeps } from './service'
 const domain = 'demo'
 const reference = '1001'
 
+interface OverruleCall {
+  readonly ids: ReadonlyArray<number>
+  readonly domain: string
+  readonly overruled: boolean
+}
+
 interface TestState {
   readonly participant: Participant | undefined
-  readonly updateValidationCalls: ReadonlyArray<{ id: number; data: Record<string, unknown> }>
+  readonly overruleCalls: ReadonlyArray<OverruleCall>
   readonly verificationByReference: unknown
 }
+
+const makeValidationResult = (overrides: Record<string, unknown> = {}) => ({
+  id: 1,
+  participantId: 1,
+  outcome: 'failed',
+  severity: 'error',
+  ruleKey: 'exif_present',
+  message: 'Missing EXIF',
+  fileName: null,
+  overruled: false,
+  ...overrides,
+})
 
 const makeParticipant = (overrides: Partial<Participant> = {}): Participant =>
   ({
@@ -34,12 +52,13 @@ const makeParticipant = (overrides: Partial<Participant> = {}): Participant =>
     firstname: 'Jane',
     lastname: 'Doe',
     submissions: [],
+    validationResults: [],
     ...overrides,
   }) as Participant
 
 const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   participant: makeParticipant(),
-  updateValidationCalls: [],
+  overruleCalls: [],
   verificationByReference: null,
   ...overrides,
 })
@@ -63,15 +82,26 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
   } as unknown as ParticipantsRepository['Service'])
 
   const validationsRepository = ValidationsRepository.of({
-    updateValidationResult: ({ id, data }: { id: number; data: Record<string, unknown> }) =>
+    /**
+     * Stands in for the domain-scoped UPDATE: rows come back only when the caller's
+     * domain matches, mirroring a statement that matches nothing cross-tenant.
+     */
+    overruleValidationResults: ({
+      ids,
+      domain: callDomain,
+      overruled,
+    }: {
+      ids: number[]
+      domain: string
+      overruled: boolean
+    }) =>
       updateTestState(stateRef, (state) => ({
         ...state,
-        updateValidationCalls: [...state.updateValidationCalls, { id, data }],
+        overruleCalls: [...state.overruleCalls, { ids, domain: callDomain, overruled }],
       })).pipe(
-        Effect.as({
-          id,
-          ...data,
-        }),
+        Effect.map(() =>
+          callDomain === domain ? ids.map((id) => makeValidationResult({ id, overruled })) : [],
+        ),
       ),
     getParticipantVerificationByReference: () =>
       Effect.gen(function* () {
@@ -143,13 +173,38 @@ describe('ValidationsService', () => {
           const service = yield* ValidationsService
           return yield* service.updateValidationResult({
             id: 5,
+            domain,
             data: { overruled: true },
           })
         }),
       )
 
       assert.equal(result.id, 5)
-      assert.equal(state.updateValidationCalls[0]?.data.overruled, true)
+      assert.deepEqual(state.overruleCalls[0]?.ids, [5])
+      assert.equal(state.overruleCalls[0]?.domain, domain)
+      assert.equal(state.overruleCalls[0]?.overruled, true)
+    }),
+  )
+
+  it.effect('fails updateValidationResult when the row is outside the request domain', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const error = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* ValidationsService
+          return yield* Effect.flip(
+            service.updateValidationResult({
+              id: 5,
+              domain: 'other-marathon',
+              data: { overruled: true },
+            }),
+          )
+        }),
+      ).pipe(Effect.map(({ result }) => result))
+
+      assert.instanceOf(error, NotFoundError)
     }),
   )
 
@@ -173,7 +228,9 @@ describe('ValidationsService', () => {
         }),
       )
 
-      assert.deepEqual(result, verification)
+      // Asserted field-wise: the fixture is a partial stand-in for the full row type.
+      assert.equal(result?.id, verification.id)
+      assert.equal(result?.notes, verification.notes)
     }),
   )
 
@@ -209,12 +266,75 @@ describe('ValidationsService', () => {
           return yield* service.createParticipantVerification({
             participantId: 1,
             staffId: 'staff-1',
+            domain,
             notes: 'Approved',
           })
         }),
       )
 
       assert.equal(result.id, 99)
+    }),
+  )
+
+  it.effect('refuses to verify a participant belonging to another marathon', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(
+        makeInitialState({ participant: makeParticipant({ domain: 'other-marathon' }) }),
+      )
+
+      const { result, state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* ValidationsService
+          return yield* Effect.flip(
+            service.createParticipantVerification({
+              participantId: 1,
+              staffId: 'staff-1',
+              domain,
+              notes: 'Approved',
+            }),
+          )
+        }),
+      )
+
+      assert.instanceOf(result, NotFoundError)
+      assert.equal(state.overruleCalls.length, 0)
+    }),
+  )
+
+  it.effect('overrules blocking validations in one call when verifying', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(
+        makeInitialState({
+          participant: makeParticipant({
+            validationResults: [
+              makeValidationResult({ id: 11, outcome: 'failed', severity: 'error' }),
+              makeValidationResult({ id: 12, outcome: 'failed', severity: 'error' }),
+              // Warnings and already-overruled errors are not blocking, so they stay untouched.
+              makeValidationResult({ id: 13, outcome: 'failed', severity: 'warning' }),
+              makeValidationResult({ id: 14, severity: 'error', overruled: true }),
+              makeValidationResult({ id: 15, outcome: 'passed', severity: 'error' }),
+            ],
+          } as Partial<Participant>),
+        }),
+      )
+
+      const { state } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* ValidationsService
+          return yield* service.createParticipantVerification({
+            participantId: 1,
+            staffId: 'staff-1',
+            domain,
+            overruleBlockingValidations: true,
+          })
+        }),
+      )
+
+      assert.equal(state.overruleCalls.length, 1)
+      assert.deepEqual(state.overruleCalls[0]?.ids, [11, 12])
+      assert.equal(state.overruleCalls[0]?.domain, domain)
     }),
   )
 })

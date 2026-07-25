@@ -108,6 +108,12 @@ export function StaffHomeClient({
       },
       {
         enabled: Boolean(activeParticipantReference),
+        /**
+         * An unknown reference comes back as NOT_FOUND, which the default retry policy
+         * treats as a transient failure — staff who mistype a number would watch a
+         * spinner for ~7s before being told. A missing participant is an answer.
+         */
+        retry: false,
       },
     ),
   )
@@ -127,6 +133,35 @@ export function StaffHomeClient({
       },
     ),
   )
+
+  /**
+   * Verification status lives on the participant, while `participant_verifications` only
+   * records staff-page verifications — admin verify and batch verify set the status
+   * without writing a row. Searching the audit table alone reports a verified
+   * participant as "not found", so the participant is the source of truth for status and
+   * the verification row only supplies who/when.
+   */
+  const searchParticipantQuery = useQuery(
+    trpc.participants.getByReference.queryOptions(
+      {
+        reference: normalizedSearchQuery,
+        domain,
+      },
+      {
+        enabled: normalizedSearchQuery.length > 0,
+        retry: false,
+      },
+    ),
+  )
+
+  /**
+   * True while the debounce is still pending too, otherwise the previous reference's
+   * result stays on screen looking like a result for what is currently typed.
+   */
+  const isSearchPending =
+    searchQuery.trim() !== debouncedSearchQuery.trim() ||
+    ((searchResultQuery.isFetching || searchParticipantQuery.isFetching) &&
+      normalizedSearchQuery.length > 0)
 
   useEffect(() => {
     if (openSheet === 'participant-info' && !activeParticipantReference) {
@@ -373,10 +408,11 @@ export function StaffHomeClient({
         onFetchNextPage={() => void ownVerificationsQuery.fetchNextPage()}
         searchQuery={searchQuery}
         onSearchChange={(value) => void setSearchQuery(value)}
-        searchResult={searchResultQuery.data ?? null}
-        isSearchLoading={searchResultQuery.isLoading}
+        searchParticipant={searchParticipantQuery.data ?? null}
+        searchVerifiedAt={searchResultQuery.data?.createdAt ?? null}
+        isSearchLoading={isSearchPending}
+        searchReference={normalizedSearchQuery}
         topics={marathon.topics}
-        currentStaffId={staffId}
       />
 
       <ParticipantInfoDrawer
@@ -389,7 +425,6 @@ export function StaffHomeClient({
         participant={participantQuery.data ?? null}
         participantLoading={participantQuery.isLoading}
         topics={marathon.topics}
-        currentStaffId={staffId}
         onParticipantVerified={() => {
           void ownVerificationsQuery.refetch()
         }}

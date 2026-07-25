@@ -1,11 +1,13 @@
 'use client'
 
+import { useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import { QrCodeIcon } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@/components/ui/button'
 import { DrawerLayout } from '@/components/staff/drawer-layout'
+import { parseParticipantQrValue } from '@/lib/staff/participant-qr'
 
 const QrScanner = dynamic(
   () => import('@/components/staff/qr-scanner').then((mod) => mod.QrScanner),
@@ -21,32 +23,65 @@ interface QrScanDrawerProps {
   onScanAction: (args: { reference: string }) => void
 }
 
+/** Shared toast id so a camera that errors on every frame replaces its toast, not stacks it. */
+const SCANNER_TOAST_ID = 'staff-qr-scanner'
+
 export function QrScanDrawer({
   open,
   onOpenChange,
   currentDomain,
   onScanAction,
 }: QrScanDrawerProps) {
+  /**
+   * The scanner keeps decoding while the sheet animates out, so without this a single
+   * held-up code fires `onScanAction` several times.
+   */
+  const hasAcceptedScan = useRef(false)
+
+  useEffect(() => {
+    if (open) {
+      hasAcceptedScan.current = false
+    }
+  }, [open])
+
   const handleScan = (data: string | null) => {
+    if (hasAcceptedScan.current) return
+
     if (!data) {
-      toast.error('No QR code detected')
+      toast.error('No QR code detected', { id: SCANNER_TOAST_ID })
       return
     }
 
-    const [domain, _participantId, reference] = data.split('-')
+    const payload = parseParticipantQrValue(data)
 
-    if (!domain || !reference) {
-      toast.error('Invalid QR code')
+    if (!payload) {
+      toast.error('Invalid QR code', { id: SCANNER_TOAST_ID })
       return
     }
 
-    if (domain !== currentDomain) {
-      toast.error('This QR code belongs to another marathon')
+    if (payload.domain !== currentDomain) {
+      toast.error('This QR code belongs to another marathon', { id: SCANNER_TOAST_ID })
       return
     }
 
+    hasAcceptedScan.current = true
     onOpenChange(false)
-    onScanAction({ reference })
+    onScanAction({ reference: payload.reference })
+  }
+
+  const handleScannerError = (error: Error) => {
+    console.error(error)
+
+    // Without this the sheet is just a black rectangle — the most likely failure on a
+    // phone (permission denied, camera already in use) with nothing telling staff why.
+    const isPermissionError = error.name === 'NotAllowedError' || error.name === 'SecurityError'
+
+    toast.error(
+      isPermissionError
+        ? 'Camera access is blocked. Allow it in your browser settings, or use manual entry.'
+        : 'Could not start the camera. Use manual entry instead.',
+      { id: SCANNER_TOAST_ID },
+    )
   }
 
   return (
@@ -59,7 +94,7 @@ export function QrScanDrawer({
     >
       <div className="absolute inset-0 z-0 min-h-0 overflow-hidden bg-black">
         <div className="absolute inset-0 z-0">
-          <QrScanner onScan={handleScan} onError={console.error} />
+          <QrScanner onScan={handleScan} onError={handleScannerError} />
         </div>
 
         <div className="absolute inset-0 z-10 flex flex-col pointer-events-none">

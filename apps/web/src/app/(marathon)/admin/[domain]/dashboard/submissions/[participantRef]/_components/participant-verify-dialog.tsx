@@ -1,6 +1,6 @@
 'use client'
 
-import { useSession } from '@/lib/auth/client'
+import { useDomain } from '@/lib/domain-provider'
 import { useTRPC } from '@/lib/trpc/client'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
@@ -30,8 +30,7 @@ export function ParticipantVerifyDialog({
 }: ParticipantVerifyDialogProps) {
   const queryClient = useQueryClient()
   const trpc = useTRPC()
-  const { data: session } = useSession()
-  const user = session?.user
+  const domain = useDomain()
 
   const { mutate: verifyParticipant, isPending: isVerifying } = useMutation(
     trpc.validations.createParticipantVerification.mutationOptions({
@@ -55,15 +54,10 @@ export function ParticipantVerifyDialog({
   )
 
   const handleVerifyParticipant = () => {
-    if (!user?.id) {
-      toast.error('Unable to determine logged in user')
-      return
-    }
-
     verifyParticipant({
+      domain,
       data: {
         participantId: participant.id,
-        staffId: user.id,
         notes: 'Verified from admin panel',
       },
     })

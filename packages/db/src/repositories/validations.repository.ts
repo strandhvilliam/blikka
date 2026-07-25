@@ -1,7 +1,7 @@
 import { Effect, Layer, Context } from 'effect'
 import { DrizzleClient } from '../drizzle-client'
-import { and, notInArray, eq } from 'drizzle-orm'
-import { participantVerifications, validationResults } from '../schema'
+import { and, inArray, notInArray, eq } from 'drizzle-orm'
+import { participants, participantVerifications, validationResults } from '../schema'
 import type {
   CompetitionClass,
   DeviceGroup,
@@ -79,11 +79,21 @@ export class ValidationsRepository extends Context.Service<
       reference: string
       data: Omit<NewValidationResult, 'participantId'>[]
     }) => Effect.Effect<ValidationResult[], DbError>
-    /** Patch fields on a validation result identified by id. */
+    /** Patch fields on a validation result identified by id. Not domain-scoped: internal use only. */
     readonly updateValidationResult: (params: {
       id: number
       data: Partial<NewValidationResult>
     }) => Effect.Effect<ValidationResult, DbError>
+    /**
+     * Sets `overruled` on the given validation results in a single statement, scoped
+     * to `domain`. Returns only the rows that actually matched, so callers can treat a
+     * short result as "not found in this marathon" rather than trusting the caller's ids.
+     */
+    readonly overruleValidationResults: (params: {
+      ids: number[]
+      domain: string
+      overruled: boolean
+    }) => Effect.Effect<ValidationResult[], DbError>
     /** Insert a participant verification row. */
     readonly createParticipantVerification: (params: {
       data: NewParticipantVerification
@@ -183,10 +193,25 @@ const makeValidationsRepository = Effect.gen(function* () {
     }) {
       const result = yield* use((db) =>
         db.query.participantVerifications.findMany({
-          where: (table, operators) =>
-            cursor
-              ? operators.and(operators.eq(table.staffId, staffId), operators.lt(table.id, cursor))
-              : operators.eq(table.staffId, staffId),
+          /**
+           * Domain scoping runs in SQL rather than over the fetched page: filtering
+           * after LIMIT under-fills pages and makes `hasMore` false-negative, which
+           * silently truncates the list for staff working several marathons.
+           */
+          where: (table, operators) => {
+            const scoped = operators.and(
+              operators.eq(table.staffId, staffId),
+              operators.inArray(
+                table.participantId,
+                db
+                  .select({ id: participants.id })
+                  .from(participants)
+                  .where(eq(participants.domain, domain)),
+              ),
+            )
+
+            return cursor ? operators.and(scoped, operators.lt(table.id, cursor)) : scoped
+          },
           with: {
             participant: {
               with: {
@@ -194,24 +219,23 @@ const makeValidationsRepository = Effect.gen(function* () {
                 deviceGroup: true,
                 validationResults: true,
                 submissions: true,
-                marathon: true,
               },
             },
           },
-          orderBy: (participantVerifications, { desc }) => [
-            desc(participantVerifications.createdAt),
-          ],
+          /**
+           * Ordered by id, not createdAt, so the keyset cursor (`id < cursor`) sorts on
+           * the same column it pages on. The id is a monotonic identity column, so this
+           * is still newest-first.
+           */
+          orderBy: (participantVerifications, { desc }) => [desc(participantVerifications.id)],
           limit: limit + 1,
         }),
       )
-      const filteredResults = result
-        .filter((v) => v.participant.marathon.domain === domain)
-        .map((v) => ({
-          ...v,
-          participant: { ...v.participant, marathon: undefined },
-        }))
-      const hasMore = filteredResults.length > limit
-      const items = hasMore ? filteredResults.slice(0, limit) : filteredResults
+      const hasMore = result.length > limit
+      const items = (hasMore ? result.slice(0, limit) : result).map((v) => ({
+        ...v,
+        participant: { ...v.participant, marathon: undefined },
+      }))
       const nextCursor = hasMore ? items[items.length - 1]?.id : undefined
       return {
         items,
@@ -340,6 +364,40 @@ const makeValidationsRepository = Effect.gen(function* () {
       return result
     })
 
+  const overruleValidationResults: ValidationsRepository['Service']['overruleValidationResults'] =
+    Effect.fn('ValidationsRepository.overruleValidationResults')(function* ({
+      ids,
+      domain,
+      overruled,
+    }: {
+      ids: number[]
+      domain: string
+      overruled: boolean
+    }) {
+      if (ids.length === 0) {
+        return []
+      }
+
+      return yield* use((db) =>
+        db
+          .update(validationResults)
+          .set({ overruled, updatedAt: new Date().toISOString() })
+          .where(
+            and(
+              inArray(validationResults.id, ids),
+              inArray(
+                validationResults.participantId,
+                db
+                  .select({ id: participants.id })
+                  .from(participants)
+                  .where(eq(participants.domain, domain)),
+              ),
+            ),
+          )
+          .returning(),
+      )
+    })
+
   const createParticipantVerification: ValidationsRepository['Service']['createParticipantVerification'] =
     Effect.fn('ValidationsRepository.createParticipantVerification')(function* ({
       data,
@@ -441,8 +499,21 @@ const makeValidationsRepository = Effect.gen(function* () {
       domain: string
       reference: string
     }) {
-      const allVerifications = yield* use((db) =>
-        db.query.participantVerifications.findMany({
+      /**
+       * Resolved via the `(domain, reference)` unique index and then the
+       * `participant_id` index, rather than scanning every verification in every
+       * marathon and filtering in memory.
+       */
+      const match = yield* use((db) =>
+        db.query.participantVerifications.findFirst({
+          where: (table, operators) =>
+            operators.inArray(
+              table.participantId,
+              db
+                .select({ id: participants.id })
+                .from(participants)
+                .where(and(eq(participants.domain, domain), eq(participants.reference, reference))),
+            ),
           with: {
             participant: {
               with: {
@@ -454,20 +525,13 @@ const makeValidationsRepository = Effect.gen(function* () {
                     topic: true,
                   },
                 },
-                marathon: true,
               },
             },
           },
-          orderBy: (participantVerifications, { desc }) => [
-            desc(participantVerifications.createdAt),
-          ],
+          orderBy: (participantVerifications, { desc }) => [desc(participantVerifications.id)],
         }),
       )
-      const match = allVerifications.find(
-        (verification) =>
-          verification.participant.marathon.domain === domain &&
-          verification.participant.reference === reference,
-      )
+
       return match
         ? {
             ...match,
@@ -497,6 +561,7 @@ const makeValidationsRepository = Effect.gen(function* () {
     createValidationResult,
     createMultipleValidationResults,
     updateValidationResult,
+    overruleValidationResults,
     createParticipantVerification,
     clearNonEnabledRuleResults,
     getAllParticipantVerifications,

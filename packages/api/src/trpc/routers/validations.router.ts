@@ -42,6 +42,7 @@ export const validationsRouter = createTRPCRouter({
     ),
   createParticipantVerification: domainProcedure
     .input(Schema.toStandardSchemaV1(CreateParticipantVerificationSchema))
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn('ValidationsRouter.createParticipantVerification')(function* ({ input, ctx }) {
@@ -49,7 +50,9 @@ export const validationsRouter = createTRPCRouter({
             s.createParticipantVerification({
               participantId: input.data.participantId,
               staffId: ctx.session.user.id,
+              domain: input.domain,
               notes: input.data.notes,
+              overruleBlockingValidations: input.data.overruleBlockingValidations,
             }),
           )
         }),
@@ -57,12 +60,14 @@ export const validationsRouter = createTRPCRouter({
     ),
   updateValidationResult: domainProcedure
     .input(Schema.toStandardSchemaV1(UpdateValidationResultSchema))
+    .use(requireMatchingInputDomainMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn('ValidationsRouter.updateValidationResult')(function* ({ input }) {
           return yield* ValidationsService.use((s) =>
             s.updateValidationResult({
               id: input.id,
+              domain: input.domain,
               data: {
                 overruled: input.data.overruled,
               },

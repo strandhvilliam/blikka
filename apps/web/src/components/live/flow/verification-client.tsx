@@ -19,6 +19,7 @@ import { parseUploadRealtimeEventData } from '@/lib/upload-status-realtime'
 import { useTRPC } from '@/lib/trpc/client'
 import { flowStateClientParamSerializer } from '@/lib/flow-state-params-client'
 import { QrCodeGenerator } from '@/components/qr-code-generator'
+import { buildParticipantQrValue } from '@/lib/staff/participant-qr'
 import { PrimaryButton } from '@/components/ui/primary-button'
 import { Spinner } from '@/components/ui/spinner'
 import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
@@ -277,7 +278,11 @@ export function VerificationClient({
     setRefreshTimeout(5)
   }
 
-  const qrCodeValue = `${domain}-${participantId ?? ''}-${participantRef}`
+  const qrCodeValue = buildParticipantQrValue({
+    domain,
+    participantId,
+    reference: participantRef,
+  })
 
   const isFlaggedQrView = verificationMode === 'flagged'
   const toneStyles = VERIFICATION_TONE_STYLES[isFlaggedQrView ? 'orange' : 'amber']

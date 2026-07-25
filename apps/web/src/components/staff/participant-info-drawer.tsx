@@ -21,6 +21,7 @@ import {
 } from '@/components/ui/dialog'
 
 import type { StaffParticipant } from '@/lib/staff/staff-types'
+import { normalizeParticipantReference } from '@/lib/staff/staff-utils'
 import { DrawerLayout } from '@/components/staff/drawer-layout'
 import { PreviewDialog } from '@/components/staff/preview-dialog'
 import { ValidationAccordion } from '@/components/staff/validation-accordion'
@@ -31,7 +32,6 @@ interface ParticipantInfoDrawerProps {
   participant: StaffParticipant | null
   participantLoading: boolean
   topics: Topic[]
-  currentStaffId: string
   readOnly?: boolean
   onParticipantVerified?: () => void
   onParticipantRejected?: () => void
@@ -43,7 +43,6 @@ export function ParticipantInfoDrawer({
   participant,
   participantLoading,
   topics,
-  currentStaffId,
   readOnly = false,
   onParticipantVerified,
   onParticipantRejected,
@@ -113,45 +112,35 @@ export function ParticipantInfoDrawer({
     }),
   )
 
-  const handleVerify = async () => {
+  const blockingValidations = participant?.validationResults.filter(
+    (validation) =>
+      validation.outcome === 'failed' && validation.severity === 'error' && !validation.overruled,
+  )
+
+  const hasBlockingValidations = (blockingValidations?.length ?? 0) > 0
+
+  /**
+   * Overruling and verifying are one server-side call. As a client loop of
+   * per-validation mutations, a mid-loop failure left the participant partly overruled
+   * with no verification recorded, and nothing in the UI said so.
+   */
+  const handleVerify = () => {
     if (!participant) return
 
-    const blockingValidations = participant.validationResults.filter(
-      (validation) =>
-        validation.outcome === 'failed' && validation.severity === 'error' && !validation.overruled,
-    )
-
-    try {
-      for (const validation of blockingValidations) {
-        await updateValidationResultMutation.mutateAsync({
-          id: validation.id,
-          data: {
-            overruled: true,
-          },
-        })
-      }
-
-      await verifyParticipantMutation.mutateAsync({
-        data: {
-          participantId: participant.id,
-          staffId: currentStaffId,
-          notes: blockingValidations.length > 0 ? 'Verified with overrulings from staff page' : '',
-        },
-      })
-    } catch {
-      // mutation callbacks handle messaging
-    }
+    verifyParticipantMutation.mutate({
+      domain,
+      data: {
+        participantId: participant.id,
+        overruleBlockingValidations: hasBlockingValidations,
+        notes: hasBlockingValidations ? 'Verified with overrulings from staff page' : '',
+      },
+    })
   }
 
   const isBusy =
     verifyParticipantMutation.isPending ||
     rejectParticipantMutation.isPending ||
     updateValidationResultMutation.isPending
-
-  const blockingValidations = participant?.validationResults.filter(
-    (validation) =>
-      validation.outcome === 'failed' && validation.severity === 'error' && !validation.overruled,
-  )
 
   return (
     <>
@@ -252,6 +241,7 @@ export function ParticipantInfoDrawer({
                 onOverrule={(validationId) =>
                   updateValidationResultMutation.mutate({
                     id: validationId,
+                    domain,
                     data: {
                       overruled: true,
                     },
@@ -273,7 +263,7 @@ export function ParticipantInfoDrawer({
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : participant.status === 'verified' ? (
                     'Already verified'
-                  ) : blockingValidations && blockingValidations.length > 0 ? (
+                  ) : hasBlockingValidations ? (
                     'Overrule all and verify'
                   ) : (
                     'Verify participant'
@@ -347,7 +337,12 @@ export function ParticipantInfoDrawer({
                 onClick={() => {
                   if (!participant) return
 
-                  if (confirmReference.trim() !== participant.reference.trim()) {
+                  // Compared normalized so typing `42` matches participant `0042`.
+                  const isMatch =
+                    normalizeParticipantReference(confirmReference) ===
+                    normalizeParticipantReference(participant.reference)
+
+                  if (!isMatch) {
                     setShowRejectError(true)
                     return
                   }

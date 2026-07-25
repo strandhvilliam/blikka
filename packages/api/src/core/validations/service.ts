@@ -1,4 +1,3 @@
-
 import { Config, Effect, Layer, Schema, Context } from 'effect'
 import {
   DbLayer,
@@ -51,15 +50,19 @@ export class ValidationsService extends Context.Service<
       never
     >
 
-    /** Inserts staff verification, marks participant verified, and emits realtime when applicable. */
+    /**
+     * Optionally overrules blocking validations, inserts the staff verification, marks
+     * the participant verified, and emits realtime. Fails with `NotFoundError` when the
+     * participant does not belong to `domain`.
+     */
     readonly createParticipantVerification: (
       input: CreateParticipantVerificationServiceInput,
     ) => Effect.Effect<{ id: number }, DbError | RealtimeError | NotFoundError, never>
 
-    /** Updates overruled flag on a stored validation result row. */
+    /** Updates overruled flag on a validation result row belonging to `domain`. */
     readonly updateValidationResult: (
       input: UpdateValidationResult,
-    ) => Effect.Effect<UpdatedValidationResultRow, DbError, never>
+    ) => Effect.Effect<UpdatedValidationResultRow, DbError | NotFoundError, never>
 
     /** Latest participant verification row with nested participant graph, or null. */
     readonly getParticipantVerificationByReference: (
@@ -171,11 +174,50 @@ const makeValidationsService = Effect.gen(function* () {
     Effect.fn('ValidationsService.createParticipantVerification')(function* ({
       participantId,
       staffId,
+      domain,
       notes,
+      overruleBlockingValidations,
     }) {
       const participant = yield* participantsRepository
         .getParticipantById({ id: participantId })
         .pipe(failNotFoundIfNone('Participant', { id: participantId }))
+
+      /**
+       * `participantId` is an opaque row id supplied by the caller, so it has to be
+       * re-checked against the domain the request was authorized for. Reported as
+       * not-found rather than forbidden so the response does not confirm that the id
+       * exists in some other marathon.
+       */
+      if (participant.domain !== domain) {
+        return yield* Effect.fail(
+          new NotFoundError({
+            resource: 'Participant',
+            identifier: { id: participantId, domain },
+          }),
+        )
+      }
+
+      /**
+       * Overruling happens here rather than as N client-issued mutations, so a failure
+       * part-way through cannot leave the participant with some findings overruled and
+       * no verification recorded.
+       */
+      if (overruleBlockingValidations) {
+        const blockingIds = participant.validationResults
+          .filter(
+            (validation) =>
+              validation.outcome === 'failed' &&
+              validation.severity === 'error' &&
+              !validation.overruled,
+          )
+          .map((validation) => validation.id)
+
+        yield* validationsRepository.overruleValidationResults({
+          ids: blockingIds,
+          domain,
+          overruled: true,
+        })
+      }
 
       const verification = yield* validationsRepository.createParticipantVerification({
         data: {
@@ -207,11 +249,28 @@ const makeValidationsService = Effect.gen(function* () {
 
   const updateValidationResult: ValidationsService['Service']['updateValidationResult'] = Effect.fn(
     'ValidationsService.updateValidationResult',
-  )(function* ({ id, data }) {
-    return yield* validationsRepository.updateValidationResult({
-      id,
-      data,
+  )(function* ({ id, domain, data }) {
+    /**
+     * Scoped by domain in the UPDATE itself: `id` is an opaque row id from the client,
+     * and without this any authenticated user could overrule a validation belonging to
+     * another marathon. An empty result means no such row in this domain.
+     */
+    const [updated] = yield* validationsRepository.overruleValidationResults({
+      ids: [id],
+      domain,
+      overruled: data.overruled,
     })
+
+    if (!updated) {
+      return yield* Effect.fail(
+        new NotFoundError({
+          resource: 'ValidationResult',
+          identifier: { id, domain },
+        }),
+      )
+    }
+
+    return updated
   })
 
   const getParticipantVerificationByReference: ValidationsService['Service']['getParticipantVerificationByReference'] =
