@@ -9,6 +9,8 @@ type Params = {
   goToNext: () => void
   onBack: () => void
   onRatingClick: (star: number) => void
+  onToggleShortlist: () => void
+  onWinnerClick: () => void
 }
 
 export function useJuryViewerKeyboardShortcuts({
@@ -18,6 +20,8 @@ export function useJuryViewerKeyboardShortcuts({
   goToNext,
   onBack,
   onRatingClick,
+  onToggleShortlist,
+  onWinnerClick,
 }: Params) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -59,6 +63,16 @@ export function useJuryViewerKeyboardShortcuts({
           event.preventDefault()
           onRatingClick(Math.max(0, localRating - 1))
           break
+        case 's':
+        case 'S':
+          event.preventDefault()
+          onToggleShortlist()
+          break
+        case 'w':
+        case 'W':
+          event.preventDefault()
+          onWinnerClick()
+          break
       }
     }
 
@@ -66,5 +80,14 @@ export function useJuryViewerKeyboardShortcuts({
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
     }
-  }, [goToPrev, goToNext, onRatingClick, onBack, localRating, isFullscreenOpen])
+  }, [
+    goToPrev,
+    goToNext,
+    onRatingClick,
+    onBack,
+    onToggleShortlist,
+    onWinnerClick,
+    localRating,
+    isFullscreenOpen,
+  ])
 }

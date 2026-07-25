@@ -1,34 +1,29 @@
 import { describe, expect, it } from 'vitest'
 
 import {
-  getAssignedFinalRankingCount,
+  compareParticipantReferences,
   getDisplayInitials,
-  getFinalRankingLabel,
-  getParticipantFinalRanking,
-  hasCompleteFinalRankings,
+  getShortlistedParticipantIds,
+  sortShortlistForDisplay,
 } from './jury-utils'
 
-const ratings = [
-  { participantId: 1, rating: 5, notes: '', finalRanking: 1 },
-  { participantId: 2, rating: 4, notes: '', finalRanking: 2 },
-  { participantId: 3, rating: 3, notes: '', finalRanking: null },
+const picks = [
+  { participantId: 3, reference: '10', isWinner: false },
+  { participantId: 1, reference: '2', isWinner: true },
+  { participantId: 2, reference: '9', isWinner: false },
 ] as const
 
-describe('jury final ranking state', () => {
-  it('counts assigned podium slots', () => {
-    expect(getAssignedFinalRankingCount(ratings)).toBe(2)
-    expect(hasCompleteFinalRankings(ratings)).toBe(false)
+describe('jury shortlist state', () => {
+  it('collects shortlisted participant ids', () => {
+    expect(getShortlistedParticipantIds(picks)).toEqual(new Set([3, 1, 2]))
   })
 
-  it('reads a participant podium assignment', () => {
-    expect(getParticipantFinalRanking(ratings, 1)).toBe(1)
-    expect(getParticipantFinalRanking(ratings, 3)).toBe(null)
+  it('displays the shortlist by reference rather than pick order', () => {
+    expect(sortShortlistForDisplay(picks).map((pick) => pick.reference)).toEqual(['2', '9', '10'])
   })
 
-  it('formats podium labels', () => {
-    expect(getFinalRankingLabel(1)).toBe('1st')
-    expect(getFinalRankingLabel(2)).toBe('2nd')
-    expect(getFinalRankingLabel(3)).toBe('3rd')
+  it('compares references numerically', () => {
+    expect(compareParticipantReferences({ reference: '9' }, { reference: '10' })).toBeLessThan(0)
   })
 
   it('formats display initials', () => {

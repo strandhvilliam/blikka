@@ -16,11 +16,7 @@ import { parseAsInteger, useQueryState } from 'nuqs'
 import { ArrowLeft, ChevronLeft, ChevronRight, ImageOff, Loader2, Maximize2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import {
-  getFinalRankingLabel,
-  getParticipantAssetUrl,
-  getRankAssignments,
-} from '@/lib/jury/jury-utils'
+import { getParticipantAssetUrl } from '@/lib/jury/jury-utils'
 import { FullscreenImage } from '@/components/fullscreen-image'
 import { ActiveRatingFilterBadge } from './rating-filter'
 import { JurySubmissionCompactNav } from './jury-submission-compact-nav'
@@ -32,7 +28,7 @@ import { useJuryReviewData } from './jury-review-data-provider'
 import { useJuryLocalRatingSync } from '@/hooks/live/jury/use-jury-local-rating-sync'
 import { useJuryNotesDebouncedSave } from '@/hooks/live/jury/use-jury-notes-debounced-save'
 import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
-import { useJuryReviewInteraction } from './jury-review-interaction-provider'
+import { useJuryShortlist } from '@/hooks/live/jury/use-jury-shortlist'
 import {
   SubmissionOptimizedOriginalImage,
   SubmissionRawOriginalImage,
@@ -85,18 +81,27 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     [currentParticipantId, ratingByParticipantId],
   )
 
-  const {
-    localRating,
-    setLocalRating,
-    localNotes,
-    setLocalNotes,
-    localFinalRanking,
-    setLocalFinalRanking,
-  } = useJuryLocalRatingSync({
+  const { localRating, setLocalRating, localNotes, setLocalNotes } = useJuryLocalRatingSync({
     existingRating,
-    ratings,
     currentParticipantId,
   })
+
+  const {
+    picks,
+    shortlistedIds,
+    winnerParticipantId,
+    count: shortlistCount,
+    requiredSize,
+    isFull,
+    isSaving: isSavingShortlist,
+    setPick,
+    setWinner,
+    pickWinner,
+  } = useJuryShortlist({ domain, token })
+
+  const isShortlisted = currentParticipantId !== null && shortlistedIds.has(currentParticipantId)
+  const isWinner = currentParticipantId !== null && winnerParticipantId === currentParticipantId
+  const winnerReference = picks.find((pick) => pick.isWinner)?.reference ?? null
 
   useEffect(() => {
     if (participants.length - currentParticipantIndex <= 4 && hasNextPage && !isFetchingNextPage) {
@@ -129,13 +134,13 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
   )
 
   const saveRating = useCallback(
-    async (nextRating: number, nextNotes: string, nextFinalRanking: 1 | 2 | 3 | null) => {
+    async (nextRating: number, nextNotes: string) => {
       if (!currentParticipantId) return
 
       setIsSaving(true)
       try {
         if (existingRating) {
-          if (nextRating === 0 && !nextNotes.trim() && nextFinalRanking === null) {
+          if (nextRating === 0 && !nextNotes.trim()) {
             await deleteRatingMutation.mutateAsync({
               token,
               domain,
@@ -148,17 +153,15 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
               participantId: currentParticipantId,
               rating: nextRating,
               notes: nextNotes,
-              finalRanking: nextFinalRanking,
             })
           }
-        } else if (nextRating > 0 || nextNotes.trim() || nextFinalRanking !== null) {
+        } else if (nextRating > 0 || nextNotes.trim()) {
           await createRatingMutation.mutateAsync({
             token,
             domain,
             participantId: currentParticipantId,
             rating: nextRating,
             notes: nextNotes,
-            finalRanking: nextFinalRanking,
           })
         }
       } catch (error) {
@@ -183,31 +186,35 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     (star: number) => {
       const nextRating = star === localRating ? 0 : star
       setLocalRating(nextRating)
-      void saveRating(nextRating, localNotes, localFinalRanking)
+      void saveRating(nextRating, localNotes)
     },
-    [localFinalRanking, localNotes, localRating, saveRating, setLocalRating],
+    [localNotes, localRating, saveRating, setLocalRating],
   )
 
-  const [pendingRank, setPendingRank] = useState<1 | 2 | 3 | null>(null)
+  const handleToggleShortlist = useCallback(() => {
+    if (currentParticipantId === null) return
+    void setPick(currentParticipantId, !isShortlisted)
+  }, [currentParticipantId, isShortlisted, setPick])
 
-  const confirmFinalRanking = useCallback(() => {
-    if (pendingRank === null) return
-    const nextFinalRanking = localFinalRanking === pendingRank ? null : pendingRank
-    setLocalFinalRanking(nextFinalRanking)
-    void saveRating(localRating, localNotes, nextFinalRanking)
-    setPendingRank(null)
-  }, [pendingRank, localFinalRanking, localNotes, localRating, saveRating, setLocalFinalRanking])
+  /** Only changes that overwrite or drop an existing winner need confirming. */
+  const [isWinnerDialogOpen, setIsWinnerDialogOpen] = useState(false)
 
-  const handleFinalRankingClick = useCallback((finalRanking: 1 | 2 | 3) => {
-    setPendingRank(finalRanking)
-  }, [])
+  const handleWinnerClick = useCallback(() => {
+    if (currentParticipantId === null) return
 
-  const { registerViewerActions } = useJuryReviewInteraction()
+    if (isWinner || winnerParticipantId !== null) {
+      setIsWinnerDialogOpen(true)
+      return
+    }
 
-  useEffect(() => {
-    registerViewerActions({ assignToRank: handleFinalRankingClick })
-    return () => registerViewerActions(null)
-  }, [handleFinalRankingClick, registerViewerActions])
+    void pickWinner(currentParticipantId)
+  }, [currentParticipantId, isWinner, pickWinner, winnerParticipantId])
+
+  const confirmWinnerChange = useCallback(() => {
+    if (currentParticipantId === null) return
+    void (isWinner ? setWinner(null) : pickWinner(currentParticipantId))
+    setIsWinnerDialogOpen(false)
+  }, [currentParticipantId, isWinner, pickWinner, setWinner])
 
   const goToPrev = useCallback(() => {
     void setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))
@@ -224,27 +231,15 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     goToNext,
     onBack: backToList,
     onRatingClick: handleRatingClick,
+    onToggleShortlist: handleToggleShortlist,
+    onWinnerClick: handleWinnerClick,
   })
 
   const { handleNotesChange } = useJuryNotesDebouncedSave({
     localRating,
-    localFinalRanking,
     saveRating,
     setLocalNotes,
   })
-
-  const rankOccupants = useMemo(() => {
-    const base = getRankAssignments(ratings)
-    if (currentParticipantId) {
-      for (const [rank, pid] of base) {
-        if (pid === currentParticipantId) base.delete(rank)
-      }
-      if (localFinalRanking !== null) {
-        base.set(localFinalRanking, currentParticipantId)
-      }
-    }
-    return base
-  }, [ratings, currentParticipantId, localFinalRanking])
 
   if (!currentParticipant) {
     return (
@@ -270,38 +265,24 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
 
   return (
     <>
-      <AlertDialog
-        open={pendingRank !== null}
-        onOpenChange={(open) => {
-          if (!open) setPendingRank(null)
-        }}
-      >
+      <AlertDialog open={isWinnerDialogOpen} onOpenChange={setIsWinnerDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {pendingRank !== null && localFinalRanking === pendingRank
-                ? `Remove ${getFinalRankingLabel(pendingRank)} place?`
-                : pendingRank !== null
-                  ? `Assign ${getFinalRankingLabel(pendingRank)} place?`
-                  : 'Assign ranking'}
+              {isWinner ? 'Remove your winner?' : 'Replace your winner?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {pendingRank !== null && localFinalRanking === pendingRank
-                ? `This will remove #${currentParticipant.reference} from ${getFinalRankingLabel(pendingRank)} place.`
-                : pendingRank !== null
-                  ? `This will assign #${currentParticipant.reference} as your ${getFinalRankingLabel(pendingRank)} place pick.${
-                      rankOccupants.has(pendingRank) &&
-                      rankOccupants.get(pendingRank) !== currentParticipantId
-                        ? ` The current ${getFinalRankingLabel(pendingRank)} place holder will be replaced.`
-                        : ''
-                    }`
-                  : ''}
+              {isWinner
+                ? `This will leave #${currentParticipant.reference} on your shortlist without the win, and your review will have no winner.`
+                : `This will make #${currentParticipant.reference} your winner${
+                    isShortlisted ? '' : ', adding it to your shortlist'
+                  }. #${winnerReference ?? ''} loses the win but stays shortlisted.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmFinalRanking}>
-              {pendingRank !== null && localFinalRanking === pendingRank ? 'Remove' : 'Assign'}
+            <AlertDialogAction onClick={confirmWinnerChange}>
+              {isWinner ? 'Remove' : 'Make winner'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -404,11 +385,16 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
               isSaving={isSaving}
               onRatingClick={handleRatingClick}
               onNotesChange={handleNotesChange}
-              localFinalRanking={localFinalRanking}
-              rankOccupants={rankOccupants}
-              currentParticipantId={currentParticipantId}
-              participants={participants}
-              onFinalRankingClick={handleFinalRankingClick}
+              shortlist={{
+                isShortlisted,
+                isWinner,
+                shortlistCount,
+                requiredSize,
+                isFull,
+                isSavingShortlist,
+                onToggleShortlist: handleToggleShortlist,
+                onWinnerClick: handleWinnerClick,
+              }}
             />
           </div>
         </div>

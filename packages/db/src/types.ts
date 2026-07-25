@@ -11,7 +11,7 @@ import {
   ruleConfigs,
   juryInvitations,
   juryRatings,
-  juryFinalRankings,
+  juryShortlistPicks,
   user,
   zippedSubmissions,
   participantVerifications,
@@ -71,8 +71,8 @@ export type NewJuryInvitation = typeof juryInvitations.$inferInsert
 export type JuryRating = typeof juryRatings.$inferSelect
 export type NewJuryRating = typeof juryRatings.$inferInsert
 
-export type JuryFinalRanking = typeof juryFinalRankings.$inferSelect
-export type NewJuryFinalRanking = typeof juryFinalRankings.$inferInsert
+export type JuryShortlistPick = typeof juryShortlistPicks.$inferSelect
+export type NewJuryShortlistPick = typeof juryShortlistPicks.$inferInsert
 
 export type User = typeof user.$inferSelect
 export type NewUser = typeof user.$inferInsert

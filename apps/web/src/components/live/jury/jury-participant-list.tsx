@@ -10,6 +10,7 @@ import { useDomain } from '@/lib/domain-provider'
 import { useJuryClientToken } from './jury-client-token-provider'
 import type { JuryListParticipant, ViewMode } from '@/lib/jury/jury-types'
 import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
+import { useJuryShortlist } from '@/hooks/live/jury/use-jury-shortlist'
 import { useJuryReviewData } from './jury-review-data-provider'
 import { JuryParticipantCard } from './jury-participant-card'
 import { RatingFilterBar } from './rating-filter'
@@ -71,6 +72,7 @@ export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResul
     () => new Map(ratingsData.ratings.map((rating) => [rating.participantId, rating] as const)),
     [ratingsData.ratings],
   )
+  const { shortlistedIds, winnerParticipantId } = useJuryShortlist({ domain, token })
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const totalMatchingParticipants = totalParticipants?.value ?? participants.length
   const participantSummary =
@@ -203,23 +205,17 @@ export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResul
                       transform: `translateY(${virtualRow.start}px)`,
                     }}
                   >
-                    {row.participants.map(({ participant, index }) => {
-                      const ratingData = ratingByParticipantId.get(participant.id)
-                      const rating = ratingData?.rating ?? 0
-                      const finalRanking =
-                        (ratingData?.finalRanking as 1 | 2 | 3 | null | undefined) ?? null
-
-                      return (
-                        <JuryParticipantCard
-                          key={participant.id}
-                          participant={participant}
-                          rating={rating}
-                          finalRanking={finalRanking}
-                          onClick={() => selectParticipant(participant.id, index)}
-                          variant={viewMode}
-                        />
-                      )
-                    })}
+                    {row.participants.map(({ participant, index }) => (
+                      <JuryParticipantCard
+                        key={participant.id}
+                        participant={participant}
+                        rating={ratingByParticipantId.get(participant.id)?.rating ?? 0}
+                        isShortlisted={shortlistedIds.has(participant.id)}
+                        isWinner={winnerParticipantId === participant.id}
+                        onClick={() => selectParticipant(participant.id, index)}
+                        variant={viewMode}
+                      />
+                    ))}
                   </div>
                 )
               })}

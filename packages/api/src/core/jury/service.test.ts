@@ -107,9 +107,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
 
         return updated
       }),
-    deleteJuryInvitation: ({ id }: { id: number }) =>
-      Effect.succeed(makeInvitation({ id })),
-    getJuryRatingsWithRankingsByInvitation: () => Effect.succeed([]),
+    deleteJuryInvitation: ({ id }: { id: number }) => Effect.succeed(makeInvitation({ id })),
     getJuryDataByTokenPayload: ({ invitationId }: { domain: string; invitationId: number }) =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
@@ -127,19 +125,19 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         }
       }),
     getJurySubmissionsFromToken: () => Effect.die('not used in these tests'),
-    getJuryRatingsByInvitation: () => Effect.die('not used in these tests'),
+    getJuryRatingsByInvitation: () => Effect.succeed([]),
     getJuryParticipantCount: () => Effect.die('not used in these tests'),
     participantMatchesInvitationScope: () => Effect.die('not used in these tests'),
-    getJuryFinalRankingByRank: () => Effect.die('not used in these tests'),
-    deleteJuryFinalRankingByParticipant: () => Effect.die('not used in these tests'),
-    getJuryFinalRankingByParticipant: () => Effect.die('not used in these tests'),
-    updateJuryFinalRanking: () => Effect.die('not used in these tests'),
-    createJuryFinalRanking: () => Effect.die('not used in these tests'),
+    getJuryShortlistByInvitation: () => Effect.die('not used in these tests'),
+    getJuryShortlistPick: () => Effect.die('not used in these tests'),
+    createJuryShortlistPick: () => Effect.die('not used in these tests'),
+    deleteJuryShortlistPick: () => Effect.die('not used in these tests'),
+    clearJuryShortlistWinner: () => Effect.die('not used in these tests'),
+    markJuryShortlistWinner: () => Effect.die('not used in these tests'),
     getJuryRating: () => Effect.die('not used in these tests'),
     updateJuryRating: () => Effect.die('not used in these tests'),
     createJuryRating: () => Effect.die('not used in these tests'),
     deleteJuryRating: () => Effect.die('not used in these tests'),
-    getJuryAssignedFinalRankings: () => Effect.die('not used in these tests'),
   } as unknown as JuryRepository['Service'])
 
   const participantsRepository = ParticipantsRepository.of({} as ParticipantsRepository['Service'])
@@ -153,10 +151,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         }
         yield* Ref.update(stateRef, (current) => ({
           ...current,
-          sentEmails: [
-            ...current.sentEmails,
-            { to: input.to, subject: input.subject },
-          ],
+          sentEmails: [...current.sentEmails, { to: input.to, subject: input.subject }],
         }))
         return { id: 'email-1' }
       }),

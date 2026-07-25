@@ -38,10 +38,10 @@ import {
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
 import { useDomain } from '@/lib/domain-provider'
-import { getJuryEntryLink, getRankAssignments } from '@/lib/jury/jury-utils'
+import { getJuryEntryLink } from '@/lib/jury/jury-utils'
 import { format } from 'date-fns'
 import { JuryRatingsTable } from './jury-ratings-table'
-import { JuryRankedPickCard } from './jury-ranked-pick-card'
+import { JuryShortlistSummary } from './jury-shortlist-summary'
 import { JuryInvitationStatusBadge } from './jury-invitation-status-badge'
 import { JuryInvitationExtendDialog } from './jury-invitation-extend-dialog'
 import { JuryInvitationRegenerateDialog } from './jury-invitation-regenerate-dialog'
@@ -134,11 +134,6 @@ export function JuryInvitationDetailsContent({
   const isCompleted = invitation.status === 'completed'
   const createdDate = format(new Date(invitation.createdAt), 'PPP')
   const expiryDate = format(new Date(invitation.expiresAt), 'PPP')
-  const rankAssignments = getRankAssignments(reviewResults.ratings)
-  const ratingsByParticipantId = new Map(
-    reviewResults.ratings.map((rating) => [rating.participantId, rating]),
-  )
-
   return (
     <>
       <div className="shrink-0 flex flex-col gap-3 border-b border-border px-4 py-3.5 sm:flex-row sm:items-start sm:justify-between sm:gap-4 sm:px-5">
@@ -376,29 +371,16 @@ export function JuryInvitationDetailsContent({
             <div className="flex items-center gap-2 mb-3">
               <span className="h-1 w-1 rounded-full bg-brand-primary" />
               <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-                Ranked Picks
+                Shortlist
               </span>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {([1, 2, 3] as const).map((rank) => {
-                const participantId = rankAssignments.get(rank)
-                const rating =
-                  participantId !== undefined
-                    ? (ratingsByParticipantId.get(participantId) ?? null)
-                    : null
-
-                return (
-                  <JuryRankedPickCard
-                    key={rank}
-                    rank={rank}
-                    participantReference={rating?.participant?.reference}
-                  />
-                )
-              })}
-            </div>
+            <JuryShortlistSummary shortlist={reviewResults.shortlist} />
           </section>
 
-          <JuryRatingsTable ratings={reviewResults.ratings} />
+          <JuryRatingsTable
+            ratings={reviewResults.ratings}
+            shortlist={reviewResults.shortlist}
+          />
 
           <section>
             <div className="flex items-center gap-2 mb-3">

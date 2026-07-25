@@ -29,6 +29,7 @@ export default async function JuryViewerPage({
 
   batchPrefetch([
     trpc.jury.getJuryRatingsByInvitation.queryOptions({ domain, token }),
+    trpc.jury.getJuryShortlist.queryOptions({ domain, token }),
     trpc.jury.getJuryParticipantCount.queryOptions({ domain, token }),
     trpc.jury.getJurySubmissionsFromToken.infiniteQueryOptions(
       { domain, token },

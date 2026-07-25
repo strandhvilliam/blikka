@@ -1,10 +1,10 @@
 import { DrizzleClient } from '../drizzle-client'
 import { Effect, Layer, Option, Context } from 'effect'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, ne } from 'drizzle-orm'
 import {
-  juryFinalRankings,
   juryInvitations,
   juryRatings,
+  juryShortlistPicks,
   marathons,
   participants,
   submissions,
@@ -12,9 +12,9 @@ import {
 import type {
   CompetitionClass,
   DeviceGroup,
-  JuryFinalRanking,
   JuryInvitation,
   JuryRating,
+  JuryShortlistPick,
   Marathon,
   NewJuryInvitation,
   Participant,
@@ -53,12 +53,11 @@ type JuryRatingRecentWithParticipant = JuryRating & {
   participant: JuryParticipantPublicFields
 }
 
-type JuryFinalRankingWithParticipant = JuryFinalRanking & {
+type JuryShortlistPickWithParticipant = JuryShortlistPick & {
   participant: JuryParticipantPublicFields
 }
 
 interface JuryRatingWithParticipant extends JuryRating {
-  finalRanking: number | null
   participant: JuryParticipantPublicFields
 }
 
@@ -138,14 +137,10 @@ export class JuryRepository extends Context.Service<
     readonly getJuryRatingsByInvitation: (params: {
       invitationId: number
     }) => Effect.Effect<JuryRatingWithParticipant[], DbError>
-    /** Ratings and rankings belonging to a jury invitation. */
-    readonly getJuryRatingsWithRankingsByInvitation: (params: {
+    /** Shortlisted picks for a jury invitation, oldest pick first. */
+    readonly getJuryShortlistByInvitation: (params: {
       invitationId: number
-    }) => Effect.Effect<JuryRatingWithParticipant[], DbError>
-    /** Final rankings assigned by a jury invitation. */
-    readonly getJuryAssignedFinalRankings: (params: {
-      invitationId: number
-    }) => Effect.Effect<JuryFinalRankingWithParticipant[], DbError>
+    }) => Effect.Effect<JuryShortlistPickWithParticipant[], DbError>
     /** Whether a participant is within a jury invitation's scope. */
     readonly participantMatchesInvitationScope: (params: {
       invitationId: number
@@ -165,34 +160,34 @@ export class JuryRepository extends Context.Service<
       rating: number
       notes?: string
     }) => Effect.Effect<JuryRating, DbError>
-    /** Final ranking by invitation and participant, or null if missing. */
-    readonly getJuryFinalRankingByParticipant: (params: {
+    /** Shortlist pick by invitation and participant, or null if the participant is not shortlisted. */
+    readonly getJuryShortlistPick: (params: {
       invitationId: number
       participantId: number
-    }) => Effect.Effect<JuryFinalRanking | null, DbError>
-    /** Final ranking by invitation and rank, or null if missing. */
-    readonly getJuryFinalRankingByRank: (params: {
-      invitationId: number
-      rank: number
-      excludeParticipantId?: number
-    }) => Effect.Effect<JuryFinalRanking | null, DbError>
-    /** Insert a new jury final ranking row. */
-    readonly createJuryFinalRanking: (params: {
+    }) => Effect.Effect<JuryShortlistPick | null, DbError>
+    /** Add a participant to a jury invitation's shortlist. */
+    readonly createJuryShortlistPick: (params: {
       invitationId: number
       participantId: number
-      rank: number
-    }) => Effect.Effect<JuryFinalRanking, DbError>
-    /** Patch a jury final ranking by invitation and participant. */
-    readonly updateJuryFinalRanking: (params: {
+    }) => Effect.Effect<JuryShortlistPick, DbError>
+    /** Remove a participant from a jury invitation's shortlist. */
+    readonly deleteJuryShortlistPick: (params: {
       invitationId: number
       participantId: number
-      rank: number
-    }) => Effect.Effect<JuryFinalRanking, DbError>
-    /** Delete a jury final ranking by invitation and participant. */
-    readonly deleteJuryFinalRankingByParticipant: (params: {
+    }) => Effect.Effect<JuryShortlistPick[], DbError>
+    /**
+     * Unset the winner flag on a jury invitation's shortlist. Must run before marking a new winner:
+     * `jury_shortlist_picks_invitation_winner_key` permits only one flagged row per invitation.
+     */
+    readonly clearJuryShortlistWinner: (params: {
+      invitationId: number
+      exceptParticipantId?: number
+    }) => Effect.Effect<JuryShortlistPick[], DbError>
+    /** Flag an already-shortlisted participant as the invitation's winner. */
+    readonly markJuryShortlistWinner: (params: {
       invitationId: number
       participantId: number
-    }) => Effect.Effect<JuryFinalRanking[], DbError>
+    }) => Effect.Effect<JuryShortlistPick, DbError>
     /** Delete a jury rating by invitation and participant. */
     readonly deleteJuryRating: (params: {
       invitationId: number
@@ -399,45 +394,23 @@ const makeJuryRepository = Effect.gen(function* () {
     }
     return result
   })
-  const getJuryFinalRankingByParticipant: JuryRepository['Service']['getJuryFinalRankingByParticipant'] =
-    Effect.fn('JuryRepository.getJuryFinalRankingByParticipant')(function* ({
-      invitationId,
-      participantId,
-    }) {
-      const existing = yield* use((db) =>
-        db.query.juryFinalRankings.findFirst({
-          where: (table, operators) =>
-            operators.and(
-              operators.eq(table.invitationId, invitationId),
-              operators.eq(table.participantId, participantId),
-            ),
-        }),
-      )
-      return existing ?? null
-    })
-  const getJuryFinalRankingByRank: JuryRepository['Service']['getJuryFinalRankingByRank'] =
-    Effect.fn('JuryRepository.getJuryFinalRankingByRank')(function* ({
-      invitationId,
-      rank,
-      excludeParticipantId,
-    }) {
-      const existing = yield* use((db) =>
-        db.query.juryFinalRankings.findFirst({
-          where: (table, operators) =>
-            operators.and(
-              operators.eq(table.invitationId, invitationId),
-              operators.eq(table.rank, rank),
-              ...(excludeParticipantId === undefined
-                ? []
-                : [operators.ne(table.participantId, excludeParticipantId)]),
-            ),
-        }),
-      )
-      return existing ?? null
-    })
-  const createJuryFinalRanking: JuryRepository['Service']['createJuryFinalRanking'] = Effect.fn(
-    'JuryRepository.createJuryFinalRanking',
-  )(function* ({ invitationId, participantId, rank }) {
+  const getJuryShortlistPick: JuryRepository['Service']['getJuryShortlistPick'] = Effect.fn(
+    'JuryRepository.getJuryShortlistPick',
+  )(function* ({ invitationId, participantId }) {
+    const existing = yield* use((db) =>
+      db.query.juryShortlistPicks.findFirst({
+        where: (table, operators) =>
+          operators.and(
+            operators.eq(table.invitationId, invitationId),
+            operators.eq(table.participantId, participantId),
+          ),
+      }),
+    )
+    return existing ?? null
+  })
+  const createJuryShortlistPick: JuryRepository['Service']['createJuryShortlistPick'] = Effect.fn(
+    'JuryRepository.createJuryShortlistPick',
+  )(function* ({ invitationId, participantId }) {
     const invitation = yield* use((db) =>
       db.query.juryInvitations.findFirst({
         where: (table, operators) => operators.eq(table.id, invitationId),
@@ -452,11 +425,10 @@ const makeJuryRepository = Effect.gen(function* () {
     }
     const [result] = yield* use((db) =>
       db
-        .insert(juryFinalRankings)
+        .insert(juryShortlistPicks)
         .values({
           invitationId,
           participantId,
-          rank,
           marathonId: invitation.marathonId,
         })
         .returning(),
@@ -464,23 +436,57 @@ const makeJuryRepository = Effect.gen(function* () {
     if (!result) {
       return yield* Effect.fail(
         new DbError({
-          message: 'Failed to create jury final ranking',
+          message: 'Failed to create jury shortlist pick',
         }),
       )
     }
     return result
   })
-  const updateJuryFinalRanking: JuryRepository['Service']['updateJuryFinalRanking'] = Effect.fn(
-    'JuryRepository.updateJuryFinalRanking',
-  )(function* ({ invitationId, participantId, rank }) {
-    const [result] = yield* use((db) =>
+  const deleteJuryShortlistPick: JuryRepository['Service']['deleteJuryShortlistPick'] = Effect.fn(
+    'JuryRepository.deleteJuryShortlistPick',
+  )(function* ({ invitationId, participantId }) {
+    return yield* use((db) =>
       db
-        .update(juryFinalRankings)
-        .set({ rank })
+        .delete(juryShortlistPicks)
         .where(
           and(
-            eq(juryFinalRankings.invitationId, invitationId),
-            eq(juryFinalRankings.participantId, participantId),
+            eq(juryShortlistPicks.invitationId, invitationId),
+            eq(juryShortlistPicks.participantId, participantId),
+          ),
+        )
+        .returning(),
+    )
+  })
+  const clearJuryShortlistWinner: JuryRepository['Service']['clearJuryShortlistWinner'] = Effect.fn(
+    'JuryRepository.clearJuryShortlistWinner',
+  )(function* ({ invitationId, exceptParticipantId }) {
+    return yield* use((db) =>
+      db
+        .update(juryShortlistPicks)
+        .set({ isWinner: false })
+        .where(
+          and(
+            eq(juryShortlistPicks.invitationId, invitationId),
+            eq(juryShortlistPicks.isWinner, true),
+            ...(exceptParticipantId === undefined
+              ? []
+              : [ne(juryShortlistPicks.participantId, exceptParticipantId)]),
+          ),
+        )
+        .returning(),
+    )
+  })
+  const markJuryShortlistWinner: JuryRepository['Service']['markJuryShortlistWinner'] = Effect.fn(
+    'JuryRepository.markJuryShortlistWinner',
+  )(function* ({ invitationId, participantId }) {
+    const [result] = yield* use((db) =>
+      db
+        .update(juryShortlistPicks)
+        .set({ isWinner: true })
+        .where(
+          and(
+            eq(juryShortlistPicks.invitationId, invitationId),
+            eq(juryShortlistPicks.participantId, participantId),
           ),
         )
         .returning(),
@@ -488,33 +494,12 @@ const makeJuryRepository = Effect.gen(function* () {
     if (!result) {
       return yield* Effect.fail(
         new DbError({
-          message: 'Jury final ranking not found',
+          message: 'Jury shortlist pick not found',
         }),
       )
     }
     return result
   })
-  const deleteJuryFinalRankingByParticipant: JuryRepository['Service']['deleteJuryFinalRankingByParticipant'] =
-    Effect.fn('JuryRepository.deleteJuryFinalRankingByParticipant')(function* ({
-      invitationId,
-      participantId,
-    }: {
-      invitationId: number
-      participantId: number
-    }) {
-      const result = yield* use((db) =>
-        db
-          .delete(juryFinalRankings)
-          .where(
-            and(
-              eq(juryFinalRankings.invitationId, invitationId),
-              eq(juryFinalRankings.participantId, participantId),
-            ),
-          )
-          .returning(),
-      )
-      return result
-    })
   const getJuryRating: JuryRepository['Service']['getJuryRating'] = Effect.fn(
     'JuryRepository.getJuryRating',
   )(function* ({ invitationId, participantId }) {
@@ -541,10 +526,8 @@ const makeJuryRepository = Effect.gen(function* () {
     )
     return Option.fromNullishOr(result)
   })
-  const getJuryRatingsWithRankingsByInvitation: JuryRepository['Service']['getJuryRatingsWithRankingsByInvitation'] =
-    Effect.fn('JuryRepository.getJuryRatingsWithRankingsByInvitation')(function* ({
-      invitationId,
-    }) {
+  const getJuryRatingsByInvitation: JuryRepository['Service']['getJuryRatingsByInvitation'] =
+    Effect.fn('JuryRepository.getJuryRatingsByInvitation')(function* ({ invitationId }) {
       const invitation = yield* use((db) =>
         db.query.juryInvitations.findFirst({
           where: (table, operators) => operators.eq(table.id, invitationId),
@@ -557,7 +540,7 @@ const makeJuryRepository = Effect.gen(function* () {
           }),
         )
       }
-      const ratings = yield* use((db) =>
+      return yield* use((db) =>
         db.query.juryRatings.findMany({
           where: (table, operators) =>
             operators.and(
@@ -577,8 +560,23 @@ const makeJuryRepository = Effect.gen(function* () {
           orderBy: (table, operators) => operators.desc(table.createdAt),
         }),
       )
-      const finalRankings = yield* use((db) =>
-        db.query.juryFinalRankings.findMany({
+    })
+  const getJuryShortlistByInvitation: JuryRepository['Service']['getJuryShortlistByInvitation'] =
+    Effect.fn('JuryRepository.getJuryShortlistByInvitation')(function* ({ invitationId }) {
+      const invitation = yield* use((db) =>
+        db.query.juryInvitations.findFirst({
+          where: (table, operators) => operators.eq(table.id, invitationId),
+        }),
+      )
+      if (!invitation) {
+        return yield* Effect.fail(
+          new DbError({
+            message: 'Invitation not found',
+          }),
+        )
+      }
+      return yield* use((db) =>
+        db.query.juryShortlistPicks.findMany({
           where: (table, operators) =>
             operators.and(
               operators.eq(table.invitationId, invitation.id),
@@ -594,48 +592,9 @@ const makeJuryRepository = Effect.gen(function* () {
               },
             },
           },
-          orderBy: (table, operators) => operators.asc(table.rank),
+          orderBy: (table, operators) => operators.asc(table.createdAt),
         }),
       )
-
-      const rankingByParticipantId = new Map<number, JuryFinalRanking>()
-      for (const ranking of finalRankings) {
-        rankingByParticipantId.set(ranking.participantId, ranking)
-      }
-
-      const merged = ratings.map((rating) => ({
-        ...rating,
-        finalRanking: rankingByParticipantId.get(rating.participantId)?.rank ?? null,
-      }))
-
-      const ratingsByParticipantId = new Set(ratings.map((rating) => rating.participantId))
-
-      for (const ranking of finalRankings) {
-        if (ratingsByParticipantId.has(ranking.participantId)) {
-          continue
-        }
-
-        merged.push({
-          id: 0,
-          createdAt: ranking.createdAt,
-          invitationId: ranking.invitationId,
-          rating: 0,
-          participantId: ranking.participantId,
-          notes: '',
-          marathonId: ranking.marathonId,
-          participant: ranking.participant,
-          finalRanking: ranking.rank,
-        })
-      }
-
-      return merged.toSorted((left, right) => {
-        const rankDiff = (left.finalRanking ?? 99) - (right.finalRanking ?? 99)
-        if (rankDiff !== 0) {
-          return rankDiff
-        }
-
-        return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
-      })
     })
   const deleteJuryRating: JuryRepository['Service']['deleteJuryRating'] = Effect.fn(
     'JuryRepository.deleteJuryRating',
@@ -1014,48 +973,6 @@ const makeJuryRepository = Effect.gen(function* () {
         })
       }
     })
-  const getJuryRatingsByInvitation: JuryRepository['Service']['getJuryRatingsByInvitation'] =
-    Effect.fn('JuryRepository.getJuryRatingsByInvitation')(function* ({ invitationId }) {
-      const ratings = yield* getJuryRatingsWithRankingsByInvitation({
-        invitationId,
-      })
-      return ratings
-    })
-  const getJuryAssignedFinalRankings: JuryRepository['Service']['getJuryAssignedFinalRankings'] =
-    Effect.fn('JuryRepository.getJuryAssignedFinalRankings')(function* ({ invitationId }) {
-      const invitation = yield* use((db) =>
-        db.query.juryInvitations.findFirst({
-          where: (table, operators) => operators.eq(table.id, invitationId),
-        }),
-      )
-      if (!invitation) {
-        return yield* Effect.fail(
-          new DbError({
-            message: 'Invitation not found',
-          }),
-        )
-      }
-      return yield* use((db) =>
-        db.query.juryFinalRankings.findMany({
-          where: (table, operators) =>
-            operators.and(
-              operators.eq(table.invitationId, invitation.id),
-              operators.eq(table.marathonId, invitation.marathonId),
-            ),
-          with: {
-            participant: {
-              columns: {
-                id: true,
-                reference: true,
-                firstname: true,
-                lastname: true,
-              },
-            },
-          },
-          orderBy: (table, operators) => operators.asc(table.rank),
-        }),
-      )
-    })
   const participantMatchesInvitationScope: JuryRepository['Service']['participantMatchesInvitationScope'] =
     Effect.fn('JuryRepository.participantMatchesInvitationScope')(function* ({
       invitationId,
@@ -1309,16 +1226,15 @@ const makeJuryRepository = Effect.gen(function* () {
     getJuryParticipantCount,
     getJuryRating,
     getJuryRatingsByInvitation,
-    getJuryRatingsWithRankingsByInvitation,
-    getJuryAssignedFinalRankings,
+    getJuryShortlistByInvitation,
     participantMatchesInvitationScope,
     createJuryRating,
     updateJuryRating,
-    getJuryFinalRankingByParticipant,
-    getJuryFinalRankingByRank,
-    createJuryFinalRanking,
-    updateJuryFinalRanking,
-    deleteJuryFinalRankingByParticipant,
+    getJuryShortlistPick,
+    createJuryShortlistPick,
+    deleteJuryShortlistPick,
+    clearJuryShortlistWinner,
+    markJuryShortlistWinner,
     deleteJuryRating,
   })
 })

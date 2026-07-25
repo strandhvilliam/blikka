@@ -4,13 +4,19 @@ import { Textarea } from '@/components/ui/textarea'
 import { Keyboard, Loader2, MessageSquare, Star } from 'lucide-react'
 import type { ChangeEvent } from 'react'
 import type { JuryInvitation, JuryListParticipant } from '@/lib/jury/jury-types'
-import {
-  getFinalRankingLabel,
-  juryRankChipActive,
-  juryRankChipNeutralOccupied,
-  juryRankChipNeutralSlot,
-} from '@/lib/jury/jury-utils'
-import { JuryRankTrophyBadge } from './jury-rank-trophy-badge'
+import { juryPickChipActive, juryPickChipIdle } from '@/lib/jury/jury-utils'
+import { JuryPickBadge } from './jury-pick-badge'
+
+export type JurySidebarShortlistState = {
+  isShortlisted: boolean
+  isWinner: boolean
+  shortlistCount: number
+  requiredSize: number
+  isFull: boolean
+  isSavingShortlist: boolean
+  onToggleShortlist: () => void
+  onWinnerClick: () => void
+}
 
 export function JurySidebar({
   participant,
@@ -20,11 +26,7 @@ export function JurySidebar({
   isSaving,
   onRatingClick,
   onNotesChange,
-  localFinalRanking,
-  rankOccupants,
-  currentParticipantId,
-  participants,
-  onFinalRankingClick,
+  shortlist,
 }: {
   participant: JuryListParticipant
   invitation: JuryInvitation
@@ -33,11 +35,7 @@ export function JurySidebar({
   isSaving: boolean
   onRatingClick: (star: number) => void
   onNotesChange: (event: ChangeEvent<HTMLTextAreaElement>) => void
-  localFinalRanking: 1 | 2 | 3 | null
-  rankOccupants: Map<number, number>
-  currentParticipantId: number | null
-  participants: JuryListParticipant[]
-  onFinalRankingClick: (rank: 1 | 2 | 3) => void
+  shortlist: JurySidebarShortlistState
 }) {
   return (
     <div className="flex h-full flex-col">
@@ -46,15 +44,8 @@ export function JurySidebar({
         invitation={invitation}
         isSaving={isSaving}
       />
+      <JurySidebarShortlist {...shortlist} />
       <JurySidebarStarRating rating={rating} onRatingClick={onRatingClick} />
-      <JurySidebarFinalRanking
-        participant={participant}
-        localFinalRanking={localFinalRanking}
-        rankOccupants={rankOccupants}
-        currentParticipantId={currentParticipantId}
-        participants={participants}
-        onFinalRankingClick={onFinalRankingClick}
-      />
       <JurySidebarNotes notes={notes} onNotesChange={onNotesChange} />
       <JurySidebarKeyboardShortcuts />
     </div>
@@ -148,62 +139,59 @@ function JurySidebarStarRating({
   )
 }
 
-function JurySidebarFinalRanking({
-  participant,
-  localFinalRanking,
-  rankOccupants,
-  currentParticipantId,
-  participants,
-  onFinalRankingClick,
-}: {
-  participant: JuryListParticipant
-  localFinalRanking: 1 | 2 | 3 | null
-  rankOccupants: Map<number, number>
-  currentParticipantId: number | null
-  participants: JuryListParticipant[]
-  onFinalRankingClick: (rank: 1 | 2 | 3) => void
-}) {
+function JurySidebarShortlist({
+  isShortlisted,
+  isWinner,
+  shortlistCount,
+  requiredSize,
+  isFull,
+  isSavingShortlist,
+  onToggleShortlist,
+  onWinnerClick,
+}: JurySidebarShortlistState) {
+  // A full shortlist still allows removing this pick, and the winner action shortlists implicitly.
+  const isShortlistBlocked = !isShortlisted && isFull
+
   return (
     <div className="border-t border-border/60 px-5 py-4">
-      <p className="text-xs font-semibold tracking-wide text-brand-black/60 uppercase">
-        Final ranking
-      </p>
-      <div className="mt-2.5 flex flex-wrap gap-2">
-        {([1, 2, 3] as const).map((rank) => {
-          const isActive = localFinalRanking === rank
-          const occupantId = rankOccupants.get(rank)
-          const occupantRef =
-            occupantId && !isActive
-              ? participants.find((p) => p.id === occupantId)?.reference
-              : null
-          const isOccupiedByOther = occupantId !== undefined && occupantId !== currentParticipantId
-
-          return (
-            <button
-              key={rank}
-              type="button"
-              className={
-                isActive
-                  ? juryRankChipActive
-                  : isOccupiedByOther
-                    ? juryRankChipNeutralOccupied
-                    : juryRankChipNeutralSlot
-              }
-              onClick={() => onFinalRankingClick(rank)}
-            >
-              <JuryRankTrophyBadge rank={rank} tone={isActive ? 'active' : 'idle'} />
-              {getFinalRankingLabel(rank)}
-              {isActive ? (
-                <span className="text-xs font-normal opacity-80">#{participant.reference}</span>
-              ) : occupantRef != null ? (
-                <span className="text-xs font-normal text-brand-gray">#{occupantRef}</span>
-              ) : (
-                <span className="text-xs font-normal text-brand-gray">Not Set</span>
-              )}
-            </button>
-          )
-        })}
+      <div className="flex items-baseline justify-between gap-2">
+        <p className="text-xs font-semibold tracking-wide text-brand-black/60 uppercase">
+          Your picks
+        </p>
+        <span className="text-[11px] tabular-nums text-brand-gray">
+          {shortlistCount}/{requiredSize} shortlisted
+        </span>
       </div>
+
+      <div className="mt-2.5 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className={isShortlisted ? juryPickChipActive : juryPickChipIdle}
+          onClick={onToggleShortlist}
+          disabled={isSavingShortlist || isShortlistBlocked}
+          aria-pressed={isShortlisted}
+        >
+          <JuryPickBadge variant="shortlist" tone={isShortlisted ? 'active' : 'idle'} />
+          {isShortlisted ? 'Shortlisted' : 'Shortlist'}
+        </button>
+
+        <button
+          type="button"
+          className={isWinner ? juryPickChipActive : juryPickChipIdle}
+          onClick={onWinnerClick}
+          disabled={isSavingShortlist || (!isWinner && isShortlistBlocked)}
+          aria-pressed={isWinner}
+        >
+          <JuryPickBadge variant="winner" tone={isWinner ? 'active' : 'idle'} />
+          {isWinner ? 'Winner' : 'Pick as winner'}
+        </button>
+      </div>
+
+      <p className="mt-2 text-xs leading-relaxed text-brand-gray">
+        {isShortlistBlocked
+          ? `Your shortlist is full — remove one of your ${requiredSize} picks to swap this one in.`
+          : 'Shortlisted picks are in no particular order. One of them is your winner.'}
+      </p>
     </div>
   )
 }
@@ -243,6 +231,8 @@ function JurySidebarKeyboardShortcuts() {
         <ShortcutRow keys={['1', '–', '5']} label="Set rating" />
         <ShortcutRow keys={['[', ']']} label="Adjust rating" />
         <ShortcutRow keys={['0']} label="Clear rating" />
+        <ShortcutRow keys={['S']} label="Shortlist" />
+        <ShortcutRow keys={['W']} label="Pick winner" />
         <ShortcutRow keys={['Esc']} label="Back to list" />
       </div>
     </div>

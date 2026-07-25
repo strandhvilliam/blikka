@@ -20,18 +20,13 @@ import { CheckCircle2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useJuryReviewData } from './jury-review-data-provider'
-import {
-  getDisplayInitials,
-  getJuryCompletedPath,
-  getRankAssignments,
-  hasCompleteFinalRankings,
-} from '@/lib/jury/jury-utils'
+import { getDisplayInitials, getJuryCompletedPath } from '@/lib/jury/jury-utils'
 import { cn } from '@/lib/utils'
-import { JuryRankTrophyBadge } from './jury-rank-trophy-badge'
+import { JuryPickBadge } from './jury-pick-badge'
 import { useDomain } from '@/lib/domain-provider'
 import { useJuryClientToken } from './jury-client-token-provider'
 import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
-import { useJuryReviewInteraction } from './jury-review-interaction-provider'
+import { useJuryShortlist } from '@/hooks/live/jury/use-jury-shortlist'
 import dynamic from 'next/dynamic'
 
 const ProgressRing = dynamic(() => import('./jury-progress-ring').then((mod) => mod.ProgressRing), {
@@ -40,21 +35,6 @@ const ProgressRing = dynamic(() => import('./jury-progress-ring').then((mod) => 
 
 const noopSubscribe = () => () => {}
 
-const PODIUM_SLOTS: Record<1 | 2 | 3, { label: string; filled: string }> = {
-  1: {
-    label: '1st place',
-    filled: 'border-amber-200 bg-amber-50/80 hover:border-amber-300 hover:bg-amber-50',
-  },
-  2: {
-    label: '2nd place',
-    filled: 'border-zinc-200 bg-zinc-50 hover:border-zinc-300 hover:bg-zinc-100/70',
-  },
-  3: {
-    label: '3rd place',
-    filled: 'border-orange-200 bg-orange-50/70 hover:border-orange-300 hover:bg-orange-50',
-  },
-}
-
 export function JuryReviewHeader() {
   const isClientReady = useSyncExternalStore(
     noopSubscribe,
@@ -62,8 +42,7 @@ export function JuryReviewHeader() {
     () => false,
   )
 
-  const { selectParticipant, selectedParticipantId } = useJuryReviewQueryState()
-  const { viewerActions } = useJuryReviewInteraction()
+  const { selectParticipant } = useJuryReviewQueryState()
   const { participants, reviewSetTotalParticipants: totalParticipants } = useJuryReviewData()
   const domain = useDomain()
   const token = useJuryClientToken()
@@ -74,9 +53,21 @@ export function JuryReviewHeader() {
   const { data: ratingsData } = useSuspenseQuery(
     trpc.jury.getJuryRatingsByInvitation.queryOptions({ domain, token }),
   )
-  const ratings = ratingsData.ratings
-  const ratedCount = ratings.length
-  const canCompleteReview = isClientReady && hasCompleteFinalRankings(ratings)
+  const {
+    picks,
+    shortlistedIds,
+    winnerParticipantId,
+    count: shortlistCount,
+    requiredSize,
+    isComplete,
+  } = useJuryShortlist({ domain, token })
+
+  // "Reviewed" is any trace the juror left on a submission — a star, a note, or a shortlist pick.
+  const reviewedIds = new Set(ratingsData.ratings.map((rating) => rating.participantId))
+  for (const participantId of shortlistedIds) {
+    reviewedIds.add(participantId)
+  }
+
   const queryClient = useQueryClient()
   const router = useRouter()
 
@@ -95,16 +86,14 @@ export function JuryReviewHeader() {
     }),
   )
 
-  const rankAssignments = getRankAssignments(ratings)
-  const participantMap = new Map(participants.map((p) => [p.id, p]))
-  const topPicksCount = rankAssignments.size
-  const topPicksComplete = topPicksCount === 3
-  const headerRatedCount = isClientReady ? ratedCount : 0
+  const canCompleteReview = isClientReady && isComplete
+  const headerReviewedCount = isClientReady ? reviewedIds.size : 0
   const headerTotalParticipants = isClientReady ? totalParticipants : 0
-  const headerTopPicksCount = isClientReady ? topPicksCount : 0
-  const headerTopPicksComplete = isClientReady && topPicksComplete
-  const canAssignFromPodium =
-    isClientReady && selectedParticipantId !== null && viewerActions !== null
+  const headerShortlistCount = isClientReady ? shortlistCount : 0
+  const headerShortlistFull = isClientReady && shortlistCount >= requiredSize
+  const headerWinnerReference = isClientReady
+    ? (picks.find((pick) => pick.isWinner)?.reference ?? null)
+    : null
 
   const sessionInitials = getDisplayInitials(invitation.displayName)
 
@@ -114,6 +103,13 @@ export function JuryReviewHeader() {
     invitation.deviceGroup?.name,
   ].filter((value): value is string => Boolean(value))
 
+  const openParticipant = (participantId: number) => {
+    const index = participants.findIndex((participant) => participant.id === participantId)
+    if (index >= 0) {
+      selectParticipant(participantId, index)
+    }
+  }
+
   return (
     <header className="overflow-hidden rounded-2xl border border-border/60 bg-white">
       <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
@@ -121,12 +117,12 @@ export function JuryReviewHeader() {
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="shrink-0 cursor-default">
-                <ProgressRing rated={headerRatedCount} total={headerTotalParticipants} />
+                <ProgressRing rated={headerReviewedCount} total={headerTotalParticipants} />
               </div>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="max-w-xs text-xs">
-              Share of participants with any saved review. Completing requires 1st, 2nd, and 3rd
-              place.
+              Share of participants you have left any mark on. Completing requires a full shortlist
+              with a winner picked.
             </TooltipContent>
           </Tooltip>
           <div className="min-w-0">
@@ -164,9 +160,9 @@ export function JuryReviewHeader() {
               </p>
               <p
                 className="text-[11px] tabular-nums text-brand-gray"
-                title="Any saved note, star rating, or top-3 pick counts as reviewed"
+                title="Any saved note, star rating, or shortlist pick counts as reviewed"
               >
-                {headerRatedCount}/{headerTotalParticipants} reviewed
+                {headerReviewedCount}/{headerTotalParticipants} reviewed
               </p>
             </div>
           </div>
@@ -184,8 +180,9 @@ export function JuryReviewHeader() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Complete review</AlertDialogTitle>
                 <AlertDialogDescription>
-                  You must choose 1st, 2nd, and 3rd place before completing this review. You will no
-                  longer be able to edit ratings after marking it as completed.
+                  You are submitting {requiredSize} shortlisted submissions with #
+                  {headerWinnerReference} as your winner. You will no longer be able to edit your
+                  review after marking it as completed.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
@@ -209,103 +206,100 @@ export function JuryReviewHeader() {
       </div>
 
       <div className="border-t border-border/60 bg-muted/20 px-5 py-3">
-        <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex items-center gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-gray">
-              Top 3 Picks
+              Your Shortlist
             </p>
             <span
               className={cn(
                 'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium tabular-nums',
-                headerTopPicksComplete
+                headerShortlistFull
                   ? 'border-brand-primary/20 bg-brand-primary/5 text-brand-primary'
                   : 'border-border/60 bg-white text-brand-gray',
               )}
             >
-              {headerTopPicksComplete ? <CheckCircle2 className="h-3 w-3" /> : null}
-              {headerTopPicksCount}/3
+              {headerShortlistFull ? <CheckCircle2 className="h-3 w-3" /> : null}
+              {headerShortlistCount}/{requiredSize}
             </span>
+            <span className="hidden text-[11px] text-brand-gray sm:inline">in no ranked order</span>
           </div>
-          {!headerTopPicksComplete && isClientReady ? (
-            <p className="hidden text-[11px] text-brand-gray sm:block">
-              {canAssignFromPodium
-                ? 'Tap an empty slot to add the current photo'
-                : 'Assign all three to complete the review'}
-            </p>
-          ) : null}
+
+          <div
+            className={cn(
+              'inline-flex min-w-0 items-center gap-2 rounded-full border px-2.5 py-1',
+              headerWinnerReference !== null
+                ? 'border-amber-200 bg-amber-50/80'
+                : 'border-dashed border-border/70 bg-white/40',
+            )}
+          >
+            <JuryPickBadge variant="winner" size="sm" />
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-brand-gray">
+              Winner
+            </span>
+            {headerWinnerReference !== null ? (
+              <button
+                type="button"
+                onClick={() => winnerParticipantId !== null && openParticipant(winnerParticipantId)}
+                className="font-gothic truncate text-sm font-medium leading-tight tabular-nums text-brand-black hover:text-brand-primary"
+              >
+                #{headerWinnerReference}
+              </button>
+            ) : (
+              <span className="text-sm font-medium leading-tight text-brand-gray/70">
+                Not picked
+              </span>
+            )}
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          {([1, 2, 3] as const).map((rank) => {
-            const slot = PODIUM_SLOTS[rank]
-            const participantId = isClientReady ? (rankAssignments.get(rank) ?? null) : null
-            const participant =
-              participantId !== null ? (participantMap.get(participantId) ?? null) : null
-            const isFilled = participant !== null
-
-            const canAssignToSlot = !isFilled && canAssignFromPodium
-
-            const handleClick = () => {
-              if (isFilled && participantId !== null) {
-                const index = participants.findIndex((p) => p.id === participantId)
-                if (index >= 0) {
-                  selectParticipant(participantId, index)
-                }
-                return
-              }
-
-              if (canAssignToSlot) {
-                viewerActions!.assignToRank(rank)
-              }
-            }
-
-            return (
+        {headerShortlistCount === 0 ? (
+          <p className="rounded-xl border border-dashed border-border/70 bg-white/40 px-3 py-3 text-center text-[13px] text-brand-gray">
+            Open a submission and hit <ShortcutKey>S</ShortcutKey> to shortlist it, then{' '}
+            <ShortcutKey>W</ShortcutKey> to make one of your picks the winner.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-2">
+            {picks.map((pick) => (
               <button
-                key={rank}
+                key={pick.participantId}
                 type="button"
-                onClick={handleClick}
-                disabled={!isFilled && !canAssignToSlot}
-                aria-label={
-                  isFilled
-                    ? `${slot.label}: participant #${participant!.reference}. Open submission.`
-                    : canAssignToSlot
-                      ? `${slot.label}: add current photo`
-                      : `${slot.label}: not assigned yet`
-                }
+                onClick={() => openParticipant(pick.participantId)}
+                aria-label={`Shortlisted #${pick.reference}${pick.isWinner ? ' — your winner' : ''}. Open submission.`}
                 className={cn(
-                  'group flex min-w-0 items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 focus-visible:ring-offset-1',
-                  isFilled
-                    ? `cursor-pointer shadow-sm active:scale-[0.99] ${slot.filled}`
-                    : canAssignToSlot
-                      ? 'cursor-pointer border-dashed border-border/70 bg-white/40 hover:border-brand-primary/50 hover:bg-brand-primary/10 active:scale-[0.99]'
-                      : 'cursor-default border-dashed border-border/70 bg-white/40',
+                  'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-sm font-medium tabular-nums shadow-sm transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 focus-visible:ring-offset-1 active:scale-[0.98]',
+                  pick.isWinner
+                    ? 'border-amber-200 bg-amber-50/80 text-brand-black hover:border-amber-300'
+                    : 'border-border/60 bg-white text-brand-black hover:border-brand-primary/40',
                 )}
               >
-                <JuryRankTrophyBadge rank={rank} tone="idle" />
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-gray">
-                    {slot.label}
-                  </p>
-                  {isFilled ? (
-                    <p className="truncate font-gothic text-sm font-medium leading-tight tabular-nums text-brand-black">
-                      #{participant!.reference}
-                    </p>
-                  ) : (
-                    <p
-                      className={cn(
-                        'text-sm font-medium leading-tight text-brand-gray/70',
-                        canAssignToSlot && 'group-hover:text-brand-primary',
-                      )}
-                    >
-                      {canAssignToSlot ? 'Add current' : 'Empty'}
-                    </p>
-                  )}
-                </div>
+                <JuryPickBadge variant={pick.isWinner ? 'winner' : 'shortlist'} size="sm" />#
+                {pick.reference}
               </button>
-            )
-          })}
-        </div>
+            ))}
+
+            {Array.from(
+              { length: Math.max(0, requiredSize - headerShortlistCount) },
+              (_, index) => (
+                <span
+                  key={`empty-${index}`}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border/70 bg-white/40 px-2.5 py-1.5 text-sm font-medium text-brand-gray/60"
+                >
+                  Empty
+                </span>
+              ),
+            )}
+          </div>
+        )}
       </div>
     </header>
+  )
+}
+
+function ShortcutKey({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="inline-flex min-w-[18px] items-center justify-center rounded border border-border/80 bg-white px-1 py-px font-mono text-[10px] leading-tight text-brand-black/70">
+      {children}
+    </kbd>
   )
 }

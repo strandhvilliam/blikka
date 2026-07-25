@@ -5,6 +5,8 @@ type RouterOutputs = inferRouterOutputs<AppRouter>
 
 export type JuryInvitation = RouterOutputs['jury']['verifyTokenAndGetInitialData']
 export type JuryRatingsResponse = RouterOutputs['jury']['getJuryRatingsByInvitation']
+export type JuryShortlist = RouterOutputs['jury']['getJuryShortlist']
+export type JuryShortlistPick = JuryShortlist['picks'][number]
 export type JurySubmissionPage = RouterOutputs['jury']['getJurySubmissionsFromToken']
 export type JuryParticipant = JurySubmissionPage['participants'][number]
 

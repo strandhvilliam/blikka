@@ -53,7 +53,10 @@ import type {
   GetJuryParticipantCount,
   GetJuryRatingsByInvitation,
   GetJuryReviewResultsByInvitationIdInput,
+  GetJuryShortlist,
   GetJurySubmissionsFromToken,
+  SetJuryShortlistPick,
+  SetJuryShortlistWinner,
   UpdateJuryInvitationInput,
   UpdateJuryInvitationStatusByToken,
   UpdateJuryRating,
@@ -63,7 +66,12 @@ import type {
   ExtendJuryInvitationExpiryInput,
   RegenerateJuryInvitationTokenInput,
 } from './contracts'
-import { hasCompleteJuryTopThree, isValidJuryFinalRanking } from './final-rankings'
+import {
+  JURY_SHORTLIST_SIZE,
+  getJuryShortlistWinnerId,
+  getRequiredJuryShortlistSize,
+  isJuryShortlistComplete,
+} from './shortlist'
 import {
   buildJuryInviteUrl,
   computeJuryJwtExpSeconds,
@@ -106,8 +114,27 @@ interface JuryReviewResultsRatingRow {
   participantId: number
   rating: number
   notes: string | null
-  finalRanking: number | null
   participant: JuryReviewResultsParticipantSummary
+}
+
+interface JuryReviewResultsShortlistRow {
+  participantId: number
+  isWinner: boolean
+  participant: JuryReviewResultsParticipantSummary
+}
+
+/**
+ * The juror's shortlist as the review UI needs it: which submissions are on it, which one wins, and
+ * how far off completion the review is. `reference` keeps the jury side anonymous — no names.
+ */
+interface JuryShortlistState {
+  picks: { participantId: number; reference: string; isWinner: boolean }[]
+  winnerParticipantId: number | null
+  /** Hard cap on shortlist size; adding beyond it is rejected. */
+  maxSize: number
+  /** Picks needed to complete — the cap, or the whole review set when that is smaller. */
+  requiredSize: number
+  isComplete: boolean
 }
 
 interface JurySubmissionListParticipant extends Pick<
@@ -147,7 +174,7 @@ function mapTokenError(message: string, code: ApiErrorCode): JuryApiError {
 }
 
 /**
- * Jury invitations, token verification, ratings, and final rankings for marathon organizers and invite links.
+ * Jury invitations, token verification, ratings, and shortlists for marathon organizers and invite links.
  */
 export class JuryService extends Context.Service<
   JuryService,
@@ -162,10 +189,14 @@ export class JuryService extends Context.Service<
       input: GetJuryInvitationByIdInput,
     ) => Effect.Effect<JuryInvitationWithOptions, DbError | JuryApiError, never>
 
-    /** Ratings with participant labels and final rankings for an invitation id (admin/reporting). */
+    /** Ratings and shortlist with participant labels for an invitation id (admin/reporting). */
     readonly getJuryReviewResultsByInvitationId: (
       input: GetJuryReviewResultsByInvitationIdInput,
-    ) => Effect.Effect<{ ratings: JuryReviewResultsRatingRow[] }, DbError | JuryApiError, never>
+    ) => Effect.Effect<
+      { ratings: JuryReviewResultsRatingRow[]; shortlist: JuryReviewResultsShortlistRow[] },
+      DbError | JuryApiError,
+      never
+    >
 
     /** Creates an invitation, issues a JWT, persists `token`, sends invite email, returns hydrated row. */
     readonly createJuryInvitation: (
@@ -245,24 +276,38 @@ export class JuryService extends Context.Service<
           participantId: number
           rating: number
           notes: string | null
-          finalRanking: number | null
         }[]
       },
       DbError | Config.ConfigError | JuryApiError,
       never
     >
 
+    /** Shortlist state for the invitation behind a token. */
+    readonly getJuryShortlist: (
+      input: GetJuryShortlist,
+    ) => Effect.Effect<JuryShortlistState, DbError | Config.ConfigError | JuryApiError, never>
+
+    /** Adds or removes a shortlist pick; fails once the shortlist is at its cap. */
+    readonly setShortlistPick: (
+      input: SetJuryShortlistPick,
+    ) => Effect.Effect<JuryShortlistState, DbError | Config.ConfigError | JuryApiError, never>
+
+    /** Picks the winner out of the shortlist, or clears it with a `null` participant. */
+    readonly setShortlistWinner: (
+      input: SetJuryShortlistWinner,
+    ) => Effect.Effect<JuryShortlistState, DbError | Config.ConfigError | JuryApiError, never>
+
     /** Participant count for the invite scope with optional rating filter. */
     readonly getJuryParticipantCount: (
       input: GetJuryParticipantCount,
     ) => Effect.Effect<{ value: number }, DbError | Config.ConfigError | JuryApiError, never>
 
-    /** Upserts a rating and applies top-three final ranking moves when `finalRanking` is 1–3. */
+    /** Upserts the private star rating and notes for a participant. */
     readonly createRating: (
       input: CreateJuryRating,
     ) => Effect.Effect<JuryRating, DbError | Config.ConfigError | JuryApiError, never>
 
-    /** Updates or clears a rating; may delete the row when rating/notes/finalRanking clear the row. */
+    /** Updates the rating; deletes the row once both the stars and the notes are empty. */
     readonly updateRating: (
       input: UpdateJuryRating,
     ) => Effect.Effect<JuryRating | null, DbError | Config.ConfigError | JuryApiError, never>
@@ -272,7 +317,7 @@ export class JuryService extends Context.Service<
       input: DeleteJuryRating,
     ) => Effect.Effect<number | null, DbError | Config.ConfigError | JuryApiError, never>
 
-    /** Advances invitation status; completing requires a full 1–2–3 final ranking set. */
+    /** Advances invitation status; completing requires a full shortlist with a winner picked. */
     readonly updateInvitationStatusByToken: (
       input: UpdateJuryInvitationStatusByToken,
     ) => Effect.Effect<
@@ -420,17 +465,25 @@ const makeJuryService = Effect.gen(function* () {
         .getJuryInvitationById({ id })
         .pipe(failNotFoundIfNone('JuryInvitation', { id }))
 
-      const ratings = yield* juryRepository.getJuryRatingsWithRankingsByInvitation({
-        invitationId: id,
-      })
+      const [ratings, shortlist] = yield* Effect.all(
+        [
+          juryRepository.getJuryRatingsByInvitation({ invitationId: id }),
+          juryRepository.getJuryShortlistByInvitation({ invitationId: id }),
+        ],
+        { concurrency: 2 },
+      )
 
       return {
         ratings: ratings.map((rating) => ({
           participantId: rating.participantId,
           rating: rating.rating,
           notes: rating.notes,
-          finalRanking: rating.finalRanking,
           participant: rating.participant,
+        })),
+        shortlist: shortlist.map((pick) => ({
+          participantId: pick.participantId,
+          isWinner: pick.isWinner,
+          participant: pick.participant,
         })),
       }
     })
@@ -452,49 +505,37 @@ const makeJuryService = Effect.gen(function* () {
     yield* Effect.void
   })
 
-  const reassignFinalRanking = Effect.fn('JuryService.reassignFinalRanking')(function* ({
+  /**
+   * The single read every shortlist mutation returns, so the client never has to reconcile a
+   * partial response against its cache.
+   */
+  const loadShortlistState = Effect.fn('JuryService.loadShortlistState')(function* ({
     invitationId,
-    participantId,
-    finalRanking,
+  }: {
+    invitationId: number
   }) {
-    const existingRankHolder = yield* juryRepository.getJuryFinalRankingByRank({
-      invitationId,
-      rank: finalRanking,
-      excludeParticipantId: participantId,
-    })
-    if (existingRankHolder) {
-      yield* juryRepository.deleteJuryFinalRankingByParticipant({
-        invitationId,
-        participantId: existingRankHolder.participantId,
-      })
-    }
+    const [shortlist, participantCount] = yield* Effect.all(
+      [
+        juryRepository.getJuryShortlistByInvitation({ invitationId }),
+        juryRepository.getJuryParticipantCount({ invitationId }),
+      ],
+      { concurrency: 2 },
+    )
 
-    const existingParticipantRanking = yield* juryRepository.getJuryFinalRankingByParticipant({
-      invitationId,
-      participantId,
-    })
+    const picks = shortlist.map((pick) => ({
+      participantId: pick.participantId,
+      reference: pick.participant.reference,
+      isWinner: pick.isWinner,
+    }))
+    const requiredSize = getRequiredJuryShortlistSize(participantCount.value)
 
-    return existingParticipantRanking
-      ? yield* juryRepository.updateJuryFinalRanking({
-          invitationId,
-          participantId,
-          rank: finalRanking,
-        })
-      : yield* juryRepository.createJuryFinalRanking({
-          invitationId,
-          participantId,
-          rank: finalRanking,
-        })
-  })
-
-  const clearFinalRanking = Effect.fn('JuryService.clearFinalRanking')(function* ({
-    invitationId,
-    participantId,
-  }) {
-    return yield* juryRepository.deleteJuryFinalRankingByParticipant({
-      invitationId,
-      participantId,
-    })
+    return {
+      picks,
+      winnerParticipantId: getJuryShortlistWinnerId(picks),
+      maxSize: JURY_SHORTLIST_SIZE,
+      requiredSize,
+      isComplete: isJuryShortlistComplete({ picks, requiredSize }),
+    } satisfies JuryShortlistState
   })
 
   const validateExpiryAt = (expiresAt: string) =>
@@ -914,10 +955,107 @@ const makeJuryService = Effect.gen(function* () {
           participantId: rating.participantId,
           rating: rating.rating,
           notes: rating.notes,
-          finalRanking: rating.finalRanking,
         })),
       }
     })
+
+  const getJuryShortlist: JuryService['Service']['getJuryShortlist'] = Effect.fn(
+    'JuryService.getJuryShortlist',
+  )(function* ({ token, domain }) {
+    const invitation = yield* getInvitationFromToken({ token, domain })
+    return yield* loadShortlistState({ invitationId: invitation.id })
+  })
+
+  const setShortlistPick: JuryService['Service']['setShortlistPick'] = Effect.fn(
+    'JuryService.setShortlistPick',
+  )(function* ({ token, domain, participantId, selected }) {
+    const invitation = yield* getInvitationFromToken({ token, domain })
+    yield* ensureInvitationEditable({ invitation })
+    yield* ensureParticipantInInvitationScope({
+      invitationId: invitation.id,
+      participantId,
+    })
+
+    const existing = yield* juryRepository.getJuryShortlistPick({
+      invitationId: invitation.id,
+      participantId,
+    })
+
+    if (selected && !existing) {
+      const shortlist = yield* juryRepository.getJuryShortlistByInvitation({
+        invitationId: invitation.id,
+      })
+
+      if (shortlist.length >= JURY_SHORTLIST_SIZE) {
+        return yield* Effect.fail(
+          mapTokenError(
+            `Your shortlist already holds ${JURY_SHORTLIST_SIZE} submissions — remove one before adding another`,
+            'BAD_REQUEST',
+          ),
+        )
+      }
+
+      yield* juryRepository.createJuryShortlistPick({
+        invitationId: invitation.id,
+        participantId,
+      })
+    }
+
+    // Deleting the row drops the win with it, so the winner can never sit off the shortlist.
+    if (!selected && existing) {
+      yield* juryRepository.deleteJuryShortlistPick({
+        invitationId: invitation.id,
+        participantId,
+      })
+    }
+
+    return yield* loadShortlistState({ invitationId: invitation.id })
+  })
+
+  const setShortlistWinner: JuryService['Service']['setShortlistWinner'] = Effect.fn(
+    'JuryService.setShortlistWinner',
+  )(function* ({ token, domain, participantId }) {
+    const invitation = yield* getInvitationFromToken({ token, domain })
+    yield* ensureInvitationEditable({ invitation })
+
+    if (participantId === null) {
+      yield* juryRepository.clearJuryShortlistWinner({ invitationId: invitation.id })
+      return yield* loadShortlistState({ invitationId: invitation.id })
+    }
+
+    yield* ensureParticipantInInvitationScope({
+      invitationId: invitation.id,
+      participantId,
+    })
+
+    const existing = yield* juryRepository.getJuryShortlistPick({
+      invitationId: invitation.id,
+      participantId,
+    })
+
+    if (!existing) {
+      return yield* Effect.fail(
+        mapTokenError(
+          'Add the submission to your shortlist before picking it as the winner',
+          'BAD_REQUEST',
+        ),
+      )
+    }
+
+    if (!existing.isWinner) {
+      // Must clear first: only one row per invitation may carry the win.
+      yield* juryRepository.clearJuryShortlistWinner({
+        invitationId: invitation.id,
+        exceptParticipantId: participantId,
+      })
+      yield* juryRepository.markJuryShortlistWinner({
+        invitationId: invitation.id,
+        participantId,
+      })
+    }
+
+    return yield* loadShortlistState({ invitationId: invitation.id })
+  })
 
   const getJuryParticipantCount: JuryService['Service']['getJuryParticipantCount'] = Effect.fn(
     'JuryService.getJuryParticipantCount',
@@ -960,32 +1098,13 @@ const makeJuryService = Effect.gen(function* () {
 
   const createRating: JuryService['Service']['createRating'] = Effect.fn(
     'JuryService.createRating',
-  )(function* ({ token, domain, participantId, rating, notes, finalRanking }) {
+  )(function* ({ token, domain, participantId, rating, notes }) {
     const invitation = yield* getInvitationFromToken({ token, domain })
     yield* ensureInvitationEditable({ invitation })
     yield* ensureParticipantInInvitationScope({
       invitationId: invitation.id,
       participantId,
     })
-
-    if (!isValidJuryFinalRanking(finalRanking)) {
-      return yield* Effect.fail(mapTokenError('Invalid final ranking', 'BAD_REQUEST'))
-    }
-
-    if (finalRanking === 1 || finalRanking === 2 || finalRanking === 3) {
-      const createdRating = yield* upsertJuryRating({
-        invitationId: invitation.id,
-        participantId,
-        rating,
-        notes,
-      })
-      yield* reassignFinalRanking({
-        invitationId: invitation.id,
-        participantId,
-        finalRanking,
-      })
-      return createdRating
-    }
 
     return yield* upsertJuryRating({
       invitationId: invitation.id,
@@ -997,7 +1116,7 @@ const makeJuryService = Effect.gen(function* () {
 
   const updateRating: JuryService['Service']['updateRating'] = Effect.fn(
     'JuryService.updateRating',
-  )(function* ({ token, domain, participantId, rating, notes, finalRanking }) {
+  )(function* ({ token, domain, participantId, rating, notes }) {
     const invitation = yield* getInvitationFromToken({ token, domain })
     yield* ensureInvitationEditable({ invitation })
     yield* ensureParticipantInInvitationScope({
@@ -1005,32 +1124,9 @@ const makeJuryService = Effect.gen(function* () {
       participantId,
     })
 
-    if (!isValidJuryFinalRanking(finalRanking)) {
-      return yield* Effect.fail(mapTokenError('Invalid final ranking', 'BAD_REQUEST'))
-    }
-
-    if (finalRanking === 1 || finalRanking === 2 || finalRanking === 3) {
-      const updatedRating = yield* upsertJuryRating({
-        invitationId: invitation.id,
-        participantId,
-        rating,
-        notes,
-      })
-      yield* reassignFinalRanking({
-        invitationId: invitation.id,
-        participantId,
-        finalRanking,
-      })
-      return updatedRating
-    }
-
-    const shouldDeleteRating = rating === 0 && !notes?.trim() && finalRanking == null
-
-    if (shouldDeleteRating) {
-      yield* clearFinalRanking({
-        invitationId: invitation.id,
-        participantId,
-      })
+    // Ratings are private review aids and live independently of the shortlist: clearing the stars
+    // and notes drops the row without touching whether the submission is shortlisted.
+    if (rating === 0 && !notes?.trim()) {
       const deleted = yield* juryRepository.deleteJuryRating({
         invitationId: invitation.id,
         participantId,
@@ -1039,13 +1135,6 @@ const makeJuryService = Effect.gen(function* () {
       return yield* Option.match(deleted, {
         onSome: (result) => Effect.succeed(result[0] ?? null),
         onNone: () => Effect.succeed(null),
-      })
-    }
-
-    if (finalRanking == null) {
-      yield* clearFinalRanking({
-        invitationId: invitation.id,
-        participantId,
       })
     }
 
@@ -1081,14 +1170,12 @@ const makeJuryService = Effect.gen(function* () {
       }
 
       if (status === 'completed') {
-        const rankings = yield* juryRepository.getJuryAssignedFinalRankings({
-          invitationId: invitation.id,
-        })
+        const shortlist = yield* loadShortlistState({ invitationId: invitation.id })
 
-        if (!hasCompleteJuryTopThree(rankings)) {
+        if (!shortlist.isComplete) {
           return yield* Effect.fail(
             mapTokenError(
-              'You must choose 1st, 2nd, and 3rd place before completing the review',
+              `You must shortlist ${shortlist.requiredSize} submissions and pick a winner before completing the review`,
               'BAD_REQUEST',
             ),
           )
@@ -1121,6 +1208,9 @@ const makeJuryService = Effect.gen(function* () {
     verifyTokenAndGetInitialData,
     getJurySubmissionsFromToken,
     getJuryRatingsByInvitation,
+    getJuryShortlist,
+    setShortlistPick,
+    setShortlistWinner,
     getJuryParticipantCount,
     createRating,
     updateRating,

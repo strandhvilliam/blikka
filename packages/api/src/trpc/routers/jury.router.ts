@@ -1,4 +1,3 @@
-
 import { Effect, Schema } from 'effect'
 import {
   createTRPCRouter,
@@ -24,6 +23,9 @@ import {
   CreateJuryRatingSchema,
   UpdateJuryRatingSchema,
   DeleteJuryRatingSchema,
+  GetJuryShortlistSchema,
+  SetJuryShortlistPickSchema,
+  SetJuryShortlistWinnerSchema,
   UpdateJuryInvitationStatusByTokenSchema,
 } from '../../core/jury/contracts'
 import { JuryService } from '../../core/jury/service'
@@ -175,6 +177,34 @@ export const juryRouter = createTRPCRouter({
       trpcEffect(
         Effect.fn('JuryRouter.getJuryRatingsByInvitation')(function* ({ input }) {
           return yield* JuryService.use((s) => s.getJuryRatingsByInvitation(input))
+        }),
+      ),
+    ),
+
+  getJuryShortlist: publicProcedure.input(Schema.toStandardSchemaV1(GetJuryShortlistSchema)).query(
+    trpcEffect(
+      Effect.fn('JuryRouter.getJuryShortlist')(function* ({ input }) {
+        return yield* JuryService.use((s) => s.getJuryShortlist(input))
+      }),
+    ),
+  ),
+
+  setShortlistPick: publicProcedure
+    .input(Schema.toStandardSchemaV1(SetJuryShortlistPickSchema))
+    .mutation(
+      trpcEffect(
+        Effect.fn('JuryRouter.setShortlistPick')(function* ({ input }) {
+          return yield* JuryService.use((s) => s.setShortlistPick(input))
+        }),
+      ),
+    ),
+
+  setShortlistWinner: publicProcedure
+    .input(Schema.toStandardSchemaV1(SetJuryShortlistWinnerSchema))
+    .mutation(
+      trpcEffect(
+        Effect.fn('JuryRouter.setShortlistWinner')(function* ({ input }) {
+          return yield* JuryService.use((s) => s.setShortlistWinner(input))
         }),
       ),
     ),

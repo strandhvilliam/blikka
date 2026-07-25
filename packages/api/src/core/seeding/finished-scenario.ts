@@ -26,6 +26,7 @@ import {
 } from '@blikka/db'
 import { Effect, Option } from 'effect'
 import { JuryService } from '../jury/service'
+import { JURY_SHORTLIST_SIZE } from '../jury/shortlist'
 import {
   BadRequestError,
   NotFoundError,
@@ -1236,7 +1237,7 @@ const createJuryInvitationsAndRatings = Effect.fn('SeedingService.createJuryInvi
           )
 
           if (template.status === 'completed') {
-            const rankingOrder = ratedParticipants
+            const favouriteOrder = ratedParticipants
               .map((participant, index) => ({
                 participant,
                 rating: 5 - ((index + participant.id) % 5),
@@ -1247,10 +1248,11 @@ const createJuryInvitationsAndRatings = Effect.fn('SeedingService.createJuryInvi
                 }
                 return left.participant.reference.localeCompare(right.participant.reference)
               })
+              .slice(0, JURY_SHORTLIST_SIZE)
 
             yield* Effect.forEach(
-              rankingOrder,
-              ({ participant, rating }, rankingIndex) =>
+              favouriteOrder,
+              ({ participant, rating }) =>
                 Effect.gen(function* () {
                   yield* juryRepository.updateJuryRating({
                     invitationId: invitation.id,
@@ -1258,14 +1260,22 @@ const createJuryInvitationsAndRatings = Effect.fn('SeedingService.createJuryInvi
                     rating,
                     notes: 'Seeded jury rating',
                   })
-                  yield* juryRepository.createJuryFinalRanking({
+                  yield* juryRepository.createJuryShortlistPick({
                     invitationId: invitation.id,
                     participantId: participant.id,
-                    rank: rankingIndex + 1,
                   })
                 }),
               { concurrency: 4 },
             )
+
+            // The shortlist itself is unordered; the highest-rated seed becomes the winner.
+            const winner = favouriteOrder[0]
+            if (winner) {
+              yield* juryRepository.markJuryShortlistWinner({
+                invitationId: invitation.id,
+                participantId: winner.participant.id,
+              })
+            }
           }
 
           return invitation

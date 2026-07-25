@@ -8,7 +8,6 @@ import {
 import { JuryReviewDataProvider, useJuryReviewData } from './jury-review-data-provider'
 import { JuryParticipantList } from './jury-participant-list'
 import { JuryReviewHeader } from './jury-review-header'
-import { JuryReviewInteractionProvider } from './jury-review-interaction-provider'
 import { JurySubmissionViewer } from './jury-submission-viewer'
 
 export type { ViewMode } from '@/lib/jury/jury-types'
@@ -18,15 +17,17 @@ const noopSubscribe = () => () => {}
 export function JuryReviewClient() {
   return (
     <JuryReviewDataProvider>
-      <JuryReviewInteractionProvider>
-        <JuryReviewClientContent />
-      </JuryReviewInteractionProvider>
+      <JuryReviewClientContent />
     </JuryReviewDataProvider>
   )
 }
 
 function JuryReviewClientContent() {
-  const isClientMounted = useSyncExternalStore(noopSubscribe, () => true, () => false)
+  const isClientMounted = useSyncExternalStore(
+    noopSubscribe,
+    () => true,
+    () => false,
+  )
   const { participants, isFetching, isFetchingNextPage, isFetchingParticipantCount } =
     useJuryReviewData()
   const { selectedParticipantId, currentParticipantIndex } = useJuryReviewQueryState()

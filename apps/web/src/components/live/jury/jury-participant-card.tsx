@@ -2,16 +2,9 @@
 
 import { ImageIcon, Star } from 'lucide-react'
 import type { JuryListParticipant, ViewMode } from '@/lib/jury/jury-types'
-import {
-  getFinalRankingLabel,
-  getParticipantPreview,
-  juryRankChipCardBadge,
-} from '@/lib/jury/jury-utils'
-import { JuryRankTrophyBadge } from './jury-rank-trophy-badge'
-import {
-  SubmissionRawOriginalImage,
-  SubmissionThumbnailImage,
-} from '@/components/submission-image'
+import { getParticipantPreview, juryPickChipCardBadge } from '@/lib/jury/jury-utils'
+import { JuryPickBadge } from './jury-pick-badge'
+import { SubmissionRawOriginalImage, SubmissionThumbnailImage } from '@/components/submission-image'
 
 function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'xs' }) {
   const iconClass = size === 'sm' ? 'h-3.5 w-3.5' : 'h-3 w-3'
@@ -34,12 +27,14 @@ function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'xs
 function CompactCard({
   participant,
   rating,
-  finalRanking,
+  isShortlisted,
+  isWinner,
   onClick,
 }: {
   participant: JuryListParticipant
   rating: number
-  finalRanking: 1 | 2 | 3 | null
+  isShortlisted: boolean
+  isWinner: boolean
   onClick: () => void
 }) {
   const previewUrl = getParticipantPreview(participant)
@@ -78,12 +73,12 @@ function CompactCard({
             <span className="font-gothic text-base font-bold tracking-tight text-brand-black">
               {participant.reference}
             </span>
-            {finalRanking !== null ? (
+            {isShortlisted ? (
               <span
-                className={`${juryRankChipCardBadge} pointer-events-none scale-90 tracking-wide`}
+                className={`${juryPickChipCardBadge} pointer-events-none scale-90 tracking-wide`}
               >
-                <JuryRankTrophyBadge rank={finalRanking} tone="idle" size="sm" />
-                {getFinalRankingLabel(finalRanking)}
+                <JuryPickBadge variant={isWinner ? 'winner' : 'shortlist'} size="sm" />
+                {isWinner ? 'Winner' : 'Shortlisted'}
               </span>
             ) : null}
           </div>
@@ -109,12 +104,14 @@ function CompactCard({
 function GridCard({
   participant,
   rating,
-  finalRanking,
+  isShortlisted,
+  isWinner,
   onClick,
 }: {
   participant: JuryListParticipant
   rating: number
-  finalRanking: 1 | 2 | 3 | null
+  isShortlisted: boolean
+  isWinner: boolean
   onClick: () => void
 }) {
   const previewUrl = getParticipantPreview(participant)
@@ -153,12 +150,12 @@ function GridCard({
             <span className="font-gothic text-base font-bold tracking-tight text-brand-black">
               {participant.reference}
             </span>
-            {finalRanking !== null ? (
+            {isShortlisted ? (
               <span
-                className={`${juryRankChipCardBadge} pointer-events-none scale-90 tracking-wide`}
+                className={`${juryPickChipCardBadge} pointer-events-none scale-90 tracking-wide`}
               >
-                <JuryRankTrophyBadge rank={finalRanking} tone="idle" size="sm" />
-                {getFinalRankingLabel(finalRanking)}
+                <JuryPickBadge variant={isWinner ? 'winner' : 'shortlist'} size="sm" />
+                {isWinner ? 'Winner' : 'Shortlisted'}
               </span>
             ) : null}
           </div>
@@ -184,13 +181,15 @@ function GridCard({
 export function JuryParticipantCard({
   participant,
   rating,
-  finalRanking,
+  isShortlisted,
+  isWinner,
   onClick,
   variant = 'grid',
 }: {
   participant: JuryListParticipant
   rating: number
-  finalRanking: 1 | 2 | 3 | null
+  isShortlisted: boolean
+  isWinner: boolean
   onClick: () => void
   variant?: ViewMode
 }) {
@@ -199,7 +198,8 @@ export function JuryParticipantCard({
       <GridCard
         participant={participant}
         rating={rating}
-        finalRanking={finalRanking}
+        isShortlisted={isShortlisted}
+        isWinner={isWinner}
         onClick={onClick}
       />
     )
@@ -209,7 +209,8 @@ export function JuryParticipantCard({
     <CompactCard
       participant={participant}
       rating={rating}
-      finalRanking={finalRanking}
+      isShortlisted={isShortlisted}
+      isWinner={isWinner}
       onClick={onClick}
     />
   )

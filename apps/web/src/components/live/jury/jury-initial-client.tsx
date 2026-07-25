@@ -134,8 +134,8 @@ export function JuryInitialClient({ domain, token }: { domain: string; token: st
             <div className="mt-4 rounded-xl bg-muted/30 p-4">
               <p className="text-center text-sm leading-relaxed text-muted-foreground">
                 Stars and notes are private review aids — you do not need to rate every submission.
-                To complete the review, you must choose your ranked winners: 1st, 2nd, and 3rd
-                place.
+                To complete the review, shortlist your favorite submissions — in no particular order
+                — and pick one of them as your winner.
               </p>
             </div>
 

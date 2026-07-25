@@ -6,17 +6,11 @@ const DEBOUNCE_MS = 800
 
 export function useJuryNotesDebouncedSave({
   localRating,
-  localFinalRanking,
   saveRating,
   setLocalNotes,
 }: {
   localRating: number
-  localFinalRanking: 1 | 2 | 3 | null
-  saveRating: (
-    nextRating: number,
-    nextNotes: string,
-    nextFinalRanking: 1 | 2 | 3 | null,
-  ) => void | Promise<void>
+  saveRating: (nextRating: number, nextNotes: string) => void | Promise<void>
   setLocalNotes: (notes: string) => void
 }) {
   const notesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -39,10 +33,10 @@ export function useJuryNotesDebouncedSave({
       }
 
       notesTimeoutRef.current = setTimeout(() => {
-        void saveRating(localRating, nextNotes, localFinalRanking)
+        void saveRating(localRating, nextNotes)
       }, DEBOUNCE_MS)
     },
-    [localFinalRanking, localRating, saveRating, setLocalNotes],
+    [localRating, saveRating, setLocalNotes],
   )
 
   return { handleNotesChange }

@@ -16,24 +16,24 @@ export const juryRatingsRelations = relations(schema.juryRatings, ({ one }) => (
   }),
 }))
 
-export const juryFinalRankingsRelations = relations(schema.juryFinalRankings, ({ one }) => ({
+export const juryShortlistPicksRelations = relations(schema.juryShortlistPicks, ({ one }) => ({
   juryInvitation: one(schema.juryInvitations, {
-    fields: [schema.juryFinalRankings.invitationId],
+    fields: [schema.juryShortlistPicks.invitationId],
     references: [schema.juryInvitations.id],
   }),
   marathon: one(schema.marathons, {
-    fields: [schema.juryFinalRankings.marathonId],
+    fields: [schema.juryShortlistPicks.marathonId],
     references: [schema.marathons.id],
   }),
   participant: one(schema.participants, {
-    fields: [schema.juryFinalRankings.participantId],
+    fields: [schema.juryShortlistPicks.participantId],
     references: [schema.participants.id],
   }),
 }))
 
 export const juryInvitationsRelations = relations(schema.juryInvitations, ({ one, many }) => ({
   juryRatings: many(schema.juryRatings),
-  juryFinalRankings: many(schema.juryFinalRankings),
+  juryShortlistPicks: many(schema.juryShortlistPicks),
   competitionClass: one(schema.competitionClasses, {
     fields: [schema.juryInvitations.competitionClassId],
     references: [schema.competitionClasses.id],
@@ -54,7 +54,7 @@ export const juryInvitationsRelations = relations(schema.juryInvitations, ({ one
 
 export const marathonsRelations = relations(schema.marathons, ({ many }) => ({
   juryRatings: many(schema.juryRatings),
-  juryFinalRankings: many(schema.juryFinalRankings),
+  juryShortlistPicks: many(schema.juryShortlistPicks),
   ruleConfigs: many(schema.ruleConfigs),
   juryInvitations: many(schema.juryInvitations),
   participants: many(schema.participants),
@@ -89,7 +89,7 @@ export const exportJobChunksRelations = relations(schema.exportJobChunks, ({ one
 
 export const participantsRelations = relations(schema.participants, ({ one, many }) => ({
   juryRatings: many(schema.juryRatings),
-  juryFinalRankings: many(schema.juryFinalRankings),
+  juryShortlistPicks: many(schema.juryShortlistPicks),
   competitionClass: one(schema.competitionClasses, {
     fields: [schema.participants.competitionClassId],
     references: [schema.competitionClasses.id],

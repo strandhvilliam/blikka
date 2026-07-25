@@ -2,21 +2,25 @@
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { getFinalRankingLabel } from '@/lib/jury/jury-utils'
-import { Download, Star } from 'lucide-react'
+import { Download, Heart, Star, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 
 type JuryRatingRow = {
   participantId: number
   rating: number
   notes: string | null
-  finalRanking: number | null
   participant: {
     id: number
     reference: string
     firstname: string
     lastname: string
   }
+}
+
+/** A rating row joined with where the participant sits on the juror's shortlist. */
+type JuryRatingTableRow = JuryRatingRow & {
+  isShortlisted: boolean
+  isWinner: boolean
 }
 
 function escapeCsvCell(value: string) {
@@ -26,14 +30,15 @@ function escapeCsvCell(value: string) {
   return value
 }
 
-function downloadJuryRatingsCsv(ratings: JuryRatingRow[]) {
-  const header = ['reference', 'firstname', 'lastname', 'rating', 'finalRanking', 'notes']
+function downloadJuryRatingsCsv(ratings: JuryRatingTableRow[]) {
+  const header = ['reference', 'firstname', 'lastname', 'rating', 'shortlisted', 'winner', 'notes']
   const rows = ratings.map((row) => [
     row.participant.reference,
     row.participant.firstname,
     row.participant.lastname,
     String(row.rating),
-    row.finalRanking === null ? '' : String(row.finalRanking),
+    row.isShortlisted ? 'yes' : 'no',
+    row.isWinner ? 'yes' : 'no',
     row.notes ?? '',
   ])
 
@@ -50,17 +55,37 @@ function downloadJuryRatingsCsv(ratings: JuryRatingRow[]) {
   URL.revokeObjectURL(url)
 }
 
-function sortRatings(ratings: JuryRatingRow[]) {
+/** Winner first, then the rest of the shortlist, then everything else by star rating. */
+function sortRatings(ratings: JuryRatingTableRow[]) {
+  const pickWeight = (row: JuryRatingTableRow) => (row.isWinner ? 0 : row.isShortlisted ? 1 : 2)
+
   return ratings.toSorted((left, right) => {
-    const leftRank = left.finalRanking ?? 99
-    const rightRank = right.finalRanking ?? 99
-    if (leftRank !== rightRank) return leftRank - rightRank
+    const weightDiff = pickWeight(left) - pickWeight(right)
+    if (weightDiff !== 0) return weightDiff
     return right.rating - left.rating
   })
 }
 
-export function JuryRatingsTable({ ratings }: { ratings: JuryRatingRow[] }) {
-  const sorted = sortRatings(ratings)
+export function JuryRatingsTable({
+  ratings,
+  shortlist,
+}: {
+  ratings: JuryRatingRow[]
+  shortlist: { participantId: number; isWinner: boolean }[]
+}) {
+  const shortlistByParticipantId = new Map(
+    shortlist.map((pick) => [pick.participantId, pick] as const),
+  )
+  const sorted = sortRatings(
+    ratings.map((row) => {
+      const pick = shortlistByParticipantId.get(row.participantId)
+      return {
+        ...row,
+        isShortlisted: pick !== undefined,
+        isWinner: pick?.isWinner ?? false,
+      }
+    }),
+  )
 
   const handleExport = () => {
     if (sorted.length === 0) {
@@ -97,7 +122,7 @@ export function JuryRatingsTable({ ratings }: { ratings: JuryRatingRow[] }) {
               <tr>
                 <th className="px-3 py-2 font-semibold text-muted-foreground">Ref</th>
                 <th className="px-3 py-2 font-semibold text-muted-foreground">Rating</th>
-                <th className="px-3 py-2 font-semibold text-muted-foreground">Rank</th>
+                <th className="px-3 py-2 font-semibold text-muted-foreground">Pick</th>
                 <th className="px-3 py-2 font-semibold text-muted-foreground">Notes</th>
               </tr>
             </thead>
@@ -116,9 +141,15 @@ export function JuryRatingsTable({ ratings }: { ratings: JuryRatingRow[] }) {
                     )}
                   </td>
                   <td className="px-3 py-2">
-                    {row.finalRanking === 1 || row.finalRanking === 2 || row.finalRanking === 3 ? (
-                      <Badge variant="secondary" className="text-[10px]">
-                        {getFinalRankingLabel(row.finalRanking)}
+                    {row.isWinner ? (
+                      <Badge variant="secondary" className="gap-1 text-[10px]">
+                        <Trophy className="h-3 w-3 text-amber-600" />
+                        Winner
+                      </Badge>
+                    ) : row.isShortlisted ? (
+                      <Badge variant="secondary" className="gap-1 text-[10px]">
+                        <Heart className="h-3 w-3 fill-brand-primary text-brand-primary" />
+                        Shortlisted
                       </Badge>
                     ) : (
                       <span className="text-muted-foreground">—</span>

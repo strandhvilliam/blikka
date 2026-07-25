@@ -51,8 +51,13 @@ export const juryRatings = pgTable(
   ],
 )
 
-export const juryFinalRankings = pgTable(
-  'jury_final_rankings',
+/**
+ * A juror's shortlist for their invite scope: their favorite submissions in no particular order.
+ * At most one row per invitation carries `is_winner`, so "the winner is one of the shortlisted
+ * picks" holds structurally instead of relying on an application-level cross-check.
+ */
+export const juryShortlistPicks = pgTable(
+  'jury_shortlist_picks',
   {
     id: bigint({ mode: 'number' }).primaryKey().generatedByDefaultAsIdentity(),
     createdAt: timestamp('created_at', { withTimezone: true, mode: 'string' })
@@ -60,33 +65,35 @@ export const juryFinalRankings = pgTable(
       .notNull(),
     invitationId: bigint('invitation_id', { mode: 'number' }).notNull(),
     participantId: bigint('participant_id', { mode: 'number' }).notNull(),
-    rank: smallint().notNull(),
     marathonId: bigint('marathon_id', { mode: 'number' }).notNull(),
+    isWinner: boolean('is_winner').default(false).notNull(),
   },
   (table) => [
-    unique('jury_final_rankings_invitation_participant_key').on(
+    unique('jury_shortlist_picks_invitation_participant_key').on(
       table.invitationId,
       table.participantId,
     ),
-    unique('jury_final_rankings_invitation_rank_key').on(table.invitationId, table.rank),
-    index('jury_final_rankings_invitation_id_idx').on(table.invitationId),
-    index('jury_final_rankings_participant_id_idx').on(table.participantId),
-    index('jury_final_rankings_marathon_id_idx').on(table.marathonId),
-    check('jury_final_rankings_rank_check', sql`${table.rank} in (1, 2, 3)`),
+    // DB-enforced "at most one winner per invitation".
+    uniqueIndex('jury_shortlist_picks_invitation_winner_key')
+      .on(table.invitationId)
+      .where(sql`${table.isWinner}`),
+    index('jury_shortlist_picks_invitation_id_idx').on(table.invitationId),
+    index('jury_shortlist_picks_participant_id_idx').on(table.participantId),
+    index('jury_shortlist_picks_marathon_id_idx').on(table.marathonId),
     foreignKey({
       columns: [table.invitationId],
       foreignColumns: [juryInvitations.id],
-      name: 'jury_final_rankings_invitation_id_fkey',
+      name: 'jury_shortlist_picks_invitation_id_fkey',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.marathonId],
       foreignColumns: [marathons.id],
-      name: 'jury_final_rankings_marathon_id_fkey',
+      name: 'jury_shortlist_picks_marathon_id_fkey',
     }).onDelete('cascade'),
     foreignKey({
       columns: [table.participantId],
       foreignColumns: [participants.id],
-      name: 'jury_final_rankings_participant_id_fkey',
+      name: 'jury_shortlist_picks_participant_id_fkey',
     }).onDelete('cascade'),
   ],
 )

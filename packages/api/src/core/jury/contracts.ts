@@ -69,11 +69,6 @@ const JuryRatingValueSchema = Schema.Number.check(
   Schema.isLessThanOrEqualTo(5),
 )
 
-const JuryFinalRankingValueSchema = Schema.Number.check(
-  Schema.isGreaterThanOrEqualTo(1),
-  Schema.isLessThanOrEqualTo(3),
-)
-
 export const VerifyJuryTokenSchema = Schema.Struct({
   token: Schema.String,
   domain: Schema.String,
@@ -103,7 +98,6 @@ export const CreateJuryRatingSchema = Schema.Struct({
   participantId: Schema.Number,
   rating: JuryRatingValueSchema,
   notes: Schema.optional(Schema.String),
-  finalRanking: Schema.optional(Schema.NullOr(JuryFinalRankingValueSchema)),
 })
 
 export const UpdateJuryRatingSchema = Schema.Struct({
@@ -112,13 +106,31 @@ export const UpdateJuryRatingSchema = Schema.Struct({
   participantId: Schema.Number,
   rating: JuryRatingValueSchema,
   notes: Schema.optional(Schema.String),
-  finalRanking: Schema.optional(Schema.NullOr(JuryFinalRankingValueSchema)),
 })
 
 export const DeleteJuryRatingSchema = Schema.Struct({
   token: Schema.String,
   domain: Schema.String,
   participantId: Schema.Number,
+})
+
+export const GetJuryShortlistSchema = Schema.Struct({
+  token: Schema.String,
+  domain: Schema.String,
+})
+
+export const SetJuryShortlistPickSchema = Schema.Struct({
+  token: Schema.String,
+  domain: Schema.String,
+  participantId: Schema.Number,
+  selected: Schema.Boolean,
+})
+
+/** `participantId: null` clears the winner without touching the shortlist. */
+export const SetJuryShortlistWinnerSchema = Schema.Struct({
+  token: Schema.String,
+  domain: Schema.String,
+  participantId: Schema.NullOr(Schema.Number),
 })
 
 export const UpdateJuryInvitationStatusByTokenSchema = Schema.Struct({
@@ -150,6 +162,9 @@ export type GetJuryParticipantCount = Schema.Schema.Type<typeof GetJuryParticipa
 export type CreateJuryRating = Schema.Schema.Type<typeof CreateJuryRatingSchema>
 export type UpdateJuryRating = Schema.Schema.Type<typeof UpdateJuryRatingSchema>
 export type DeleteJuryRating = Schema.Schema.Type<typeof DeleteJuryRatingSchema>
+export type GetJuryShortlist = Schema.Schema.Type<typeof GetJuryShortlistSchema>
+export type SetJuryShortlistPick = Schema.Schema.Type<typeof SetJuryShortlistPickSchema>
+export type SetJuryShortlistWinner = Schema.Schema.Type<typeof SetJuryShortlistWinnerSchema>
 export type UpdateJuryInvitationStatusByToken = Schema.Schema.Type<
   typeof UpdateJuryInvitationStatusByTokenSchema
 >
