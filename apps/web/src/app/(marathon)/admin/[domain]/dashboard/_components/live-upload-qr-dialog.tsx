@@ -2,7 +2,7 @@
 
 import * as DialogPrimitive from '@radix-ui/react-dialog'
 import { Check, Copy, Download, XIcon } from 'lucide-react'
-import { useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { downloadQrPng } from '../_lib/download-qr-png'
 import { QrCodeGenerator } from '@/components/qr-code-generator'
 import { Button } from '@/components/ui/button'
@@ -14,6 +14,12 @@ import {
   DialogPortal,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import {
+  type LiveParticipationMode,
+  withLiveParticipationMode,
+} from '@/lib/flow/live-participation-mode'
 import { cn } from '@/lib/utils'
 
 const defaultParticipantDescription = (
@@ -27,12 +33,38 @@ const defaultParticipantDescription = (
   </>
 )
 
+const MODE_PRESELECT_OPTIONS = [
+  {
+    value: 'none',
+    label: 'No preselection',
+    description: 'Participant chooses upload or crew registration',
+  },
+  {
+    value: 'upload',
+    label: 'Device upload',
+    description: 'Skip choice and start phone/device upload',
+  },
+  {
+    value: 'prepare',
+    label: 'Crew upload',
+    description: 'Skip choice and register for crew/SD-card upload',
+  },
+] as const
+
+type ModePreselectValue = (typeof MODE_PRESELECT_OPTIONS)[number]['value']
+
+function toLiveParticipationMode(value: ModePreselectValue): LiveParticipationMode | null {
+  return value === 'none' ? null : value
+}
+
 export interface LiveUploadQrDialogProps {
   uploadUrl: string
   open: boolean
   onOpenChange: (open: boolean) => void
   heading?: string
   description?: ReactNode
+  /** When true, show a control to optionally preselect live participation mode (`?mode=`). */
+  showParticipationModeControl?: boolean
 }
 
 export function LiveUploadQrDialog({
@@ -41,11 +73,24 @@ export function LiveUploadQrDialog({
   onOpenChange,
   heading = 'Participant upload link',
   description = defaultParticipantDescription,
+  showParticipationModeControl = false,
 }: LiveUploadQrDialogProps) {
   const [copied, setCopied] = useState(false)
+  const [modePreselect, setModePreselect] = useState<ModePreselectValue>('none')
+
+  useEffect(() => {
+    if (!open) {
+      setModePreselect('none')
+      setCopied(false)
+    }
+  }, [open])
+
+  const effectiveUploadUrl = showParticipationModeControl
+    ? withLiveParticipationMode(uploadUrl, toLiveParticipationMode(modePreselect))
+    : uploadUrl
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(uploadUrl)
+    await navigator.clipboard.writeText(effectiveUploadUrl)
     setCopied(true)
     window.setTimeout(() => setCopied(false), 2000)
   }
@@ -71,11 +116,14 @@ export function LiveUploadQrDialog({
               </DialogDescription>
             </DialogHeader>
             <LiveUploadQrDialogBody
-              uploadUrl={uploadUrl}
+              uploadUrl={effectiveUploadUrl}
               onCopy={handleCopy}
               copied={copied}
               heading={heading}
               description={description}
+              showParticipationModeControl={showParticipationModeControl}
+              modePreselect={modePreselect}
+              onModePreselectChange={setModePreselect}
             />
             <DialogPrimitive.Close className="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 z-10 rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4">
               <XIcon />
@@ -94,9 +142,14 @@ export function LiveUploadQrDialogBody({
   copied = false,
   heading = 'Participant upload link',
   description = defaultParticipantDescription,
+  showParticipationModeControl = false,
+  modePreselect = 'none',
+  onModePreselectChange,
 }: Omit<LiveUploadQrDialogProps, 'open' | 'onOpenChange'> & {
   onCopy?: () => void | Promise<void>
   copied?: boolean
+  modePreselect?: ModePreselectValue
+  onModePreselectChange?: (value: ModePreselectValue) => void
 }) {
   const qrCodeRef = useRef<HTMLDivElement>(null)
   const [downloadError, setDownloadError] = useState<string | null>(null)
@@ -121,6 +174,10 @@ export function LiveUploadQrDialogBody({
     }
   }
 
+  const selectedOption =
+    MODE_PRESELECT_OPTIONS.find((option) => option.value === modePreselect) ??
+    MODE_PRESELECT_OPTIONS[0]
+
   return (
     <div className="relative flex flex-col gap-8 p-6 sm:gap-10 sm:p-10">
       <header className="pr-10">
@@ -131,6 +188,50 @@ export function LiveUploadQrDialogBody({
           {description}
         </p>
       </header>
+
+      {showParticipationModeControl ? (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-sm font-medium text-brand-black dark:text-card-foreground">
+              Preselected upload mode
+            </Label>
+            <p className="text-sm leading-relaxed text-brand-black/60 dark:text-muted-foreground">
+              Optional. Classic marathon only — when set, scanning skips the upload-choice dialog.
+            </p>
+          </div>
+          <ToggleGroup
+            type="single"
+            value={modePreselect}
+            onValueChange={(value) => {
+              if (!value) return
+              onModePreselectChange?.(value as ModePreselectValue)
+            }}
+            variant="outline"
+            spacing={2}
+            className="flex w-full flex-col sm:flex-row"
+          >
+            {MODE_PRESELECT_OPTIONS.map((option) => (
+              <ToggleGroupItem
+                key={option.value}
+                value={option.value}
+                className="h-auto min-h-10 flex-1 justify-start whitespace-normal rounded-md px-3 py-2.5 text-left"
+                aria-label={option.label}
+              >
+                <span className="flex flex-col items-start gap-0.5">
+                  <span className="text-sm font-medium">{option.label}</span>
+                  <span className="text-xs font-normal text-muted-foreground">
+                    {option.description}
+                  </span>
+                </span>
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <p className="text-xs text-brand-black/55 dark:text-muted-foreground">
+            Current link uses: {selectedOption.label}
+            {modePreselect !== 'none' ? ` (?mode=${modePreselect})` : ''}
+          </p>
+        </div>
+      ) : null}
 
       <div className="relative rounded-2xl border border-brand-black/10 bg-white p-5 shadow-[0_14px_38px_rgba(0,0,0,0.08)] sm:p-8 dark:border-white/10 dark:bg-card/80 dark:shadow-[0_14px_38px_rgba(0,0,0,0.35)]">
         <div
