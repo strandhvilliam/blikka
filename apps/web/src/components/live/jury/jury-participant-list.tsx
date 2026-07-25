@@ -162,14 +162,15 @@ export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResul
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <ListToolbar
         participantSummary={isInitialLoading ? '' : participantSummary}
         isRefreshingResults={isInitialLoading ? false : isRefreshingResults}
         isPending={isInitialLoading}
       />
 
-      <div ref={scrollContainerRef} className="max-h-[calc(100vh-220px)] overflow-auto rounded-2xl">
+      {/* Takes the space the header leaves rather than guessing at it, so this is the only scroller. */}
+      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto rounded-2xl">
         {isInitialLoading ? (
           <div className="grid grid-cols-1 gap-3 p-1">
             {Array.from({ length: 8 }, (_, index) => (

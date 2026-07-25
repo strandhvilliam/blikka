@@ -111,7 +111,7 @@ export function JuryReviewHeader() {
   }
 
   return (
-    <header className="overflow-hidden rounded-2xl border border-border/60 bg-white">
+    <header className="shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-white">
       <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex min-w-0 items-center gap-4">
           <Tooltip>
