@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import type { ByCameraLiveAccessResult } from '@/lib/by-camera/by-camera-live-access-state'
+import type { LiveParticipationMode } from '@/lib/flow/live-participation-mode'
 
 const dateFnsLocales: Record<'en' | 'sv', DateFnsLocale> = { en: enUS, sv }
 
@@ -24,6 +25,8 @@ interface LiveParticipationStartProps {
   onUploadClick: () => void
   onPrepareClick: () => void
   disabled: boolean
+  /** When set via `?mode=upload|prepare`, skip the upload-choice dialog. */
+  preselectedMode?: LiveParticipationMode | null
   byCameraAccessState?: ByCameraLiveAccessResult | null
   activeTopic?: {
     scheduledStart: string | null
@@ -35,6 +38,7 @@ export function LiveParticipationStart({
   onUploadClick,
   onPrepareClick,
   disabled,
+  preselectedMode = null,
   byCameraAccessState,
   activeTopic,
 }: LiveParticipationStartProps) {
@@ -43,10 +47,24 @@ export function LiveParticipationStart({
   const [choiceDialogOpen, setChoiceDialogOpen] = useState(false)
 
   if (marathonMode === 'marathon') {
+    const handleBeginClick = () => {
+      if (preselectedMode === 'upload') {
+        onUploadClick()
+        return
+      }
+
+      if (preselectedMode === 'prepare') {
+        onPrepareClick()
+        return
+      }
+
+      setChoiceDialogOpen(true)
+    }
+
     return (
       <>
         <PrimaryButton
-          onClick={() => setChoiceDialogOpen(true)}
+          onClick={handleBeginClick}
           disabled={disabled}
           className="w-full py-3 text-base text-white rounded-full"
         >
@@ -54,48 +72,50 @@ export function LiveParticipationStart({
           <Play className="h-4 w-4" />
         </PrimaryButton>
 
-        <Dialog open={choiceDialogOpen} onOpenChange={setChoiceDialogOpen}>
-          <DialogContent className="gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-md">
-            <DialogHeader className="items-center gap-3 px-6 pt-7 pb-4 text-center sm:text-center">
-              <DialogTitle className="font-gothic text-xl font-medium tracking-tight">
-                {t('uploadChoiceTitle')}
-              </DialogTitle>
-              <DialogDescription className="text-balance">
-                {t('uploadChoiceDescription')}
-              </DialogDescription>
-            </DialogHeader>
+        {preselectedMode == null ? (
+          <Dialog open={choiceDialogOpen} onOpenChange={setChoiceDialogOpen}>
+            <DialogContent className="gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-md">
+              <DialogHeader className="items-center gap-3 px-6 pt-7 pb-4 text-center sm:text-center">
+                <DialogTitle className="font-gothic text-xl font-medium tracking-tight">
+                  {t('uploadChoiceTitle')}
+                </DialogTitle>
+                <DialogDescription className="text-balance">
+                  {t('uploadChoiceDescription')}
+                </DialogDescription>
+              </DialogHeader>
 
-            <ChoiceDivider className="mx-6" />
+              <ChoiceDivider className="mx-6" />
 
-            <div className="flex flex-col gap-5 px-6 pt-5 pb-6">
-              <UploadChoiceOption
-                icon="self"
-                actionVariant="primary"
-                title={t('uploadFromPhoneTitle')}
-                body={t('uploadFromPhoneBody')}
-                actionLabel={t('uploadFromPhoneAction')}
-                onClick={() => {
-                  setChoiceDialogOpen(false)
-                  onUploadClick()
-                }}
-              />
+              <div className="flex flex-col gap-5 px-6 pt-5 pb-6">
+                <UploadChoiceOption
+                  icon="self"
+                  actionVariant="primary"
+                  title={t('uploadFromPhoneTitle')}
+                  body={t('uploadFromPhoneBody')}
+                  actionLabel={t('uploadFromPhoneAction')}
+                  onClick={() => {
+                    setChoiceDialogOpen(false)
+                    onUploadClick()
+                  }}
+                />
 
-              <ChoiceDivider label={t('uploadChoiceOr')} />
+                <ChoiceDivider label={t('uploadChoiceOr')} />
 
-              <UploadChoiceOption
-                icon="crew"
-                actionVariant="outline"
-                title={t('staffUploadTitle')}
-                body={t('staffUploadBody')}
-                actionLabel={t('staffUploadAction')}
-                onClick={() => {
-                  setChoiceDialogOpen(false)
-                  onPrepareClick()
-                }}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+                <UploadChoiceOption
+                  icon="crew"
+                  actionVariant="outline"
+                  title={t('staffUploadTitle')}
+                  body={t('staffUploadBody')}
+                  actionLabel={t('staffUploadAction')}
+                  onClick={() => {
+                    setChoiceDialogOpen(false)
+                    onPrepareClick()
+                  }}
+                />
+              </div>
+            </DialogContent>
+          </Dialog>
+        ) : null}
       </>
     )
   }
