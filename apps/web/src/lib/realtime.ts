@@ -64,5 +64,6 @@ const realtimeContractSchema = {
   },
 } as const
 
+/** Subscribe side only (`/api/realtime`); stream trimming lives with the writer in `@blikka/realtime`. */
 export const realtime = new Realtime({ redis, schema: realtimeContractSchema })
 export type RealtimeEvents = InferRealtimeEvents<typeof realtime>

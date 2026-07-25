@@ -18,7 +18,19 @@ export class RealtimeService extends Context.Service<
 const makeRealtimeService = Effect.gen(function* () {
   const redis = yield* RedisClient
   const client = yield* redis.use((redis) => redis)
-  const realtime = new Realtime({ redis: client })
+  /**
+   * Each emit `XADD`s to a per-channel stream, unbounded by default. `maxLength` caps it —
+   * replay only has to cover a reconnect gap. `expireAfterSecs` reclaims the keys themselves
+   * (~1000 participant channels per event); it is refreshed on every emit, so an active
+   * channel never expires under a subscriber.
+   */
+  const realtime = new Realtime({
+    redis: client,
+    history: {
+      maxLength: 10_000,
+      expireAfterSecs: 60 * 60 * 24 * 7,
+    },
+  })
 
   const emit = Effect.fn('RealtimeService.emit')(function* (
     channel: RealtimeChannel,

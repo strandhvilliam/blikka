@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Option, Schema } from 'effect'
 import { RedisClient, RedisClientLayer } from '@blikka/redis'
-import { Keys } from './key-factory'
+import { Keys, UPLOAD_SESSION_TTL_SECONDS } from './key-factory'
 
 export class ExifKVRepositoryError extends Schema.TaggedErrorClass<ExifKVRepositoryError>()(
   'ExifKVRepositoryError',
@@ -124,7 +124,8 @@ const makeExifKVRepository = Effect.gen(function* () {
     function* (domain, ref, orderIndex, state) {
       const key = Keys.exif(domain, ref, orderIndex)
       return yield* redis
-        .use((client) => client.set(key, JSON.stringify(state)))
+        // `ex` rides along on the SET — no extra round-trip on the per-photo hot path.
+        .use((client) => client.set(key, JSON.stringify(state), { ex: UPLOAD_SESSION_TTL_SECONDS }))
         .pipe(
           Effect.catchTag('RedisError', (e) =>
             Effect.fail(new ExifKVRepositoryError({ operation: 'setExifState', cause: e })),

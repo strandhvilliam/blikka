@@ -1,6 +1,6 @@
 import { Context, Duration, Effect, Layer, Option, Schedule, Schema, Struct } from 'effect'
 import { RedisClient, RedisClientLayer } from '@blikka/redis'
-import { Keys } from './key-factory'
+import { Keys, UPLOAD_SESSION_TTL_SECONDS } from './key-factory'
 import { incrementParticipantScript } from './lua-scripts/lua-increment'
 import { updateValidationDecisionScript } from './lua-scripts/update-validation-decision-script'
 
@@ -569,9 +569,11 @@ const makeUploadSessionRepository = Effect.gen(function* () {
           }
 
           multi = multi.hset(participantKey, participantState)
+          multi = multi.expire(participantKey, UPLOAD_SESSION_TTL_SECONDS)
 
           for (const [redisKey, value] of entries) {
             multi = multi.hset(redisKey, value)
+            multi = multi.expire(redisKey, UPLOAD_SESSION_TTL_SECONDS)
           }
 
           return multi.exec()
