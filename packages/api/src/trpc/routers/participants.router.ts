@@ -36,6 +36,22 @@ export const participantRouter = createTRPCRouter({
       ),
     ),
 
+  /** Status-only sibling of `getPublicParticipantByReference`; polled during upload finalization. */
+  getPublicParticipantStatus: publicProcedure
+    .input(Schema.toStandardSchemaV1(GetPublicParticipantByReferenceInputSchema))
+    .query(
+      trpcEffect(
+        Effect.fn('ParticipantRouter.getPublicParticipantStatus')(function* ({ input }) {
+          return yield* ParticipantsService.use((s) =>
+            s.getPublicParticipantStatus({
+              reference: input.reference,
+              domain: input.domain,
+            }),
+          )
+        }),
+      ),
+    ),
+
   getByDomainInfinite: domainProcedure
     .input(Schema.toStandardSchemaV1(GetByDomainInfiniteInputSchema))
     .use(requireMatchingInputDomainMiddleware)

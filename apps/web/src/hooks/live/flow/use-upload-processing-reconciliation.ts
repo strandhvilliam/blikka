@@ -10,7 +10,9 @@ import {
   UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
   UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
   UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS,
+  UPLOAD_STATUS_RECONCILIATION_REALTIME_INTERVAL_MS,
 } from '@/lib/flow/constants'
+import { useRealtimeHealth } from '@/lib/use-realtime-health'
 import { useUploadStatusRealtime } from '@/lib/use-upload-status-realtime'
 
 interface UseUploadProcessingReconciliationOptions {
@@ -35,6 +37,8 @@ export function useUploadProcessingReconciliation({
   const orderIndexes = Array.from(files.values()).map((file) => file.orderIndex)
   const processingStatusEnabled = isUploading && !!reference && orderIndexes.length > 0
 
+  const { isHealthy: isRealtimeHealthy } = useRealtimeHealth()
+
   const { data: uploadStatus, refetch: refetchUploadStatus } = useQuery(
     trpc.uploadFlow.getUploadStatus.queryOptions(
       {
@@ -44,7 +48,13 @@ export function useUploadProcessingReconciliation({
       },
       {
         enabled: processingStatusEnabled,
-        refetchInterval: processingStatusEnabled ? UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS : false,
+        // `submission-processed` events already mark files complete while realtime is up,
+        // so this reconciliation only needs to catch what the stream dropped.
+        refetchInterval: processingStatusEnabled
+          ? isRealtimeHealthy
+            ? UPLOAD_STATUS_RECONCILIATION_REALTIME_INTERVAL_MS
+            : UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS
+          : false,
         refetchIntervalInBackground: true,
         retry: UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
         retryDelay: (attemptIndex) =>

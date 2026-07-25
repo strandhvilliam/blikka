@@ -26,6 +26,7 @@ import {
   type GetByReferenceInput,
   type GetPublicParticipantByReferenceInput,
   type PublicParticipant,
+  type PublicParticipantStatus,
   type UpdateByCameraParticipantContactInput,
   type UpdateMarathonParticipantContactInput,
   type UpdateMarathonParticipantRegistrationInput,
@@ -84,6 +85,18 @@ export class ParticipantsService extends Context.Service<
     readonly getPublicParticipantByReference: (
       input: GetPublicParticipantByReferenceInput,
     ) => Effect.Effect<PublicParticipant, DbError | NotFoundError, never>
+
+    /**
+     * Status-only public view of a participant, for the upload-finalization poll.
+     *
+     * Separate from {@link getPublicParticipantByReference} on purpose: that one loads the
+     * full participant graph (submissions + topic, class, device group, validations, zips,
+     * contact sheets), which is far too heavy for a query every participant runs on a timer
+     * while waiting to finalize.
+     */
+    readonly getPublicParticipantStatus: (
+      input: GetPublicParticipantByReferenceInput,
+    ) => Effect.Effect<PublicParticipantStatus, DbError | NotFoundError, never>
 
     /**
      * Cursor-paged participants for a marathon `domain`, with filters for search, class, topics, verification, votes, etc.;
@@ -236,6 +249,29 @@ const makeParticipantsService = Effect.gen(function* () {
           icon: result.value.deviceGroup?.icon ?? '',
         },
       }
+    })
+
+  const getPublicParticipantStatus: ParticipantsService['Service']['getPublicParticipantStatus'] =
+    Effect.fn('ParticipantsService.getPublicParticipantStatus')(function* ({ reference, domain }) {
+      const result = yield* participantsRepository.getParticipantStatusByReference({
+        reference,
+        domain,
+      })
+
+      if (Option.isNone(result)) {
+        return yield* Effect.fail(
+          new NotFoundError({
+            resource: 'Participant',
+            identifier: { reference, domain },
+          }),
+        )
+      }
+
+      return {
+        reference: result.value.reference,
+        domain: result.value.domain,
+        status: result.value.status,
+      } satisfies PublicParticipantStatus
     })
 
   const getInfiniteParticipantsByDomain: ParticipantsService['Service']['getInfiniteParticipantsByDomain'] =
@@ -656,6 +692,7 @@ const makeParticipantsService = Effect.gen(function* () {
 
   return ParticipantsService.of({
     getPublicParticipantByReference,
+    getPublicParticipantStatus,
     getInfiniteParticipantsByDomain,
     getByReference,
     deleteByReference,

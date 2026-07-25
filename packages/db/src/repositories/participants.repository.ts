@@ -57,6 +57,9 @@ export type ParticipantWithTopicSubmissionsAndContactSheets = Participant & {
   contactSheets: ContactSheet[]
 }
 
+/** Status-only projection for the high-frequency upload-finalization poll. */
+export type ParticipantStatusRow = Pick<Participant, 'reference' | 'domain' | 'status'>
+
 type ValidationSeverityCounts = { errors: number; warnings: number }
 
 type InfiniteParticipantsRoundVote = {
@@ -129,6 +132,16 @@ export class ParticipantsRepository extends Context.Service<
       reference: string
       domain: string
     }) => Effect.Effect<Option.Option<ParticipantWithTopicSubmissionsAndContactSheets>, DbError>
+    /**
+     * Status-only participant lookup by reference/domain.
+     *
+     * Deliberately column-limited and relation-free: this backs the per-participant
+     * finalization poll, which at event scale runs far more often than any other read.
+     */
+    readonly getParticipantStatusByReference: (params: {
+      reference: string
+      domain: string
+    }) => Effect.Effect<Option.Option<ParticipantStatusRow>, DbError>
     /** By-camera participant lookup by phone hash, or none if missing. */
     readonly getByPhoneHashForByCamera: (params: {
       marathonId: number
@@ -245,6 +258,27 @@ const makeParticipantsRepository = Effect.gen(function* () {
             zippedSubmissions: true,
             contactSheets: true,
           },
+        }),
+      )
+      return Option.fromNullishOr(result)
+    })
+  const getParticipantStatusByReference: ParticipantsRepository['Service']['getParticipantStatusByReference'] =
+    Effect.fn('ParticipantsRepository.getParticipantStatusByReferenceQuery')(function* ({
+      reference,
+      domain,
+    }) {
+      const result = yield* use((db) =>
+        db.query.participants.findFirst({
+          columns: {
+            reference: true,
+            domain: true,
+            status: true,
+          },
+          where: (table, operators) =>
+            operators.and(
+              operators.eq(table.reference, reference),
+              operators.eq(table.domain, domain),
+            ),
         }),
       )
       return Option.fromNullishOr(result)
@@ -816,6 +850,7 @@ const makeParticipantsRepository = Effect.gen(function* () {
   return ParticipantsRepository.of({
     getParticipantById,
     getParticipantByReference,
+    getParticipantStatusByReference,
     getByPhoneHashForByCamera,
     getInfiniteParticipantsByDomain,
     createParticipant,

@@ -103,6 +103,13 @@ export const PublicParticipantSchema = Schema.Struct({
   }),
 })
 
+/** Status-only projection of {@link PublicParticipantSchema} for the finalization poll. */
+export const PublicParticipantStatusSchema = Schema.Struct({
+  reference: Schema.String,
+  domain: Schema.String,
+  status: Schema.String,
+})
+
 export type GetPublicParticipantByReferenceInput = Schema.Schema.Type<
   typeof GetPublicParticipantByReferenceInputSchema
 >
@@ -122,6 +129,7 @@ export type UpdateMarathonParticipantRegistrationInput = Schema.Schema.Type<
   typeof UpdateMarathonParticipantRegistrationInputSchema
 >
 export type PublicParticipant = Schema.Schema.Type<typeof PublicParticipantSchema>
+export type PublicParticipantStatus = Schema.Schema.Type<typeof PublicParticipantStatusSchema>
 
 /** Insert payload minus phone-secret columns; the participant service hashes/encrypts optional `phoneNumber`. */
 export type CreateParticipantParticipantRow = Omit<NewParticipant, 'phoneHash' | 'phoneEncrypted'>

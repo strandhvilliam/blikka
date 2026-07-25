@@ -68,6 +68,11 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         const state = yield* Ref.get(stateRef)
         return Option.fromNullishOr(state.participant)
       }),
+    getParticipantStatusByReference: () =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        return Option.fromNullishOr(state.participant)
+      }),
     getInfiniteParticipantsByDomain: () =>
       Effect.succeed({ participants: [], nextCursor: undefined }),
     deleteParticipant: ({ id }: { id: number }) => Effect.succeed(makeParticipant({ id })),
@@ -160,6 +165,40 @@ describe('ParticipantsService', () => {
 
       assert.equal(result.publicSubmissions[0]?.topic.name, '')
       assert.equal(result.publicSubmissions[0]?.topic.orderIndex, 0)
+    }),
+  )
+
+  it.effect('returns only identity and status from the status-only lookup', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(
+        makeInitialState({ participant: makeParticipant({ status: 'completed' }) }),
+      )
+
+      const { result } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* ParticipantsService
+          return yield* service.getPublicParticipantStatus({ domain, reference })
+        }),
+      )
+
+      assert.deepStrictEqual(result, { reference, domain, status: 'completed' })
+    }),
+  )
+
+  it.effect('fails the status-only lookup when the participant is missing', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState({ participant: undefined }))
+
+      const { result } = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* ParticipantsService
+          return yield* Effect.flip(service.getPublicParticipantStatus({ domain, reference }))
+        }),
+      )
+
+      assert.strictEqual(result._tag, '@blikka/api/NotFoundError')
     }),
   )
 

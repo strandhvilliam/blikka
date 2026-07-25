@@ -33,6 +33,16 @@ export const UPLOAD_CONCURRENCY_LIMIT = 1
 export const UPLOAD_STATUS_RECONCILIATION_INTERVAL_MS = 15000 // 15 seconds
 export const MIN_UPLOAD_PROGRESS_DISPLAY_MS = 3000 // 3 seconds
 export const PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS = 5000 // 5 seconds
+
+/**
+ * Poll intervals used while the realtime stream is connected.
+ *
+ * Realtime is the primary signal there and the poll is only a safety net, so it runs far
+ * slower. This matters at event scale: with 1000 participants finalizing, the difference
+ * between a 5 s and a 15 s finalization poll is ~200 req/s vs ~67 req/s.
+ */
+export const UPLOAD_STATUS_RECONCILIATION_REALTIME_INTERVAL_MS = 45000 // 45 seconds
+export const PARTICIPANT_FINALIZATION_REALTIME_POLL_INTERVAL_MS = 15000 // 15 seconds
 export const PARTICIPANT_FINALIZATION_TIMEOUT_MS = 1000 * 60 * 2 // 2 minutes
 
 /** Retries for status queries during upload finalization (transient network). */

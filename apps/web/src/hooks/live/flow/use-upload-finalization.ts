@@ -9,15 +9,21 @@ import { FINALIZATION_STATE, UPLOAD_PHASE } from '@/lib/flow/types'
 import {
   MIN_UPLOAD_PROGRESS_DISPLAY_MS,
   PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS,
+  PARTICIPANT_FINALIZATION_REALTIME_POLL_INTERVAL_MS,
   PARTICIPANT_FINALIZATION_TIMEOUT_MS,
   UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
   UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
 } from '@/lib/flow/constants'
+import { useRealtimeHealth } from '@/lib/use-realtime-health'
+import { useUploadStatusRealtime } from '@/lib/use-upload-status-realtime'
 
 interface UseUploadFinalizationOptions {
   domain: string
   reference: string
 }
+
+/** Unused realtime handlers: this hook only reacts to `participant-finalized`. */
+function noop() {}
 
 export function useUploadFinalization({ domain, reference }: UseUploadFinalizationOptions) {
   const trpc = useTRPC()
@@ -125,16 +131,22 @@ export function useUploadFinalization({ domain, reference }: UseUploadFinalizati
     (finalizationState === FINALIZATION_STATE.FINALIZING ||
       finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED)
 
-  const { data: participant } = useQuery(
-    trpc.participants.getPublicParticipantByReference.queryOptions(
+  const { isHealthy: isRealtimeHealthy } = useRealtimeHealth()
+
+  const { data: participant, refetch: refetchParticipantStatus } = useQuery(
+    trpc.participants.getPublicParticipantStatus.queryOptions(
       {
         domain,
         reference,
       },
       {
         enabled: participantQueryEnabled,
+        // While realtime is up, `participant-finalized` drives the transition and this is
+        // just a backstop; only fall back to the tight interval when we're flying blind.
         refetchInterval: participantQueryEnabled
-          ? PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS
+          ? isRealtimeHealthy
+            ? PARTICIPANT_FINALIZATION_REALTIME_POLL_INTERVAL_MS
+            : PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS
           : false,
         refetchIntervalInBackground: true,
         retry: UPLOAD_FLOW_STATUS_QUERY_RETRY_COUNT,
@@ -143,6 +155,31 @@ export function useUploadFinalization({ domain, reference }: UseUploadFinalizati
       },
     ),
   )
+
+  /**
+   * The finalizer emits `participant-finalized` only after it has written the participant's
+   * settled status, so the event is a reliable cue to read that status once rather than
+   * waiting out the poll interval.
+   *
+   * Guarded on `participantQueryEnabled` because `refetch` ignores `enabled` — without it an
+   * event arriving before the upload is fully accounted for would fire a request the query
+   * itself would not have made.
+   */
+  const handleParticipantFinalized = useCallback(() => {
+    if (!participantQueryEnabled) return
+    void refetchParticipantStatus()
+  }, [participantQueryEnabled, refetchParticipantStatus])
+
+  useUploadStatusRealtime({
+    domain,
+    reference,
+    // Registered alongside the reconciliation hook's subscription so both land in the same
+    // provider debounce window and share one stream instead of forcing a reconnect later.
+    enabled: isUploading && !!reference && fileListLength > 0,
+    onSubmissionProcessed: noop,
+    onParticipantFinalized: handleParticipantFinalized,
+    onEventError: noop,
+  })
 
   useEffect(() => {
     if (!participant) {
