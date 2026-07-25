@@ -6,6 +6,18 @@ import { toast } from 'sonner'
 import { useTRPC } from '@/lib/trpc/client'
 import { getShortlistedParticipantIds, sortShortlistForDisplay } from '@/lib/jury/jury-utils'
 
+/** One id for every pick toast, so holding down S or W never stacks a column of them. */
+const PICK_TOAST_ID = 'jury-shortlist-pick'
+
+function formatShortlistProgress(state: {
+  picks: ReadonlyArray<unknown>
+  requiredSize: number
+  isComplete: boolean
+}): string {
+  const progress = `${state.picks.length} of ${state.requiredSize} shortlisted`
+  return state.isComplete ? `${progress} — you can submit your review` : progress
+}
+
 /**
  * The juror's shortlist and the two writes against it. Every mutation returns the whole shortlist,
  * so header, list, and viewer stay in step off a single cache entry.
@@ -35,43 +47,105 @@ export function useJuryShortlist({ domain, token }: { domain: string; token: str
   )
   const orderedPicks = useMemo(() => sortShortlistForDisplay(shortlist.picks), [shortlist.picks])
 
-  /** Resolves `false` when the write was rejected, so callers can abort a follow-up step. */
-  const setPick = useCallback(
+  /** A removed pick is gone from the response, so callers pass the reference they already render. */
+  const labelFor = useCallback(
+    (participantId: number, reference?: string) => {
+      const resolved =
+        reference ?? shortlist.picks.find((pick) => pick.participantId === participantId)?.reference
+      return resolved ? `#${resolved}` : 'Submission'
+    },
+    [shortlist.picks],
+  )
+
+  /** The raw writes: they only report failures, so composed actions land on a single toast. */
+  const runSetPick = useCallback(
     async (participantId: number, selected: boolean) => {
       try {
-        await setPickMutation.mutateAsync({ domain, token, participantId, selected })
-        return true
+        return await setPickMutation.mutateAsync({ domain, token, participantId, selected })
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to update your shortlist')
-        return false
+        return null
       }
     },
     [domain, setPickMutation, token],
   )
 
-  const setWinner = useCallback(
+  const runSetWinner = useCallback(
     async (participantId: number | null) => {
       try {
-        await setWinnerMutation.mutateAsync({ domain, token, participantId })
-        return true
+        return await setWinnerMutation.mutateAsync({ domain, token, participantId })
       } catch (error) {
         toast.error(error instanceof Error ? error.message : 'Failed to update your winner')
-        return false
+        return null
       }
     },
     [domain, setWinnerMutation, token],
   )
 
+  /** Resolves `false` when the write was rejected, so callers can abort a follow-up step. */
+  const setPick = useCallback(
+    async (participantId: number, selected: boolean, reference?: string) => {
+      const label = labelFor(participantId, reference)
+      const next = await runSetPick(participantId, selected)
+      if (!next) return false
+
+      toast.success(selected ? `${label} shortlisted` : `${label} removed from your shortlist`, {
+        id: PICK_TOAST_ID,
+        description: formatShortlistProgress(next),
+      })
+      return true
+    },
+    [labelFor, runSetPick],
+  )
+
+  /** `reference` names the outgoing winner when clearing, and the incoming one otherwise. */
+  const setWinner = useCallback(
+    async (participantId: number | null, reference?: string) => {
+      const label = participantId === null ? null : labelFor(participantId, reference)
+      const next = await runSetWinner(participantId)
+      if (!next) return false
+
+      if (participantId === null) {
+        toast.success('Winner removed', {
+          id: PICK_TOAST_ID,
+          description: reference
+            ? `#${reference} stays on your shortlist`
+            : formatShortlistProgress(next),
+        })
+        return true
+      }
+
+      toast.success(`${label} is your winner`, {
+        id: PICK_TOAST_ID,
+        description: formatShortlistProgress(next),
+      })
+      return true
+    },
+    [labelFor, runSetWinner],
+  )
+
   /** Shortlists the submission first when needed — the winner must sit on the shortlist. */
   const pickWinner = useCallback(
-    async (participantId: number) => {
-      if (!shortlistedIds.has(participantId) && !(await setPick(participantId, true))) {
+    async (participantId: number, reference?: string) => {
+      const label = labelFor(participantId, reference)
+      const wasShortlisted = shortlistedIds.has(participantId)
+
+      if (!wasShortlisted && !(await runSetPick(participantId, true))) {
         return false
       }
 
-      return setWinner(participantId)
+      const next = await runSetWinner(participantId)
+      if (!next) return false
+
+      toast.success(`${label} is your winner`, {
+        id: PICK_TOAST_ID,
+        description: wasShortlisted
+          ? formatShortlistProgress(next)
+          : `Added to your shortlist · ${formatShortlistProgress(next)}`,
+      })
+      return true
     },
-    [setPick, setWinner, shortlistedIds],
+    [labelFor, runSetPick, runSetWinner, shortlistedIds],
   )
 
   return {

@@ -202,10 +202,12 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     [localNotes, localRating, saveRating, setLocalRating],
   )
 
+  const currentReference = currentParticipant?.reference
+
   const handleToggleShortlist = useCallback(() => {
     if (currentParticipantId === null) return
-    void setPick(currentParticipantId, !isShortlisted)
-  }, [currentParticipantId, isShortlisted, setPick])
+    void setPick(currentParticipantId, !isShortlisted, currentReference)
+  }, [currentParticipantId, currentReference, isShortlisted, setPick])
 
   /** Only changes that overwrite or drop an existing winner need confirming. */
   const [isWinnerDialogOpen, setIsWinnerDialogOpen] = useState(false)
@@ -218,14 +220,16 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
       return
     }
 
-    void pickWinner(currentParticipantId)
-  }, [currentParticipantId, isWinner, pickWinner, winnerParticipantId])
+    void pickWinner(currentParticipantId, currentReference)
+  }, [currentParticipantId, currentReference, isWinner, pickWinner, winnerParticipantId])
 
   const confirmWinnerChange = useCallback(() => {
     if (currentParticipantId === null) return
-    void (isWinner ? setWinner(null) : pickWinner(currentParticipantId))
+    void (isWinner
+      ? setWinner(null, currentReference)
+      : pickWinner(currentParticipantId, currentReference))
     setIsWinnerDialogOpen(false)
-  }, [currentParticipantId, isWinner, pickWinner, setWinner])
+  }, [currentParticipantId, currentReference, isWinner, pickWinner, setWinner])
 
   const goToPrev = useCallback(() => {
     void setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))
