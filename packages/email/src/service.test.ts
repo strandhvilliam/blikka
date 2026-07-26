@@ -6,7 +6,7 @@ import type { Resend } from 'resend'
 import { EmailService, EmailServiceLayerNoDeps, SendEmailError } from './service'
 import { ResendEffectClient, ResendEffectError } from './resend-effect-client'
 
-type SendMode = 'ok' | 'error' | 'noData' | 'reject'
+type SendMode = 'ok' | 'error' | 'noData' | 'reject' | 'rateLimit'
 
 interface ResendFakeOptions {
   readonly sendSequence?: ReadonlyArray<SendMode>
@@ -55,6 +55,11 @@ function makeResendTestLayer(opts: ResendFakeOptions = {}) {
         sendIndex += 1
         if (mode === 'reject') {
           return Promise.reject(new Error('resend transport failed'))
+        }
+        if (mode === 'rateLimit') {
+          return Promise.resolve({
+            error: { name: 'rate_limit_exceeded', message: 'Too many requests' },
+          })
         }
         if (mode === 'error') {
           return Promise.resolve({
@@ -193,6 +198,47 @@ describe('EmailService', () => {
 
       assert.instanceOf(err, SendEmailError)
       assert.strictEqual(err.message, 'resend rejected email')
+    }).pipe(Effect.provide(layer))
+  })
+
+  it.effect('send does not retry a non-rate-limit error', () => {
+    // A generic Resend error is ambiguous about whether the email was accepted, so retrying it
+    // could duplicate a delivery. It must fail on the first attempt and let SQS redeliver.
+    const { layer, sendCalls } = makeResendTestLayer({ sendSequence: ['error', 'ok'] })
+
+    return Effect.gen(function* () {
+      const email = yield* EmailService
+      const err = yield* Effect.flip(
+        email.send({
+          to: 'a@example.com',
+          subject: 'Subject',
+          template: makeTemplate(),
+        }),
+      )
+
+      assert.instanceOf(err, SendEmailError)
+      assert.strictEqual(err.retryable, false)
+      assert.strictEqual(sendCalls.length, 1)
+    }).pipe(Effect.provide(layer))
+  })
+
+  it.live('send retries a rate-limited response until it succeeds', () => {
+    // Resend returns rate limits as a non-throwing `{ error }` result. The request was refused
+    // outright, so retrying in-process is safe — and avoids a 10-minute SQS visibility timeout.
+    const { layer, sendCalls } = makeResendTestLayer({
+      sendSequence: ['rateLimit', 'rateLimit', 'ok'],
+    })
+
+    return Effect.gen(function* () {
+      const email = yield* EmailService
+      const out = yield* email.send({
+        to: 'a@example.com',
+        subject: 'Subject',
+        template: makeTemplate(),
+      })
+
+      assert.strictEqual(out.id, 'email-3')
+      assert.strictEqual(sendCalls.length, 3)
     }).pipe(Effect.provide(layer))
   })
 

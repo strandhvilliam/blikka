@@ -1,4 +1,4 @@
-import { Effect, Layer, Schema, Context } from 'effect'
+import { Duration, Effect, Layer, Schedule, Schema, Context } from 'effect'
 import { render } from '@react-email/render'
 import type { ReactElement } from 'react'
 import { ResendEffectClient, ResendEffectClientLayer } from './resend-effect-client'
@@ -26,7 +26,45 @@ export interface SendEmailParams {
 export class SendEmailError extends Schema.TaggedErrorClass<SendEmailError>()('SendEmailError', {
   message: Schema.String,
   cause: Schema.optional(Schema.Unknown),
+  /**
+   * The send was rejected *before* Resend accepted the email, so retrying cannot duplicate a
+   * delivery. Only rate limits qualify — see `isRateLimitError`. Absent means "do not retry".
+   */
+  retryable: Schema.optional(Schema.Boolean),
 }) {}
+
+/**
+ * Resend reports rate limits as a non-throwing `{ error }` result rather than a rejection, so
+ * they never surface as a transport error. These are the only failures we retry in-process:
+ * the request was refused outright, so a retry is guaranteed not to send a second email.
+ *
+ * Deliberately NOT retried: 5xx and transport errors. Those are ambiguous — the email may have
+ * been accepted and only the response lost — so retrying risks a duplicate. Those keep the
+ * existing behaviour of failing the SQS record and redelivering, which is idempotent at the
+ * queue level (see `decideContactSheetAction`'s `send-missing-email` branch).
+ */
+function isRateLimitError(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) return false
+  const { name, statusCode } = error as { name?: unknown; statusCode?: unknown }
+  return statusCode === 429 || name === 'rate_limit_exceeded'
+}
+
+/**
+ * ~15 s of backoff across 5 attempts (0.5s → 8s). Sized to absorb one wave of concurrent
+ * contact-sheet sends draining against Resend's ~10 req/s team limit: at `reserved: 150`, a
+ * finalize burst finishes ~150 sheets in a cluster and emits their emails together, which is
+ * well over the limit instantaneously even though the average rate is ~5/s.
+ *
+ * Without this, a rate-limited send fails its SQS record and waits out the queue's 10-minute
+ * visibility timeout before retrying — the sheet is already in S3, so the only casualty is the
+ * participant's email arriving ~10 minutes late (up to 5 times over, per `retry: 5`).
+ *
+ * `Schedule.max` stops as soon as either schedule finishes, so `recurs(5)` bounds the retries.
+ */
+const rateLimitRetry = {
+  while: (error: SendEmailError) => error.retryable === true,
+  schedule: Schedule.max([Schedule.exponential(Duration.millis(500)), Schedule.recurs(5)]),
+}
 
 export class EmailService extends Context.Service<
   EmailService,
@@ -104,6 +142,7 @@ const makeEmailService = Effect.gen(function* () {
       return yield* new SendEmailError({
         cause: result.error,
         message: result.error.message ?? 'Unknown error in send email',
+        retryable: isRateLimitError(result.error),
       })
     }
 
@@ -114,7 +153,7 @@ const makeEmailService = Effect.gen(function* () {
     }
 
     return { id: result.data.id }
-  })
+  }, Effect.retry(rateLimitRetry))
 
   const sendBatch: EmailService['Service']['sendBatch'] = Effect.fn('EmailService.sendBatch')(
     function* (params: SendEmailParams[]) {
@@ -160,6 +199,7 @@ const makeEmailService = Effect.gen(function* () {
         return yield* new SendEmailError({
           cause: result.error,
           message: result.error.message ?? 'Unknown error in send batch emails',
+          retryable: isRateLimitError(result.error),
         })
       }
 
@@ -171,6 +211,7 @@ const makeEmailService = Effect.gen(function* () {
 
       return result.data.data.map((item) => item.id)
     },
+    Effect.retry(rateLimitRetry),
   )
 
   return EmailService.of({
