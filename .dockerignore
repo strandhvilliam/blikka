@@ -4,6 +4,13 @@
 # SST / local tooling
 .sst
 .cursor
+.claude
+.agents
+
+# Local-only scratch: Effect reference checkout (scripts/prepare-effect.sh) and the
+# load-testing harness. Never belongs in an image and only bloats the build context.
+.repos
+.local
 
 # Dependencies and build output (reinstalled inside the image)
 node_modules
