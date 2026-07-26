@@ -205,9 +205,12 @@ export default $config({
         // Reserved floor so contact-sheet generation can't be starved by an upload-processor burst.
         // With batch.size 1 this is also the only throughput lever for the stage — the slowest in
         // the pipeline, and where the queue actually builds after a finalize burst. 800 sheets at
-        // ~20-40 s each drain in ceil(800 / reserved) rounds. Raising it is bounded by the Resend
-        // send rate rather than by Lambda, since every sheet ends in one transactional email.
-        concurrency: { reserved: 50 },
+        // ~20-40 s each drain in ceil(800 / reserved) rounds: ~2-4 min here, vs ~5-11 min at 50.
+        // Bounded by the Resend send rate, not by Lambda (150 of ~4.7k unreserved is nothing):
+        // every sheet ends in one transactional email, so this averages ~5/s against a ~10 req/s
+        // team limit. Completions cluster into waves, so the instantaneous rate does exceed that —
+        // `EmailService.send` retries rate limits in-process to absorb it.
+        concurrency: { reserved: 150 },
         // Heaviest Sharp stage: holds all N originals (up to 24) in memory for the whole build
         // (getSubmissionFiles fetches them at concurrency 2), decodes cells at concurrency 2
         // (contact-sheet-builder.ts), and composites a 33-52 MP canvas. One sheet in flight per
