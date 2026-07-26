@@ -229,29 +229,31 @@ function getImageLabel(
 }
 
 /**
- * Centre a prepared image inside its cell's image box.
+ * Place a prepared image against the left edge of its cell, centred vertically in the image box.
  *
- * Uses the image's real dimensions rather than the nominal `imageWidth`/`imageHeight`: those
- * describe a 3:2 photo, and anything wider (a panoramic frame, most sponsor logos) comes back
- * from `fit: 'inside'` at the full box width. Offsetting such an image by the 3:2 gutter pushed
- * it past its cell — and, in the right-hand column, past the canvas edge, where libvips clips it.
+ * Every image is flush left so the sheet reads as a column-aligned grid regardless of aspect
+ * ratio: a portrait frame comes back from `fit: 'inside'` far narrower than the cell, and
+ * centring it left it floating out of line with the landscape frames around it. Left alignment
+ * also can't overflow — `fit: 'inside'` never returns anything wider than the cell — so the
+ * right-hand column stays inside the canvas without depending on the image's real width.
+ *
+ * The vertical offset still uses the image's real height rather than the nominal `imageHeight`:
+ * that describes a 3:2 photo, and anything taller fills the box on its own.
  */
 function getImagePosition({
   x,
   y,
-  width,
   height,
   sheetVariables,
 }: {
   x: number
   y: number
-  width: number
   height: number
   sheetVariables: SheetVariables
 }) {
   return {
     top: y + Math.max(0, Math.floor((sheetVariables.availableImageHeight - height) / 2)),
-    left: x + Math.max(0, Math.floor((sheetVariables.cellWidth - width) / 2)),
+    left: x,
   }
 }
 
@@ -319,6 +321,11 @@ function generateParticipantReferenceSvg({
   return Buffer.from(seqSvg)
 }
 
+/**
+ * The label starts at x=0 — the SVG is composited at the cell's left edge, and the images it
+ * captions are flush left there too (see {@link getImagePosition}). It used to be indented by
+ * the gutter a centred 3:2 photo left behind.
+ */
 function generateTextLabelSvg({
   label,
   sheetVariables,
@@ -330,7 +337,7 @@ function generateTextLabelSvg({
 }) {
   const textSvg = `
         <svg width="${sheetVariables.cellWidth}" height="${sheetVariables.textHeight}">
-          <text x="${Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)}" y="${sheetVariables.textHeight * layout.textVerticalPosition}"
+          <text x="0" y="${sheetVariables.textHeight * layout.textVerticalPosition}"
                 font-family="Liberation Sans, Arial, sans-serif"
                 font-size="${layout.labelFontSize}"
                 font-weight="500"
@@ -483,7 +490,6 @@ const makeContactSheetBuilder = Effect.gen(function* () {
                   ...getImagePosition({
                     x,
                     y,
-                    width: preparedSponsorImage.width,
                     height: preparedSponsorImage.height,
                     sheetVariables,
                   }),
@@ -512,7 +518,6 @@ const makeContactSheetBuilder = Effect.gen(function* () {
                 ...getImagePosition({
                   x,
                   y,
-                  width: image.width,
                   height: image.height,
                   sheetVariables,
                 }),

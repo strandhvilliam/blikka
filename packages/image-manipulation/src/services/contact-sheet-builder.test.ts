@@ -337,6 +337,56 @@ describe('ContactSheetBuilder', () => {
     }),
   )
 
+  it.effect('left aligns portrait images and their captions against the cell edge', () =>
+    Effect.gen(function* () {
+      // A 2:3 frame comes back from `fit: 'inside'` much narrower than the cell. Centring it left
+      // it floating out of line with the landscape frames in the same column.
+      const { state } = yield* runWithState(
+        makeInitialState({
+          prepareSize: (call) => ({
+            width: Math.floor(call.height * (2 / 3)),
+            height: call.height,
+          }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const builder = yield* ContactSheetBuilder
+            yield* builder.createSheet({
+              reference: 'REF123',
+              images: makeImages(8),
+              sponsorImage: Buffer.from('sponsor'),
+              sponsorPosition: 'bottom-right',
+              topics: makeTopics(8),
+              format: 'classic',
+            })
+          }),
+      )
+
+      const items = state.canvasCalls[0]?.items ?? []
+      const placedImages = items.filter(
+        (item) => Buffer.isBuffer(item.input) && item.input.toString() === 'prepared',
+      )
+
+      // Classic: 30 px padding, 1288 px cells — one x per column, shared by every row.
+      const columnLefts = [30, 1348, 2666]
+      assert.lengthOf(placedImages, 9)
+      assert.deepStrictEqual(
+        [...new Set(placedImages.map((item) => item.left))].sort((a, b) => (a ?? 0) - (b ?? 0)),
+        columnLefts,
+      )
+
+      // Captions sit flush with the left edge of the photo they belong to.
+      const captions = items.filter(
+        (item) => Buffer.isBuffer(item.input) && item.input.toString().includes('<text'),
+      )
+      assert.lengthOf(captions, 9)
+      for (const caption of captions.slice(0, 8)) {
+        assert.include(columnLefts, caption.left)
+        assert.include(String(caption.input), '<text x="0"')
+      }
+    }),
+  )
+
   it.effect('maps sharp failures to contact sheet build failures', () =>
     Effect.gen(function* () {
       const sharpError = new SharpError({ message: 'sharp failed' })

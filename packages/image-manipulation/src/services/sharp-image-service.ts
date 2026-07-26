@@ -68,8 +68,8 @@ export interface SheetImagePart extends OverlayOptions {}
  * A resized image plus the dimensions it actually came out at.
  *
  * `fit: 'inside'` does not pad, so the result is only as large as the source aspect ratio
- * allows. Callers that place the image on a canvas need the real dimensions to centre it —
- * assuming the requested box would push wide images past their cell.
+ * allows. Callers that place the image on a canvas need the real dimensions to position it —
+ * assuming the requested box would misplace anything that is not exactly that shape.
  */
 export interface PreparedImage {
   readonly buffer: Buffer
