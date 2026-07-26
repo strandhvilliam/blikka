@@ -26,8 +26,14 @@ describe('normalizeUploadContentType', () => {
   })
 
   it('preserves allowed content types', () => {
-    expect(normalizeUploadContentType('image/png')).toBe('image/png')
-    expect(normalizeUploadContentType('IMAGE/WEBP')).toBe('image/webp')
+    expect(normalizeUploadContentType('image/jpeg')).toBe('image/jpeg')
+    expect(normalizeUploadContentType('IMAGE/JPEG')).toBe('image/jpeg')
+  })
+
+  it('narrows non-jpeg image types to image/jpeg while multi-format is deferred', () => {
+    expect(normalizeUploadContentType('image/png')).toBe('image/jpeg')
+    expect(normalizeUploadContentType('IMAGE/WEBP')).toBe('image/jpeg')
+    expect(normalizeUploadContentType('image/heic')).toBe('image/jpeg')
   })
 
   it('falls back unknown types to image/jpeg', () => {
