@@ -248,29 +248,86 @@ export function shouldSkipClientPreviewForSize(file: { size: number }): boolean 
 }
 
 const THUMBNAIL_MAX_DIMENSION = 400
+const THUMBNAIL_JPEG_QUALITY = 0.7
 
-async function imageBitmapToJpegObjectUrl(bitmap: ImageBitmap): Promise<string> {
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
+type ThumbnailCanvas =
+  | { kind: 'offscreen'; canvas: OffscreenCanvas }
+  | { kind: 'element'; canvas: HTMLCanvasElement }
+
+/**
+ * OffscreenCanvas with a 2d context only reaches iOS Safari 16.4+, while
+ * createImageBitmap goes back to iOS 15. A detached <canvas> covers that gap so
+ * older iPhones still get previews instead of silently falling back to none.
+ */
+function createThumbnailCanvas(
+  width: number,
+  height: number,
+): {
+  target: ThumbnailCanvas
+  ctx: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D
+} | null {
+  if (typeof OffscreenCanvas !== 'undefined') {
+    const canvas = new OffscreenCanvas(width, height)
+    const ctx = canvas.getContext('2d')
+
+    if (ctx) {
+      return { target: { kind: 'offscreen', canvas }, ctx }
+    }
+
+    byCameraThumbnailBreadcrumb('fallback_no_2d_context', { w: width, h: height })
+  }
+
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = height
   const ctx = canvas.getContext('2d')
 
   if (!ctx) {
-    byCameraThumbnailBreadcrumb('fallback_no_2d_context', {
-      w: bitmap.width,
-      h: bitmap.height,
+    return null
+  }
+
+  return { target: { kind: 'element', canvas }, ctx }
+}
+
+async function thumbnailCanvasToJpegBlob(target: ThumbnailCanvas): Promise<Blob> {
+  if (target.kind === 'offscreen') {
+    return await target.canvas.convertToBlob({
+      type: 'image/jpeg',
+      quality: THUMBNAIL_JPEG_QUALITY,
     })
+  }
+
+  const canvas = target.canvas
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, 'image/jpeg', THUMBNAIL_JPEG_QUALITY)
+  })
+
+  if (!blob) {
+    throw new Error('canvas_encode_failed')
+  }
+
+  return blob
+}
+
+async function imageBitmapToJpegObjectUrl(bitmap: ImageBitmap): Promise<string> {
+  const canvas = createThumbnailCanvas(bitmap.width, bitmap.height)
+
+  if (!canvas) {
     bitmap.close()
     throw new Error('no_2d_context')
   }
 
-  ctx.drawImage(bitmap, 0, 0)
+  canvas.ctx.drawImage(bitmap, 0, 0)
   bitmap.close()
 
-  const blob = await canvas.convertToBlob({
-    type: 'image/jpeg',
-    quality: 0.7,
-  })
+  const blob = await thumbnailCanvasToJpegBlob(canvas.target)
   byCameraThumbnailBreadcrumb('jpeg_thumbnail', {
     thumbBytes: blob.size,
+    canvas: canvas.target.kind,
   })
   return URL.createObjectURL(blob)
 }
