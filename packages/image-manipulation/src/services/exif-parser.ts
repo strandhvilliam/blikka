@@ -149,14 +149,24 @@ export const makeExifParser = Effect.gen(function* () {
       options: { keepBinaryData: boolean } = { keepBinaryData: false },
     ) {
       const exif = yield* Effect.tryPromise(() => exifr.parse(file))
+
+      // exifr resolves `undefined` when a file carries no EXIF at all. That is an ordinary
+      // photo (stripped exports, HEIC->JPEG conversions, screenshots), not a parse failure,
+      // so it decodes to an empty record instead of erroring.
+      if (exif === undefined || exif === null) {
+        return {}
+      }
+
       const sanitizedExif = yield* Effect.try({
         try: () => sanitizeExifData(exif, options?.keepBinaryData),
         catch: (error) =>
           new ExifParseError({ message: 'Failed to sanitize EXIF data', cause: error }),
       })
 
-      const decoded = Schema.decodeUnknownSync(ExifSchema)(sanitizedExif)
-      return decoded
+      // Decoding through the Effect channel keeps a schema mismatch a typed failure. The
+      // sync decoder throws, which Effect classifies as a defect that the trailing
+      // `mapError` below never sees and that callers' `Effect.catch` cannot recover from.
+      return yield* Schema.decodeUnknownEffect(ExifSchema)(sanitizedExif)
     },
     Effect.mapError(
       (error) =>

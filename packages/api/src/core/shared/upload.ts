@@ -36,17 +36,23 @@ export type DeviceByCameraParticipantContext = {
 export const ACTIVE_TOPIC_ALREADY_UPLOADED_MESSAGE =
   'You have already uploaded a photo for the current topic.'
 
-const ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES = new Set([
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/heic',
-  'image/heif',
-  'image/avif',
-])
+/**
+ * Content types a marathon upload may be signed as.
+ *
+ * The platform is built for organizers to configure which formats they accept, but that is
+ * deferred: until the rest of the pipeline reports non-JPEG inputs properly, JPEG is the only
+ * offered format. Widening again is adding entries back to this set — nothing else here
+ * assumes a single value.
+ */
+const ALLOWED_MARATHON_UPLOAD_CONTENT_TYPES = new Set(['image/jpeg'])
 
-/** Normalizes client-provided MIME types for S3 presigned PUT signatures. */
+/**
+ * Normalizes client-provided MIME types for S3 presigned PUT signatures.
+ *
+ * This only decides what the stored object is *labelled* as. The declared type comes from the
+ * browser and the presigned PUT does not inspect the body, so a non-JPEG can still be uploaded
+ * under a JPEG label; decode-time classification in the upload processor is what catches that.
+ */
 export function normalizeUploadContentType(raw: string | undefined | null): string {
   const trimmed = (raw ?? '').trim().toLowerCase()
   if (trimmed === '' || trimmed === 'image/jpg') {

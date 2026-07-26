@@ -14,6 +14,7 @@ import {
   ABUSE_MAX_OBJECT_BYTES,
   ExifParser,
   ExifParserLayer,
+  isPermanentImageFailure,
   SharpImageService,
   SharpImageServiceLayer,
 } from '@blikka/image-manipulation'
@@ -109,17 +110,28 @@ const makeSubmissionProcessor = Effect.gen(function* () {
         orderIndex,
         fileName,
       })
-      const resized = yield* sharp.resize(photo, { width: THUMBNAIL_WIDTH })
+      const resized = yield* sharp.resize(photo, { width: THUMBNAIL_WIDTH }).pipe(
+        // Separate "this upload is a bad file" from "this attempt went wrong". Both continue
+        // without a thumbnail, but only the second is worth retrying or alerting on.
+        Effect.tapError((error) =>
+          isPermanentImageFailure(error.reason)
+            ? Effect.logError('Uploaded object is not a decodable photo; retrying cannot help', {
+                photoFailure: error.reason,
+                decodeError: error.message,
+              })
+            : Effect.logWarning('Thumbnail generation failed; may succeed on a later attempt', {
+                photoFailure: 'unknown',
+                decodeError: error.message,
+              }),
+        ),
+      )
       yield* s3.putFile(config.thumbnailsBucketName, thumbnailKey, resized)
       return Option.some(thumbnailKey)
     },
     Effect.catchCause((cause) =>
-      Effect.logWarning(
-        'Thumbnail generation or upload failed; continuing without thumbnail (can retry later)',
-        {
-          cause: Cause.pretty(cause),
-        },
-      ).pipe(Effect.as(Option.none<string>())),
+      Effect.logWarning('Continuing without thumbnail', {
+        cause: Cause.pretty(cause),
+      }).pipe(Effect.as(Option.none<string>())),
     ),
   )
 
