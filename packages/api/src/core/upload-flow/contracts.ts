@@ -18,6 +18,8 @@ export const PrepareUploadFlowSchema = Schema.Struct({
   competitionClassId: Schema.Number,
   deviceGroupId: Schema.Number,
   phoneNumber: Schema.NullOr(Schema.String).pipe(Schema.optional),
+  /** Participant confirmed re-registering over a number that already started or finished an upload. */
+  replaceCompletedParticipantUpload: Schema.Boolean.pipe(Schema.optional),
   ...TermsAcceptanceInputSchema,
 })
 

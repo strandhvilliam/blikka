@@ -10,7 +10,10 @@ export interface UploadFlowStateSnapshot {
   participantLastName: string | null
   participantPhone: string | null
   replaceExistingActiveTopicUpload: boolean | null
-  /** Marathon: participant/staff confirmed replacing a finalized (completed/verified) upload. */
+  /**
+   * Marathon: participant/staff confirmed re-using a number that already has an upload —
+   * finalized (completed/verified) when uploading, or in progress/finalized when preparing.
+   */
   replaceCompletedParticipantUpload?: boolean | null
   termsAccepted: boolean | null
   acceptedLocale: string | null
@@ -396,6 +399,7 @@ export function buildPrepareUploadFlowInputResult(
   competitionClassId: number
   deviceGroupId: number
   phoneNumber?: string | null
+  replaceCompletedParticipantUpload?: boolean
   termsAccepted: boolean
   acceptedLocale: string | null
 }> {
@@ -407,6 +411,9 @@ export function buildPrepareUploadFlowInputResult(
     data: {
       domain,
       ...mapMarathonInputPayload(validationResult.data),
+      ...(state.replaceCompletedParticipantUpload === true
+        ? { replaceCompletedParticipantUpload: true }
+        : {}),
       ...mapTermsAcceptancePayload(state),
     },
   }

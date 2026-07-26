@@ -58,29 +58,27 @@
       "continue": "Continue",
       "checking": "Checking...",
       "error": "An error occurred. Please try again.",
-      "blocked": "This participant number has already been fully submitted and cannot be used again.",
-      "prepareBlocked": "This participant number has already started the upload flow and cannot be prepared again.",
       "confirmDialog": {
         "title": "Registration already exists",
         "titleExists": "Welcome back!",
         "titleNew": "New participant",
         "titlePrepared": "Prepared participant found",
-        "titleReplace": "Replace your upload?",
+        "titleReplace": "Replace this upload?",
+        "titleReplacePrepared": "This number has already uploaded",
+        "titleReplaceInProgress": "This number is already in use",
         "description": "Participant number {ref} already has saved details. Continuing will update the saved registration for this number.",
         "descriptionExists": "We found a session for participant number {ref}. Continue to proceed.",
         "descriptionNew": "This will create a new upload session for this participant number. Continue?",
         "descriptionPrepared": "Participant number {ref} is already prepared. Continue to start the actual upload flow now?",
-        "descriptionReplace": "Looks like someone already uploaded for participant <number>{ref}</number>! Is this you? You can replace the upload. If it wasn't you, please talk to a crew member.",
+        "descriptionReplace": "Participant <number>{ref}</number> has already uploaded. Double-check that this is your number — continuing replaces those photos with yours. Nothing is deleted, so crew can restore the earlier upload if this turns out to be a mistake.",
+        "descriptionReplacePrepared": "Participant <number>{ref}</number> has already uploaded photos. Double-check that this is your number — continuing registers you on it and the existing upload can be replaced later. Nothing is deleted, so crew can undo this if it turns out to be a mistake.",
+        "descriptionReplaceInProgress": "Participant <number>{ref}</number> has already started an upload. Double-check that this is your number — continuing takes over the registration and that upload will be replaced. Nothing is deleted, so crew can undo this if it turns out to be a mistake.",
         "cancel": "Use another number",
         "cancelPrepared": "Cancel",
         "confirm": "Update registration",
         "confirmPrepared": "Continue",
-        "confirmReplace": "Replace upload"
-      },
-      "alreadyUploadedDialog": {
-        "title": "Already uploaded",
-        "description": "Looks like someone already uploaded for participant <number>{ref}</number>! If this wasn't you, please talk to a crew member.",
-        "confirm": "Got it"
+        "confirmReplace": "Replace upload",
+        "confirmReplacePrepared": "Continue anyway"
       }
     },
     "steps": {

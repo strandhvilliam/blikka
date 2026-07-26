@@ -583,6 +583,66 @@ describe('UploadFlowService', () => {
     }),
   )
 
+  it.effect(
+    'prepareUploadFlow re-registers a finalized participant when replaceCompletedParticipantUpload is set',
+    () =>
+      Effect.gen(function* () {
+        const { result, state } = yield* runWithState(
+          makeInitialState({
+            marathon: makeMarathon({ mode: 'marathon' }),
+            participant: makeParticipant({ status: 'completed' }),
+          }),
+          () =>
+            Effect.gen(function* () {
+              const service = yield* UploadFlowService
+              return yield* service.prepareUploadFlow({
+                domain,
+                reference,
+                firstname: 'Ada',
+                lastname: 'Lovelace',
+                email: 'ada@example.com',
+                competitionClassId: 5,
+                deviceGroupId: 7,
+                replaceCompletedParticipantUpload: true,
+              })
+            }),
+        )
+
+        assert.strictEqual(result.status, 'prepared')
+        assert.lengthOf(state.participantUpdates, 1)
+      }),
+  )
+
+  it.effect(
+    'prepareUploadFlow re-registers an in-progress participant when replaceCompletedParticipantUpload is set',
+    () =>
+      Effect.gen(function* () {
+        const { result, state } = yield* runWithState(
+          makeInitialState({
+            marathon: makeMarathon({ mode: 'marathon' }),
+            participant: makeParticipant({ status: 'initialized' }),
+          }),
+          () =>
+            Effect.gen(function* () {
+              const service = yield* UploadFlowService
+              return yield* service.prepareUploadFlow({
+                domain,
+                reference,
+                firstname: 'Ada',
+                lastname: 'Lovelace',
+                email: 'ada@example.com',
+                competitionClassId: 5,
+                deviceGroupId: 7,
+                replaceCompletedParticipantUpload: true,
+              })
+            }),
+        )
+
+        assert.strictEqual(result.status, 'prepared')
+        assert.lengthOf(state.participantUpdates, 1)
+      }),
+  )
+
   it.effect('prepareUploadFlow creates a prepared participant and emits realtime event', () =>
     Effect.gen(function* () {
       const { result, state } = yield* runWithState(

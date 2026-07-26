@@ -386,9 +386,12 @@ const makeUploadFlowService = Effect.gen(function*() {
     competitionClassId,
     deviceGroupId,
     phoneNumber,
+    replaceCompletedParticipantUpload,
     termsAccepted,
     acceptedLocale,
   }) {
+    const allowReplaceExisting = replaceCompletedParticipantUpload === true
+
     const executeEffect = Effect.gen(function*() {
       const marathon = yield* marathonsRepository.getMarathonByDomainWithOptions({ domain }).pipe(
         Effect.flatMap((option) =>
@@ -428,7 +431,11 @@ const makeUploadFlowService = Effect.gen(function*() {
         domain,
       })
 
-      if (Option.isSome(existingParticipant)) {
+      // A number that already started or finished an upload is not a dead end: the
+      // participant can re-register over it after an explicit confirmation. Crew capacity
+      // is limited, and a mistaken replace is recoverable — uploaded photos are never
+      // deleted from storage, and out-of-app registration data can be cross-checked.
+      if (Option.isSome(existingParticipant) && !allowReplaceExisting) {
         if (isParticipantFinalized(existingParticipant.value.status)) {
           return yield* Effect.fail(
             new BadRequestError({
