@@ -218,13 +218,24 @@ premise of issue #1, cannot happen. Event cost in Upstash commands is ~$0.18 for
 | `tasks/contact-sheet-generator/src/handler.ts` | `recordConcurrency` 2 → **1**. Halves peak memory (~2 GB → ~1 GB) at near-zero throughput cost: 4096 MB is ~2.4 vCPU and the build is CPU-bound, so two sheets contend rather than overlap. A no-op at `batch.size: 1`, kept as a guard if the batch size is ever raised                                                                                                                                   |
 | `sst.config.ts` (comments)                     | Corrected drift: the memory rationale claimed cells decode "with concurrency 8" and two sheets per invocation; the code uses `{ concurrency: 2 }` in both `contact-sheet-builder.ts:482` and `contact-sheet-generator.ts:207`                                                                                                                                                                              |
 
-**Contact-sheet generation is now the only real bottleneck** — 800 sheets at ~20-40 s each, and
-`reserved: 50` is the sole throughput lever now that batching is 1. Deliberately left unchanged:
-raising it is bounded by the **Resend send rate** (every sheet ends in one transactional email),
-which is the last unmeasured external ceiling. At `reserved: 50` the stage emits ~1.7 emails/s.
-The failure mode is graceful either way — `decideContactSheetAction`
-(`contact-sheet-generator.ts:125-138`) routes a redelivery after a failed email to
-`send-missing-email`, so a Resend 429 costs an email retry, not a sheet rebuild.
+**Contact-sheet generation was the only real bottleneck** — 800 sheets at ~20-40 s each, and
+with batching at 1, `reserved` is the sole throughput lever. Raised **50 → 150**, taking the
+drain from ~5-11 min to ~2-4 min. Lambda is irrelevant here (150 of ~4.7k unreserved); the
+binding limit is the **Resend send rate**, since every sheet ends in one transactional email.
+Measured after the fact: Resend allows ~10 req/s per team, and at `reserved: 150` the stage
+averages ~5/s — but completions cluster into waves rather than arriving smoothly, so the
+instantaneous rate does exceed the limit.
+
+That burst is absorbed in-process: `EmailService.send` now retries rate limits (~15 s of backoff
+across 5 attempts). Without it, a 429 fails the SQS record and waits out this queue's 10-minute
+visibility timeout — the sheet is already in S3, so the cost is the participant's email arriving
+~10 minutes late rather than any data loss. The two ship together deliberately — widening this
+stage makes the email bursts larger, so the bump is only safe with the retry alongside it.
+
+Only rate limits are retried in-process. 5xx and transport errors stay on the queue path, since
+they are ambiguous about whether the email was already accepted, and redelivery is idempotent
+there anyway — `decideContactSheetAction` (`contact-sheet-generator.ts:125-138`) routes a
+redelivery after a failed email to `send-missing-email`, so it costs a resend, not a rebuild.
 
 Not changed, and why: a `reserved` floor on the upload-processor (pointless with ~4.7k
 unreserved); the `SheetGeneratorBacklog` alarm, which will likely fire during a healthy event
