@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Config, Effect, Option } from 'effect'
-import {
-  appRouter,
-  createCallerFactory,
-  createTRPCContext,
-} from '@blikka/api/trpc'
+import { Cause, Config, Effect, Option } from 'effect'
+import { appRouter, createCallerFactory, createTRPCContext } from '@blikka/api/trpc'
 import {
   ContactSheetBuilder,
   InvalidSheetParamsError,
@@ -138,13 +134,6 @@ function customContactSheetPostEffect(
         topics: config.topics,
         format: config.format,
       }),
-    ).pipe(
-      Effect.catchTags({
-        InvalidSheetParamsError: (error: InvalidSheetParamsError) =>
-          Effect.fail(error),
-        ContactSheetBuildError: (error: ContactSheetBuildError) =>
-          Effect.fail(error),
-      }),
     )
 
     const referenceSegment = sanitizeFilenameSegment(config.reference) || 'custom'
@@ -157,7 +146,9 @@ function customContactSheetPostEffect(
     })
   }).pipe(
     Effect.catchCause((cause) => {
-      const error = cause
+      // `cause` is the Cause, not the error inside it — matching on it directly never hit any of
+      // these branches, so every failure came back as a bare 500 "Unknown error".
+      const error = Cause.squash(cause)
       if (error instanceof InvalidSheetParamsError) {
         return Effect.succeed(jsonError('Invalid sheet parameters', 400, error.message))
       }

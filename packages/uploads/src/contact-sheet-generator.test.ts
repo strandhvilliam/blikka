@@ -7,6 +7,7 @@ import {
   SponsorsRepository,
   TopicsRepository,
 } from '@blikka/db'
+import { DbError } from '@blikka/db'
 import type { CompetitionClass } from '@blikka/db'
 import { ContactSheetBuilder, type ContactSheetImageFile } from '@blikka/image-manipulation'
 import { EmailService, SendEmailError } from '@blikka/email'
@@ -31,10 +32,10 @@ const input: GenerateContactSheetInput = {
 }
 
 const sheetBytes = Buffer.from([1, 2, 3])
-const topics = [
-  { name: 'Topic 1', orderIndex: 0 },
-  { name: 'Topic 2', orderIndex: 1 },
-]
+const topics = Array.from({ length: 8 }, (_, orderIndex) => ({
+  name: `Topic ${orderIndex + 1}`,
+  orderIndex,
+}))
 
 const makeParticipantState = (overrides: Partial<ParticipantState> = {}): ParticipantState => ({
   uploadSessionId,
@@ -62,6 +63,10 @@ const submissionKeys = Array.from(
   (_, index) => `demo/REF123/${String(index + 1).padStart(2, '0')}/photo.jpg`,
 )
 const submissionFiles = submissionKeys.map((_, index) => Buffer.from(`submission-${index}`))
+
+/** Submission rows as the participant query returns them: a key plus the topic that orders it. */
+const makeSubmissions = () =>
+  submissionKeys.map((key, orderIndex) => ({ key, topic: { orderIndex } }))
 const sponsorKey = 'sponsors/contact-sheet-logo.png'
 const sponsorBytes = Buffer.from('sponsor')
 
@@ -78,7 +83,7 @@ interface TestState {
         readonly lastname: string
         readonly email: string | null
         readonly competitionClass: CompetitionClass | null
-        readonly submissions: ReadonlyArray<{ key: string }>
+        readonly submissions: ReadonlyArray<{ key: string; topic: { orderIndex: number } }>
       }
     | undefined
   readonly sponsor: { readonly key: string } | undefined
@@ -122,6 +127,7 @@ interface TestState {
     participantId: number
     marathonId: number
   }>
+  readonly contactSheetSaveError: DbError | undefined
 }
 
 type S3PutFileOutput = Effect.Success<ReturnType<S3Service['Service']['putFile']>>
@@ -135,7 +141,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
     lastname: 'Lovelace',
     email: 'ada@example.com',
     competitionClass: makeCompetitionClass(),
-    submissions: submissionKeys.map((key) => ({ key })),
+    submissions: makeSubmissions(),
   },
   sponsor: { key: sponsorKey },
   topics,
@@ -157,6 +163,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   filePuts: [],
   participantUpdates: [],
   contactSheetWrites: [],
+  contactSheetSaveError: undefined,
   ...overrides,
 })
 
@@ -198,10 +205,17 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
 
   const contactSheetsRepository = ContactSheetsRepository.of({
     save: ({ data }: { data: { key: string; participantId: number; marathonId: number } }) =>
-      updateTestState(stateRef, (state) => ({
-        ...state,
-        contactSheetWrites: [...state.contactSheetWrites, data],
-      })).pipe(Effect.as(data)),
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        if (state.contactSheetSaveError) {
+          return yield* Effect.fail(state.contactSheetSaveError)
+        }
+        yield* updateTestState(stateRef, (current) => ({
+          ...current,
+          contactSheetWrites: [...current.contactSheetWrites, data],
+        }))
+        return data
+      }),
   } as unknown as ContactSheetsRepository['Service'])
 
   const uploadKv = UploadSessionRepository.of({
@@ -365,6 +379,67 @@ describe('ContactSheetGenerator', () => {
     }),
   )
 
+  it.effect('orders images by topic order index, not by row order', () =>
+    Effect.gen(function* () {
+      // The participant query does not order its submissions, and the finalizer rewrites every
+      // row concurrently with this task, so the array arrives in whatever order Postgres picked.
+      const shuffled = [...makeSubmissions()].reverse()
+
+      const { state } = yield* runWithState(
+        makeInitialState({
+          participant: {
+            id: 123,
+            marathonId: 456,
+            firstname: 'Ada',
+            lastname: 'Lovelace',
+            email: 'ada@example.com',
+            competitionClass: makeCompetitionClass(),
+            submissions: shuffled,
+          },
+        }),
+        () =>
+          Effect.gen(function* () {
+            const generator = yield* ContactSheetGenerator
+            yield* generator.generate(input)
+          }),
+      )
+
+      // Each buffer keeps the order index of its own topic, whatever position the row arrived in.
+      assert.deepStrictEqual(
+        state.sheetInputs[0]?.images.map((image) => ({
+          orderIndex: image.orderIndex,
+          buffer: image.buffer,
+        })),
+        shuffled.map((submission) => ({
+          orderIndex: submission.topic.orderIndex,
+          buffer: submissionFiles[submission.topic.orderIndex] as Buffer,
+        })),
+      )
+    }),
+  )
+
+  it.effect('leaves the kv sheet key unset when the row insert fails', () =>
+    Effect.gen(function* () {
+      const { result: error, state } = yield* runWithState(
+        makeInitialState({
+          contactSheetSaveError: new DbError({ message: 'insert failed' }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const generator = yield* ContactSheetGenerator
+            return yield* Effect.flip(generator.generate(input))
+          }),
+      )
+
+      assert.instanceOf(error, DbError)
+      assert.deepStrictEqual(state.contactSheetWrites, [])
+      // No kv key means a redelivery regenerates instead of taking the send-missing-email
+      // branch, which would have left the participant with no row pointing at their sheet.
+      assert.deepStrictEqual(state.participantUpdates, [])
+      assert.deepStrictEqual(state.emailSends, [])
+    }),
+  )
+
   it.effect('uses marathon contact sheet format when generating', () =>
     Effect.gen(function* () {
       const { state } = yield* runWithState(
@@ -397,7 +472,7 @@ describe('ContactSheetGenerator', () => {
             lastname: 'Lovelace',
             email: null,
             competitionClass: makeCompetitionClass(),
-            submissions: submissionKeys.map((key) => ({ key })),
+            submissions: makeSubmissions(),
           },
         }),
         () =>
@@ -600,7 +675,7 @@ describe('ContactSheetGenerator', () => {
             lastname: 'Lovelace',
             email: 'ada@example.com',
             competitionClass: makeCompetitionClass({ numberOfPhotos: 12 }),
-            submissions: submissionKeys.slice(0, 12).map((key) => ({ key })),
+            submissions: makeSubmissions().slice(0, 12),
           },
         }),
         () =>
@@ -628,7 +703,7 @@ describe('ContactSheetGenerator', () => {
             lastname: 'Lovelace',
             email: 'ada@example.com',
             competitionClass: makeCompetitionClass({ numberOfPhotos: 8 }),
-            submissions: submissionKeys.slice(0, 7).map((key) => ({ key })),
+            submissions: makeSubmissions().slice(0, 7),
           },
         }),
         () =>

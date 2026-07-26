@@ -22,6 +22,15 @@ import type { GenerateContactSheet } from './contracts'
 const VALID_PHOTO_COUNTS = [8, 24]
 const VALID_CONTACT_SHEET_FORMATS = ['classic', 'a3'] as const
 
+/**
+ * The submission shape the sheet needs. `submissions` rows carry no order column of their own —
+ * grid position and caption both come from `topic.orderIndex`.
+ */
+interface ContactSheetSubmission {
+  readonly key: string
+  readonly topic: { readonly orderIndex: number }
+}
+
 function toContactSheetFormat(value: string): ContactSheetFormat {
   if (VALID_CONTACT_SHEET_FORMATS.includes(value as (typeof VALID_CONTACT_SHEET_FORMATS)[number])) {
     return value as ContactSheetFormat
@@ -62,10 +71,10 @@ const makeContactSheetsService = Effect.gen(function* () {
   const generateContactSheetKey = (domain: string, reference: string) =>
     `${domain}/${reference}/contact_sheet_${reference}_${new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5)}.jpg`
 
-  const validatePhotoCount = Effect.fn('ContactSheetsService.validatePhotoCount')(function* (
+  const validateSubmissions = Effect.fn('ContactSheetsService.validateSubmissions')(function* (
     reference: string,
     domain: string,
-    keys: string[],
+    submissions: ReadonlyArray<ContactSheetSubmission>,
     competitionClass: CompetitionClass | null,
   ) {
     if (!competitionClass?.numberOfPhotos) {
@@ -85,10 +94,19 @@ const makeContactSheetsService = Effect.gen(function* () {
       )
     }
 
-    if (keys.length !== expectedCount) {
+    if (submissions.length !== expectedCount) {
       return yield* Effect.fail(
         new BadRequestError({
-          message: `[${reference}|${domain}] Photo count mismatch. Expected ${expectedCount}, got ${keys.length}`,
+          message: `[${reference}|${domain}] Photo count mismatch. Expected ${expectedCount}, got ${submissions.length}`,
+        }),
+      )
+    }
+
+    const orderIndexes = new Set(submissions.map((submission) => submission.topic.orderIndex))
+    if (orderIndexes.size !== submissions.length) {
+      return yield* Effect.fail(
+        new BadRequestError({
+          message: `[${reference}|${domain}] Duplicate topic order index across submissions`,
         }),
       )
     }
@@ -116,12 +134,7 @@ const makeContactSheetsService = Effect.gen(function* () {
       )
     }
 
-    yield* validatePhotoCount(
-      reference,
-      domain,
-      submissions.map((s) => s.key),
-      participantRow.competitionClass,
-    )
+    yield* validateSubmissions(reference, domain, submissions, participantRow.competitionClass)
 
     const sponsor = yield* sponsorsRepository.getLatestSponsorByType({
       marathonId: participantRow.marathonId,
@@ -143,10 +156,10 @@ const makeContactSheetsService = Effect.gen(function* () {
 
     const images = yield* Effect.forEach(
       submissions,
-      (submission, index) =>
+      (submission) =>
         s3.getFile(submissionsBucketName, submission.key).pipe(
           failNotFoundIfNone('SubmissionImage', { key: submission.key }),
-          Effect.map((buffer) => ({ orderIndex: index, buffer })),
+          Effect.map((buffer) => ({ orderIndex: submission.topic.orderIndex, buffer })),
         ),
       { concurrency: 5 },
     )

@@ -10,6 +10,19 @@ export class SharpError extends Schema.TaggedErrorClass<SharpError>()('SharpErro
 
 export interface SheetImagePart extends OverlayOptions {}
 
+/**
+ * A resized image plus the dimensions it actually came out at.
+ *
+ * `fit: 'inside'` does not pad, so the result is only as large as the source aspect ratio
+ * allows. Callers that place the image on a canvas need the real dimensions to centre it —
+ * assuming the requested box would push wide images past their cell.
+ */
+export interface PreparedImage {
+  readonly buffer: Buffer
+  readonly width: number
+  readonly height: number
+}
+
 export class SharpImageService extends Context.Service<
   SharpImageService,
   {
@@ -18,14 +31,14 @@ export class SharpImageService extends Context.Service<
       image: Uint8Array<ArrayBufferLike>,
       options: { width: number; height?: number; quality?: number },
     ) => Effect.Effect<Buffer, SharpError>
-    /** Prepare an image for a canvas. */
+    /** Prepare an image for a canvas, returning the resized bytes and their real dimensions. */
     readonly prepareForCanvas: (
       buffer: Buffer,
       width: number,
       height: number,
       fit: 'cover' | 'inside',
       background: string,
-    ) => Effect.Effect<Buffer, SharpError>
+    ) => Effect.Effect<PreparedImage, SharpError>
     /** Create a canvas sheet from a list of images. */
     readonly createCanvasSheet: (params: {
       width: number
@@ -81,23 +94,27 @@ const makeSharpImageService = Effect.gen(function* () {
     'SharpImageService.prepareForCanvas',
   )(function* (buffer, width, height, fit, background) {
     const sharpImage = yield* makeSharpImage(buffer)
-    return yield* Effect.tryPromise({
+    const { data, info } = yield* Effect.tryPromise({
       try: () =>
         sharpImage
+          // Auto-orient first: EXIF orientation decides which of the source dimensions is the
+          // width, so resizing before it would fit the wrong box (same order as `resize` above).
+          .rotate()
           .resize(width, height, {
             fit,
             withoutEnlargement: false,
             background,
           })
           .jpeg()
-          .rotate()
-          .toBuffer(),
+          .toBuffer({ resolveWithObject: true }),
       catch: (error) =>
         new SharpError({
           cause: error,
           message: 'Failed to prepare image for canvas',
         }),
     })
+
+    return { buffer: data, width: info.width, height: info.height }
   })
 
   const createCanvasSheet: SharpImageService['Service']['createCanvasSheet'] = Effect.fn(
