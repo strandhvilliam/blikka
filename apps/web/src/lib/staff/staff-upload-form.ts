@@ -17,14 +17,6 @@ export const STAFF_UPLOAD_DEFAULT_FORM_VALUES: ParticipantFormValues = {
 
 export type StaffUploadFormErrors = Partial<Record<keyof ParticipantFormValues, string>>
 
-interface ValidateFilesContext {
-  marathonMode?: string
-  expectedPhotoCount: number
-  selectedPhotosCount: number
-  validationResults: ValidationResult[]
-  validationRunError: string | null
-}
-
 export function validateStaffUploadForm(marathonMode: string, values: ParticipantFormValues) {
   const result = createParticipantFormSchema(marathonMode, {
     staffByCameraManual: marathonMode === 'by-camera',
@@ -48,33 +40,75 @@ function pluralizePhotos(count: number) {
   return `${count} photo${count === 1 ? '' : 's'}`
 }
 
-export function validateStaffUploadFiles(context: ValidateFilesContext) {
+interface StaffUploadGateContext {
+  /** A run already in flight: the submit button is disabled, but there is nothing to tell staff to fix. */
+  isBusy: boolean
+  marathonMode?: string
+  /** Manually entered participants need staff to confirm terms acceptance on their behalf. */
+  termsRequired: boolean
+  termsAccepted: boolean
+  expectedPhotoCount: number
+  selectedPhotosCount: number
+  validationResults: ValidationResult[]
+  validationRunError: string | null
+}
+
+export interface StaffUploadGate {
+  /** Whether the upload may start. Drives the submit button's disabled state. */
+  blocked: boolean
+  /** What staff must fix, or null when blocked for a reason they cannot act on (a run in flight). */
+  reason: string | null
+}
+
+/**
+ * The single answer to "can this upload start, and if not why". The submit button's disabled
+ * state, the hint above it, and the submit handler all read this, so a button that looks live
+ * can never be rejected on click — and a stated reason always matches a disabled button.
+ */
+export function resolveStaffUploadGate(context: StaffUploadGateContext): StaffUploadGate {
   const {
+    isBusy,
     marathonMode,
+    termsRequired,
+    termsAccepted,
     expectedPhotoCount,
     selectedPhotosCount,
     validationResults,
     validationRunError,
   } = context
 
-  if (expectedPhotoCount === 0) {
-    if (marathonMode === 'by-camera') {
-      return 'No active topic is available for uploads. Activate a topic in the dashboard first.'
+  if (isBusy) {
+    return { blocked: true, reason: null }
+  }
+
+  if (expectedPhotoCount <= 0) {
+    return {
+      blocked: true,
+      reason:
+        marathonMode === 'by-camera'
+          ? 'No active topic is available for uploads. Activate a topic in the dashboard first.'
+          : 'Select a competition class before adding images.',
     }
-    return 'Select a competition class before adding images'
   }
 
   if (selectedPhotosCount !== expectedPhotoCount) {
-    return `Select exactly ${pluralizePhotos(expectedPhotoCount)}`
+    return { blocked: true, reason: `Select exactly ${pluralizePhotos(expectedPhotoCount)}.` }
   }
 
   if (validationRunError) {
-    return 'Validation failed. Please reselect files and try again'
+    return { blocked: true, reason: 'Validation failed. Reselect files and try again.' }
   }
 
   if (hasBlockingValidationErrors(validationResults)) {
-    return 'Resolve blocking validation errors before uploading'
+    return { blocked: true, reason: 'Resolve blocking validation issues before uploading.' }
   }
 
-  return null
+  if (termsRequired && !termsAccepted) {
+    return {
+      blocked: true,
+      reason: 'Confirm the participant accepted the terms before uploading.',
+    }
+  }
+
+  return { blocked: false, reason: null }
 }

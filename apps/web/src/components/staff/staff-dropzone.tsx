@@ -5,11 +5,15 @@ import { useDropzone, type Accept } from 'react-dropzone'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
+/**
+ * JPEG is the only format the upload pipeline accepts: presigned PUTs are signed as
+ * `image/jpeg` and anything else would be stored under a label that does not match its
+ * bytes, only to be rejected at decode time — after staff have already seen "Upload
+ * complete" and moved on. HEIC/HEIF stay because `normalizeSelectedImageFiles` converts
+ * them to a real JPEG before upload; PNG, GIF and WebP have no such path.
+ */
 const DROPZONE_ACCEPT: Accept = {
   'image/jpeg': ['.jpg', '.jpeg'],
-  'image/png': ['.png'],
-  'image/gif': ['.gif'],
-  'image/webp': ['.webp'],
   'image/heic': ['.heic'],
   'image/heif': ['.heif'],
 }
@@ -39,7 +43,7 @@ export function StaffDropzone({
       void onFilesSelected(files)
     },
     onDropRejected: () => {
-      toast.error('Some files were rejected. Please use supported image formats.')
+      toast.error('Some files were rejected. Only JPEG photos can be uploaded (HEIC is converted).')
     },
   })
 
@@ -95,7 +99,7 @@ export function StaffDropzone({
                 : `Add ${remaining} more photo${remaining === 1 ? '' : 's'}`}
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              {expectedCount} photos needed &middot; JPG, PNG, HEIC, WebP
+              {expectedCount} photos needed &middot; JPG or HEIC
             </p>
           </>
         )}

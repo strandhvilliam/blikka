@@ -46,7 +46,7 @@ import { useStaffUploadParticipantSummary } from '@/hooks/staff/use-staff-upload
 import { useStaffUploadStep } from '@/hooks/staff/use-staff-upload-step'
 import { useStaffPhotoValidation } from '@/hooks/staff/use-staff-photo-validation'
 import { useStaffUploadStatusSync } from '@/hooks/staff/use-staff-upload-status-sync'
-import { validateStaffUploadFiles, validateStaffUploadForm } from '@/lib/staff/staff-upload-form'
+import { resolveStaffUploadGate, validateStaffUploadForm } from '@/lib/staff/staff-upload-form'
 import { useStaffUploadStore, selectRequiresOverwriteWarning } from '@/lib/staff/staff-upload-store'
 import { ParticipantDetailsStep } from '@/components/staff/participant-details-step'
 import { PhoneLookupStep } from '@/components/staff/phone-lookup-step'
@@ -61,6 +61,9 @@ import {
 } from '@/components/staff/staff-upload-window-gate'
 
 const POLLING_INTERVAL_MS = 3000
+
+/** Ties the "why can't I upload" hint to the submit button it explains. */
+const UPLOAD_GATE_REASON_ID = 'staff-upload-gate-reason'
 
 const StepIndicator = dynamic(
   () =>
@@ -95,35 +98,6 @@ function getStaffInitials(name?: string | null, email?: string | null) {
     .map((w) => w[0] ?? '')
     .join('')
     .toUpperCase()
-}
-
-function getUploadDisabledReason({
-  isBusy,
-  termsRequired,
-  termsAccepted,
-  selectedPhotosCount,
-  expectedPhotoCount,
-  hasBlockingValidationErrors,
-  validationRunError,
-}: {
-  isBusy: boolean
-  termsRequired: boolean
-  termsAccepted: boolean
-  selectedPhotosCount: number
-  expectedPhotoCount: number
-  hasBlockingValidationErrors: boolean
-  validationRunError: string | null
-}) {
-  if (isBusy) return null
-  if (expectedPhotoCount <= 0) return 'Select a registration with an uploadable photo set.'
-  if (selectedPhotosCount !== expectedPhotoCount) {
-    return `Select exactly ${expectedPhotoCount} photo${expectedPhotoCount === 1 ? '' : 's'}.`
-  }
-  if (validationRunError) return 'Validation failed. Reselect files and try again.'
-  if (hasBlockingValidationErrors) return 'Resolve blocking validation issues before uploading.'
-  if (termsRequired && !termsAccepted)
-    return 'Confirm the participant accepted the terms before uploading.'
-  return null
 }
 
 export function StaffLaptopUploadClient({
@@ -255,6 +229,20 @@ export function StaffLaptopUploadClient({
   const isMaxImagesReached = selectedPhotos.length >= expectedPhotoCount && expectedPhotoCount > 0
   const isDropzoneDisabled = !canSelectFiles || isBusy || uploadComplete || isMaxImagesReached
 
+  // Prepared/existing participants already accepted the terms when they registered, so
+  // staff only confirm acceptance on behalf of manually-entered (new) participants.
+  const termsRequired = existingParticipant === null
+  const uploadGate = resolveStaffUploadGate({
+    isBusy,
+    marathonMode,
+    termsRequired,
+    termsAccepted,
+    expectedPhotoCount,
+    selectedPhotosCount: selectedPhotos.length,
+    validationResults,
+    validationRunError,
+  })
+
   useEffect(() => {
     resetAllState()
     void setStep(marathonMode === 'by-camera' ? 'phone' : 'reference')
@@ -270,6 +258,33 @@ export function StaffLaptopUploadClient({
     }, 15_000)
     return () => window.clearInterval(id)
   }, [])
+
+  // Browser Back would leave the progress screen while files are still uploading: the run
+  // keeps going with nothing rendering it, and a lookup from the earlier step resets the
+  // upload state out from under it. A sentinel history entry absorbs the press, and every
+  // further press re-pushes it.
+  //
+  // Armed only once the step query param has actually settled on `progress`, so the URL
+  // captured here is the one worth pinning — reading it inside the handler instead would
+  // read whatever the pop had already navigated to. Leaving `progress` disarms the guard,
+  // which is what keeps the in-app "Back to photos" stall escape working.
+  useEffect(() => {
+    if (!isUploadBusy || step !== 'progress') return
+
+    const progressUrl = window.location.href
+
+    const guardBackNavigation = () => {
+      window.history.pushState(null, '', progressUrl)
+      toast.message('Upload in progress. Wait for it to finish before leaving this screen.')
+    }
+
+    window.history.pushState(null, '', progressUrl)
+    window.addEventListener('popstate', guardBackNavigation)
+
+    return () => {
+      window.removeEventListener('popstate', guardBackNavigation)
+    }
+  }, [isUploadBusy, step])
 
   const uploadWindowNow = new Date()
   const byCameraSubmissionWindowState =
@@ -771,26 +786,14 @@ export function StaffLaptopUploadClient({
     }
   }
 
-  const handleSubmitUpload = async () => {
-    if (!participantSummary) {
-      toast.error('Participant details are missing.')
-      return
-    }
-
-    const filesValidationError = validateStaffUploadFiles({
-      marathonMode,
-      expectedPhotoCount,
-      selectedPhotosCount: selectedPhotos.length,
-      validationResults,
-      validationRunError,
-    })
-
-    if (filesValidationError) {
-      patchPhotos({ filesError: filesValidationError })
-      return
-    }
-
-    const participantPayload = existingParticipant
+  /**
+   * The participant details an upload run is submitted with. A saved registration is the
+   * source of truth for its own details; only a manually entered participant falls back to
+   * the form. Both submit paths build this the same way, so confirming the overwrite dialog
+   * can never send something different from what a direct submit would have sent.
+   */
+  const buildParticipantUploadDraft = (): Partial<typeof formValues> =>
+    existingParticipant
       ? {
           firstName: existingParticipant.firstname,
           lastName: existingParticipant.lastname,
@@ -801,63 +804,52 @@ export function StaffLaptopUploadClient({
         }
       : formValues
 
+  const buildReplaceOptions = () => ({
+    replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
+    replaceCompletedParticipantUpload:
+      byCameraReplaceCompletedParticipantUpload || marathonReplaceCompletedUpload,
+  })
+
+  const startUploadRun = async () => {
+    if (!participantSummary) {
+      toast.error('Participant details are missing.')
+      return
+    }
+
+    void setStep('progress')
+    await runUpload(
+      participantSummary.reference,
+      selectedPhotos,
+      buildParticipantUploadDraft(),
+      buildReplaceOptions(),
+    )
+  }
+
+  const handleSubmitUpload = async () => {
+    if (!participantSummary) {
+      toast.error('Participant details are missing.')
+      return
+    }
+
+    if (uploadGate.blocked) {
+      if (uploadGate.reason) patchPhotos({ filesError: uploadGate.reason })
+      return
+    }
+
     if (requiresOverwriteWarning || marathonReplaceCompletedUpload) {
       patchParticipant({ showOverwriteDialog: true })
       return
     }
 
-    void setStep('progress')
-    await runUpload(participantSummary.reference, selectedPhotos, participantPayload, {
-      replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
-      replaceCompletedParticipantUpload:
-        byCameraReplaceCompletedParticipantUpload || marathonReplaceCompletedUpload,
-    })
+    await startUploadRun()
   }
 
   const handleConfirmOverwrite = async () => {
-    if (!participantSummary || !existingParticipant) return
-
     patchParticipant({ showOverwriteDialog: false })
-    void setStep('progress')
-    await runUpload(
-      participantSummary.reference,
-      selectedPhotos,
-      {
-        firstName: existingParticipant.firstname,
-        lastName: existingParticipant.lastname,
-        email: existingParticipant.email ?? '',
-        phone: marathonMode === 'by-camera' ? (existingParticipant.phoneNumber ?? '').trim() : '',
-        competitionClassId: String(existingParticipant.competitionClassId),
-        deviceGroupId: String(existingParticipant.deviceGroupId),
-      },
-      {
-        replaceExistingActiveTopicUpload: byCameraReplaceExistingTopicUpload,
-        replaceCompletedParticipantUpload:
-          byCameraReplaceCompletedParticipantUpload || marathonReplaceCompletedUpload,
-      },
-    )
+    await startUploadRun()
   }
 
   const showFloatingBar = step === 'details' || step === 'upload'
-  // Prepared/existing participants already accepted the terms when they registered, so
-  // staff only confirm acceptance on behalf of manually-entered (new) participants.
-  const termsRequired = existingParticipant === null
-  const submitDisabled =
-    isBusy ||
-    (termsRequired && !termsAccepted) ||
-    selectedPhotos.length !== expectedPhotoCount ||
-    validationResults.some((result) => result.outcome === 'failed' && result.severity === 'error')
-  const uploadDisabledReason = getUploadDisabledReason({
-    isBusy,
-    termsRequired,
-    termsAccepted,
-    selectedPhotosCount: selectedPhotos.length,
-    expectedPhotoCount,
-    hasBlockingValidationErrors: validationResults.some(
-      (result) => result.outcome === 'failed' && result.severity === 'error',
-    ),
-    validationRunError,
-  })
 
   return (
     <>
@@ -1027,7 +1019,8 @@ export function StaffLaptopUploadClient({
                   type="button"
                   className="min-w-[180px] rounded-full px-6"
                   onClick={() => void handleSubmitUpload()}
-                  disabled={submitDisabled}
+                  disabled={uploadGate.blocked}
+                  aria-describedby={uploadGate.reason ? UPLOAD_GATE_REASON_ID : undefined}
                 >
                   {isUploadBusy ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1038,9 +1031,13 @@ export function StaffLaptopUploadClient({
                 </PrimaryButton>
               </>
             ) : null}
-            {step === 'upload' && uploadDisabledReason ? (
-              <p className="absolute bottom-full right-4 mb-2 max-w-xs rounded-xl border border-border bg-background px-3 py-2 text-right text-xs text-muted-foreground shadow-sm">
-                {uploadDisabledReason}
+            {step === 'upload' && uploadGate.reason ? (
+              <p
+                id={UPLOAD_GATE_REASON_ID}
+                role="status"
+                className="absolute bottom-full right-4 mb-2 max-w-xs rounded-xl border border-border bg-background px-3 py-2 text-right text-xs text-muted-foreground shadow-sm"
+              >
+                {uploadGate.reason}
               </p>
             ) : null}
           </div>
