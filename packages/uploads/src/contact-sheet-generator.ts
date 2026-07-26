@@ -57,6 +57,17 @@ export interface GenerateContactSheetInput {
   uploadSessionId: string
 }
 
+/**
+ * The submission shape the sheet needs: the object key plus the topic that fixes its position.
+ *
+ * `submissions` rows carry no order column of their own — the grid cell and the caption both come
+ * from `topic.orderIndex`, the same source the participant zip and the finalizer use.
+ */
+interface ContactSheetSubmission {
+  readonly key: string
+  readonly topic: { readonly orderIndex: number }
+}
+
 type ContactSheetAction =
   | {
       readonly action: 'skip'
@@ -160,9 +171,9 @@ const makeContactSheetGenerator = Effect.gen(function* () {
   const config = yield* UploadsConfig
   const contactSheetBuilder = yield* ContactSheetBuilder
 
-  const validatePhotoCount = Effect.fnUntraced(function* (
+  const validateSubmissions = Effect.fnUntraced(function* (
     reference: string,
-    keys: string[],
+    submissions: ReadonlyArray<ContactSheetSubmission>,
     competitionClass: CompetitionClass | null,
   ) {
     if (!competitionClass?.numberOfPhotos) {
@@ -178,19 +189,28 @@ const makeContactSheetGenerator = Effect.gen(function* () {
       })
     }
 
-    if (keys.length !== expectedCount) {
+    if (submissions.length !== expectedCount) {
       return yield* new InvalidSheetGenerationDataError({
-        message: `Photo count mismatch. Expected ${expectedCount}, got ${keys.length}`,
+        message: `Photo count mismatch. Expected ${expectedCount}, got ${submissions.length}`,
+      })
+    }
+
+    // Two submissions on one topic would silently take the same grid cell and caption, so the
+    // sheet would come out a photo short with no error anywhere.
+    const orderIndexes = new Set(submissions.map((submission) => submission.topic.orderIndex))
+    if (orderIndexes.size !== submissions.length) {
+      return yield* new InvalidSheetGenerationDataError({
+        message: `Duplicate topic order index across submissions for participant ${reference}`,
       })
     }
   })
 
   const getSubmissionFiles = Effect.fn('ContactSheetGenerator.getSubmissionFiles')(function* (
-    submissions: ReadonlyArray<{ key: string }>,
+    submissions: ReadonlyArray<ContactSheetSubmission>,
   ) {
     return yield* Effect.forEach(
       submissions,
-      (submission, index) =>
+      (submission) =>
         Effect.gen(function* () {
           const file = yield* s3.getFile(config.submissionsBucketName, submission.key)
           if (Option.isNone(file)) {
@@ -200,7 +220,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
           }
 
           return {
-            orderIndex: index,
+            orderIndex: submission.topic.orderIndex,
             buffer: file.value,
           }
         }),
@@ -386,8 +406,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
 
       const contactSheetFormat = toContactSheetFormat(marathonOpt.value.contactSheetFormat)
 
-      const keys = participant.submissions.map((submission) => submission.key)
-      yield* validatePhotoCount(reference, keys, participant.competitionClass)
+      yield* validateSubmissions(reference, participant.submissions, participant.competitionClass)
 
       const images = yield* getSubmissionFiles(participant.submissions)
       const sponsorImage = yield* getSponsorImage(
@@ -417,15 +436,21 @@ const makeContactSheetGenerator = Effect.gen(function* () {
         )
 
       yield* s3.putFile(config.contactSheetsBucketName, contactSheetKey, buffer)
-      yield* kvStore.updateParticipantSession(domain, reference, {
-        contactSheetKey,
-      })
+
+      // Row first, KV key second. The KV key is what makes a redelivery take the
+      // send-missing-email branch instead of regenerating, so writing it before the row means a
+      // failed insert can never be retried — the participant would get the email and the sheet
+      // would exist in S3, but no row would ever point at it. Reversed, a failed insert simply
+      // regenerates on redelivery, at the cost of an orphaned object in the bucket.
       yield* contactSheetsRepository.save({
         data: {
           key: contactSheetKey,
           participantId: participant.id,
           marathonId: participant.marathonId,
         },
+      })
+      yield* kvStore.updateParticipantSession(domain, reference, {
+        contactSheetKey,
       })
 
       yield* sendContactSheetEmail({
@@ -434,7 +459,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
         participant,
         marathon: marathonOpt.value,
         sheet: buffer,
-        photoCount: keys.length,
+        photoCount: participant.submissions.length,
       })
     },
     (effect, params) => Effect.annotateLogs(effect, { ...params }),

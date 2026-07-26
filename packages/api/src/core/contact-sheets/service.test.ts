@@ -24,7 +24,7 @@ interface TestState {
         id: number
         marathonId: number
         reference: string
-        submissions: ReadonlyArray<{ key: string }>
+        submissions: ReadonlyArray<{ key: string; topic: { orderIndex: number } }>
         competitionClass: CompetitionClass | null
       }
     | undefined
@@ -32,6 +32,13 @@ interface TestState {
   readonly savedContactSheets: ReadonlyArray<Record<string, unknown>>
   readonly sheetInputs: ReadonlyArray<{ format?: 'classic' | 'a3' }>
 }
+
+/** Submission rows as the participant query returns them: a key plus the topic that orders it. */
+const makeSubmissions = (count: number) =>
+  Array.from({ length: count }, (_, orderIndex) => ({
+    key: `${domain}/${reference}/${String(orderIndex + 1).padStart(2, '0')}/original.jpg`,
+    topic: { orderIndex },
+  }))
 
 const makeCompetitionClass = (numberOfPhotos: number): CompetitionClass =>
   ({
@@ -51,9 +58,7 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
     marathonId: 1,
     reference,
     competitionClass: makeCompetitionClass(8),
-    submissions: Array.from({ length: 8 }, (_, index) => ({
-      key: `${domain}/${reference}/${String(index + 1).padStart(2, '0')}/original.jpg`,
-    })),
+    submissions: makeSubmissions(8),
   },
   marathon: { contactSheetFormat: 'classic' },
   savedContactSheets: [],
@@ -170,9 +175,7 @@ describe('ContactSheetsService', () => {
 
   it.effect('uses marathon contact sheet format when generating', () =>
     Effect.gen(function* () {
-      const stateRef = yield* Ref.make(
-        makeInitialState({ marathon: { contactSheetFormat: 'a3' } }),
-      )
+      const stateRef = yield* Ref.make(makeInitialState({ marathon: { contactSheetFormat: 'a3' } }))
 
       const { state } = yield* runWithState(
         stateRef,
@@ -230,7 +233,7 @@ describe('ContactSheetsService', () => {
             marathonId: 1,
             reference,
             competitionClass: makeCompetitionClass(8),
-            submissions: [{ key: `${domain}/${reference}/01/original.jpg` }],
+            submissions: makeSubmissions(1),
           },
         }),
       )

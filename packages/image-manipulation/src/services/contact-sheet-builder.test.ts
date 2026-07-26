@@ -38,16 +38,31 @@ interface CanvasCall {
   readonly items: ReadonlyArray<SheetImagePart>
 }
 
+interface PreparedImage {
+  readonly buffer: Buffer
+  readonly width: number
+  readonly height: number
+}
+
 interface TestState {
   readonly prepareCalls: ReadonlyArray<PrepareCall>
   readonly canvasCalls: ReadonlyArray<CanvasCall>
+  /** Given the requested box, the dimensions the resize "actually" produced. */
+  readonly prepareSize: (call: PrepareCall) => { width: number; height: number }
   readonly prepareResult: Effect.Effect<Buffer, SharpError>
   readonly canvasResult: Effect.Effect<Buffer, SharpError>
 }
 
+/** What `fit: 'inside'` gives a 3:2 source — the common case. */
+const fitLandscape = (call: PrepareCall) =>
+  call.width / call.height > 3 / 2
+    ? { width: Math.floor(call.height * (3 / 2)), height: call.height }
+    : { width: call.width, height: Math.floor(call.width / (3 / 2)) }
+
 const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
   prepareCalls: [],
   canvasCalls: [],
+  prepareSize: fitLandscape,
   prepareResult: Effect.succeed(Buffer.from('prepared')),
   canvasResult: Effect.succeed(sheetBytes),
   ...overrides,
@@ -68,11 +83,13 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     ) =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)
+        const call: PrepareCall = { buffer, width, height, fit, background }
         yield* updateTestState(stateRef, (current) => ({
           ...current,
-          prepareCalls: [...current.prepareCalls, { buffer, width, height, fit, background }],
+          prepareCalls: [...current.prepareCalls, call],
         }))
-        return yield* state.prepareResult
+        const prepared = yield* state.prepareResult
+        return { buffer: prepared, ...state.prepareSize(call) } satisfies PreparedImage
       }),
     createCanvasSheet: ({
       width,
@@ -205,8 +222,10 @@ describe('ContactSheetBuilder', () => {
       assert.strictEqual(state.canvasCalls[0]?.height, 2657)
       assert.strictEqual(state.prepareCalls[0]?.width, 1288)
       assert.strictEqual(state.prepareCalls[0]?.height, 780)
+      // The sponsor gets the photo box, not the taller full cell — the extra height used to let
+      // it grow down into the caption strip.
       assert.strictEqual(state.prepareCalls[8]?.width, 1288)
-      assert.strictEqual(state.prepareCalls[8]?.height, 814)
+      assert.strictEqual(state.prepareCalls[8]?.height, 780)
     }),
   )
 
@@ -231,7 +250,7 @@ describe('ContactSheetBuilder', () => {
       assert.strictEqual(state.prepareCalls[0]?.width, 1600)
       assert.strictEqual(state.prepareCalls[0]?.height, 1028)
       assert.strictEqual(state.prepareCalls[8]?.width, 1600)
-      assert.strictEqual(state.prepareCalls[8]?.height, 1074)
+      assert.strictEqual(state.prepareCalls[8]?.height, 1028)
 
       const referenceSvg = state.canvasCalls[0]?.items.at(-1)?.input
       assert.instanceOf(referenceSvg, Buffer)
@@ -262,26 +281,59 @@ describe('ContactSheetBuilder', () => {
     }),
   )
 
-  it.effect('fails when an image label cannot be found', () =>
+  it.effect('renders a photo without a caption when its topic label is missing', () =>
     Effect.gen(function* () {
       const { result, state } = yield* runWithState(makeInitialState(), () =>
         Effect.gen(function* () {
           const builder = yield* ContactSheetBuilder
-          return yield* builder
-            .createSheet({
-              reference: 'REF123',
-              images: makeImages(8),
-              sponsorPosition: 'bottom-right',
-              topics: makeTopics(7),
-            })
-            .pipe(Effect.flip)
+          return yield* builder.createSheet({
+            reference: 'REF123',
+            images: makeImages(8),
+            sponsorPosition: 'bottom-right',
+            topics: makeTopics(7),
+          })
         }),
       )
 
-      assert.instanceOf(result, InvalidSheetParamsError)
-      assert.strictEqual(result.message, 'Label not found (orderIndex: 7)')
+      assert.strictEqual(result, sheetBytes)
       assert.lengthOf(state.prepareCalls, 8)
-      assert.deepStrictEqual(state.canvasCalls, [])
+      // 7 captioned photos (2 parts each) + 1 uncaptioned + the reference overlay.
+      assert.lengthOf(state.canvasCalls[0]?.items ?? [], 16)
+    }),
+  )
+
+  it.effect('keeps a full-cell-width image inside the canvas', () =>
+    Effect.gen(function* () {
+      // A 16:9 frame (or a wide sponsor logo) comes back from `fit: 'inside'` at the full box
+      // width. Offsetting it by the 3:2 gutter pushed the right-hand column past the canvas.
+      const { state } = yield* runWithState(
+        makeInitialState({
+          prepareSize: (call) => ({ width: call.width, height: Math.floor(call.width / (16 / 9)) }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const builder = yield* ContactSheetBuilder
+            yield* builder.createSheet({
+              reference: 'REF123',
+              images: makeImages(8),
+              sponsorImage: Buffer.from('sponsor'),
+              sponsorPosition: 'bottom-right',
+              topics: makeTopics(8),
+              format: 'classic',
+            })
+          }),
+      )
+
+      // Every photo/sponsor composite is the mock's 'prepared' buffer, 1288 px wide here; the
+      // caption and reference overlays are SVGs with their own widths.
+      const placedImages = (state.canvasCalls[0]?.items ?? []).filter(
+        (item) => Buffer.isBuffer(item.input) && item.input.toString() === 'prepared',
+      )
+
+      assert.lengthOf(placedImages, 9)
+      for (const item of placedImages) {
+        assert.isAtMost((item.left ?? 0) + 1288, 3986)
+      }
     }),
   )
 

@@ -247,7 +247,11 @@ const makeParticipantsRepository = Effect.gen(function* () {
               operators.eq(table.domain, domain),
             ),
           with: {
+            // Unordered, this came back in whatever order the heap held — and the upload
+            // finalizer rewrites every submission row, so it genuinely shuffles. Callers needing
+            // topic order read `topic.orderIndex`; this only makes the array stable between reads.
             submissions: {
+              orderBy: (submission, { asc }) => [asc(submission.id)],
               with: {
                 topic: true,
               },
@@ -301,7 +305,11 @@ const makeParticipantsRepository = Effect.gen(function* () {
             operators.desc(table.id),
           ],
           with: {
+            // Unordered, this came back in whatever order the heap held — and the upload
+            // finalizer rewrites every submission row, so it genuinely shuffles. Callers needing
+            // topic order read `topic.orderIndex`; this only makes the array stable between reads.
             submissions: {
+              orderBy: (submission, { asc }) => [asc(submission.id)],
               with: {
                 topic: true,
               },

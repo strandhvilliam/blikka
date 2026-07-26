@@ -187,7 +187,10 @@ function calculateSheetVariables(
 
   const availableWidth = layout.canvasWidth - layout.padding * (cols + 1)
   const availableHeight =
-    layout.canvasHeight - layout.padding * (rows + 1) - sequenceSpace + layout.extraSpacingAdjustment
+    layout.canvasHeight -
+    layout.padding * (rows + 1) -
+    sequenceSpace +
+    layout.extraSpacingAdjustment
 
   const cellWidth = Math.floor(availableWidth / cols)
   const cellHeight = Math.floor(availableHeight / rows)
@@ -224,18 +227,30 @@ function getImageLabel(
   return topic ? `${topic.orderIndex + LABEL_INDEX_OFFSET} - ${topic.name}` : undefined
 }
 
+/**
+ * Centre a prepared image inside its cell's image box.
+ *
+ * Uses the image's real dimensions rather than the nominal `imageWidth`/`imageHeight`: those
+ * describe a 3:2 photo, and anything wider (a panoramic frame, most sponsor logos) comes back
+ * from `fit: 'inside'` at the full box width. Offsetting such an image by the 3:2 gutter pushed
+ * it past its cell — and, in the right-hand column, past the canvas edge, where libvips clips it.
+ */
 function getImagePosition({
   x,
   y,
+  width,
+  height,
   sheetVariables,
 }: {
   x: number
   y: number
+  width: number
+  height: number
   sheetVariables: SheetVariables
 }) {
   return {
-    top: y + Math.floor((sheetVariables.availableImageHeight - sheetVariables.imageHeight) / 2),
-    left: x + Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2),
+    top: y + Math.max(0, Math.floor((sheetVariables.availableImageHeight - height) / 2)),
+    left: x + Math.max(0, Math.floor((sheetVariables.cellWidth - width) / 2)),
   }
 }
 
@@ -316,8 +331,8 @@ function generateTextLabelSvg({
         <svg width="${sheetVariables.cellWidth}" height="${sheetVariables.textHeight}">
           <text x="${Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)}" y="${sheetVariables.textHeight * layout.textVerticalPosition}"
                 font-family="Liberation Sans, Arial, sans-serif"
-                font-size="${layout.labelFontSize}" 
-                font-weight="medium"
+                font-size="${layout.labelFontSize}"
+                font-weight="500"
                 fill="black" 
                 text-anchor="start"
                 >${escapeXml(label)}</text>
@@ -353,10 +368,12 @@ const makeContactSheetBuilder = Effect.gen(function* () {
     sponsorFile: Buffer,
     sheetVariables: SheetVariables,
   ) {
+    // The same box the photos get. Sizing the sponsor to the full `cellHeight` let it grow into
+    // the label strip below its cell while still being positioned as if it were a photo.
     return yield* sharp.prepareForCanvas(
       Buffer.from(sponsorFile),
       sheetVariables.cellWidth,
-      sheetVariables.cellHeight,
+      sheetVariables.availableImageHeight,
       'inside',
       WHITE_BACKGROUND,
     )
@@ -377,11 +394,15 @@ const makeContactSheetBuilder = Effect.gen(function* () {
       WHITE_BACKGROUND,
     )
 
+    // A caption is decoration; the photo is the deliverable. Topics can be renamed, removed, or
+    // reordered after an upload, and failing the whole sheet over a missing one sent the message
+    // round the retry loop into the DLQ. Render the photo uncaptioned instead.
     const label = getImageLabel(orderIndex, topics)
     if (!label) {
-      return yield* new InvalidSheetParamsError({
-        message: `Label not found (orderIndex: ${orderIndex})`,
+      yield* Effect.logWarning('No topic label for image, rendering it without a caption', {
+        orderIndex,
       })
+      return { image, textBuffer: undefined }
     }
 
     const textBuffer = generateTextLabelSvg({
@@ -430,11 +451,6 @@ const makeContactSheetBuilder = Effect.gen(function* () {
               sheetVariables,
               layout,
             })
-            const imagePosition = getImagePosition({
-              x,
-              y,
-              sheetVariables,
-            })
 
             if (isSponsor) {
               if (!sponsorImage) {
@@ -448,7 +464,18 @@ const makeContactSheetBuilder = Effect.gen(function* () {
                 Buffer.from(sponsorImage),
                 sheetVariables,
               )
-              return [{ input: preparedSponsorImage, ...imagePosition }]
+              return [
+                {
+                  input: preparedSponsorImage.buffer,
+                  ...getImagePosition({
+                    x,
+                    y,
+                    width: preparedSponsorImage.width,
+                    height: preparedSponsorImage.height,
+                    sheetVariables,
+                  }),
+                },
+              ]
             }
 
             if (imageIndex !== undefined && imageIndex < imageFiles.length) {
@@ -467,8 +494,23 @@ const makeContactSheetBuilder = Effect.gen(function* () {
                 sheetVariables,
                 layout,
               )
+              const imagePart = {
+                input: image.buffer,
+                ...getImagePosition({
+                  x,
+                  y,
+                  width: image.width,
+                  height: image.height,
+                  sheetVariables,
+                }),
+              }
+
+              if (!textBuffer) {
+                return [imagePart]
+              }
+
               return [
-                { input: image, ...imagePosition },
+                imagePart,
                 {
                   input: textBuffer,
                   top: y + sheetVariables.availableImageHeight + layout.textTopGap,
@@ -486,8 +528,10 @@ const makeContactSheetBuilder = Effect.gen(function* () {
         reference,
         layout,
       })
-      const participantReferenceCompositePart =
-        getParticipantReferenceCompositePart(participantReferenceSvg, layout)
+      const participantReferenceCompositePart = getParticipantReferenceCompositePart(
+        participantReferenceSvg,
+        layout,
+      )
 
       const finalSheet = yield* sharp.createCanvasSheet({
         width: layout.canvasWidth,
