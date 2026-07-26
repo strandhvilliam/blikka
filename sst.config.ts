@@ -219,14 +219,12 @@ export default $config({
         nodejs: {
           install: ['sharp'],
         },
-        // The Lambda runtime ships with no fonts, so libvips (via Sharp) renders SVG
-        // <text> as .notdef boxes. Bundle Liberation Sans and point fontconfig at it.
-        copyFiles: [{ from: 'tasks/contact-sheet-generator/assets/fonts', to: 'fonts' }],
-        environment: {
-          ...env,
-          // Dir containing the bundled fonts.conf (copyFiles lands these at /var/task/fonts).
-          FONTCONFIG_PATH: '/var/task/fonts',
-        },
+        // No fonts here: the Lambda runtime ships none, but neither does Vercel, and the admin UI
+        // builds sheets through the same ContactSheetBuilder. Liberation Sans is embedded in
+        // @blikka/image-manipulation and installed at layer construction, so every runtime that can
+        // build a sheet can also draw its captions. See packages/image-manipulation/src/services/
+        // bundled-fonts.ts.
+        environment: env,
         link: [sheetGeneratorQueue, contactSheetsBucket, submissionsBucket, sponsorBucket],
       },
       {

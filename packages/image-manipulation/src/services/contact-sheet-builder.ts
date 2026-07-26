@@ -1,4 +1,5 @@
 import { Effect, Layer, Schema, Context } from 'effect'
+import { bundledFontsError, installBundledFonts } from './bundled-fonts'
 import { SharpImageService, SharpImageServiceLayer } from './sharp-image-service'
 import type { SponsorPosition, SheetVariables } from '../types'
 import type { SharpError } from './sharp-image-service'
@@ -351,6 +352,18 @@ export class ContactSheetBuilder extends Context.Service<
 
 const makeContactSheetBuilder = Effect.gen(function* () {
   const sharp = yield* SharpImageService
+
+  // Before the first `<text>` render in this process: fontconfig reads FONTCONFIG_PATH once, and a
+  // later install is ignored for the life of the process. See ./bundled-fonts.ts.
+  const fontDir = installBundledFonts()
+  if (fontDir) {
+    yield* Effect.logDebug('Bundled contact-sheet fonts installed', { fontDir })
+  } else {
+    yield* Effect.logError(
+      'Could not install bundled fonts; contact-sheet captions will render as empty boxes',
+      { cause: bundledFontsError() },
+    )
+  }
 
   const validateAndSortImageFiles = Effect.fn('ContactSheetBuilder.validateAndSortImageFiles')(
     function* (images: ReadonlyArray<ContactSheetImageFile>) {

@@ -6,7 +6,9 @@ COPY packages ./packages
 COPY tasks/zip-downloader ./tasks/zip-downloader
 
 # Partial monorepo context — do not use --frozen-lockfile (lockfile assumes all workspaces)
-RUN bun install
+# --ignore-scripts: the root `prepare` hook is a dev-machine convenience (clones the Effect
+# repo for local reference) and has no place in an image build. No dep needs postinstall.
+RUN bun install --ignore-scripts
 
 FROM oven/bun:1-slim AS production
 WORKDIR /app
