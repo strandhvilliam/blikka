@@ -178,15 +178,21 @@ export default $config({
         batch: {
           partialResponses: true,
         },
-        // Cap how many Lambdas this queue drives. A 600-uploader burst can otherwise scale this
-        // function toward the shared 1,000 account concurrency limit and starve the finalize-side
-        // workers (validation / sheet-generator / finalizer / zip), pushing their messages to DLQs.
+        // Cap how many Lambdas this queue drives. This is NOT a throughput limit and NOT pool
+        // protection — the account ceiling is 5,000 with ~4.7k unreserved, so this function cannot
+        // starve the reserved finalize-side workers no matter how far it scales. At 200 it clears
+        // ~130 photos/s against a bandwidth-bound arrival rate (800 participants x ~14 photos is
+        // ~20 photos/s sustained, ~40-60/s at peak), and every downstream ceiling stays far away:
+        // Upstash ~1.1k of 10k commands/s, S3 ~400 ops/s spread over one prefix per participant.
+        // What the cap actually buys is blast radius: if Upstash or S3 has a bad minute, a bounded
+        // fleet burns maxReceiveCount on far fewer messages per second than an unbounded one, and a
+        // DLQ redrive can't turn into a stampede.
         // ESM maximumConcurrency stops polling at the cap instead of invoking-and-throttling, so it
-        // does NOT burn the SQS receive count. ~100 keeps pace with peak load with margin.
+        // does NOT burn the SQS receive count — reserved concurrency would.
         // maximumConcurrency has no first-class option, so it stays a transform.
         transform: {
           eventSourceMapping: (args) => {
-            args.scalingConfig = { maximumConcurrency: 100 }
+            args.scalingConfig = { maximumConcurrency: 200 }
           },
         },
       },
@@ -197,10 +203,15 @@ export default $config({
         handler: './tasks/contact-sheet-generator/src/index.handler',
         timeout: '3 minutes',
         // Reserved floor so contact-sheet generation can't be starved by an upload-processor burst.
+        // With batch.size 1 this is also the only throughput lever for the stage — the slowest in
+        // the pipeline, and where the queue actually builds after a finalize burst. 800 sheets at
+        // ~20-40 s each drain in ceil(800 / reserved) rounds. Raising it is bounded by the Resend
+        // send rate rather than by Lambda, since every sheet ends in one transactional email.
         concurrency: { reserved: 50 },
-        // Heaviest Sharp stage: holds all N originals (up to 24) in memory per sheet, decodes
-        // cells with concurrency 8 (~70-100 MB per decoded 24 MP photo), and composites a
-        // 33-52 MP canvas — two sheets in flight per invocation (recordConcurrency: 2).
+        // Heaviest Sharp stage: holds all N originals (up to 24) in memory for the whole build
+        // (getSubmissionFiles fetches them at concurrency 2), decodes cells at concurrency 2
+        // (contact-sheet-builder.ts), and composites a 33-52 MP canvas. One sheet in flight per
+        // invocation (batch.size 1 x recordConcurrency 1), so peak is ~1 GB, not ~2 GB.
         memory: '4096 MB',
         nodejs: {
           install: ['sharp'],
@@ -217,10 +228,13 @@ export default $config({
       },
       {
         batch: {
-          // An OOM or timeout kills the whole invocation and redelivers every message in the
-          // batch (partial responses only cover per-record failures), so keep the blast radius
-          // at 2 sheets; reserved: 50 above carries the aggregate throughput.
-          size: 2,
+          // One sheet per invocation. An OOM or timeout kills the whole invocation and redelivers
+          // every message in the batch (partial responses only cover per-record failures), so a
+          // batch of 1 pins the blast radius to exactly one participant. It also bounds invocation
+          // duration by a single sheet: with recordConcurrency 1 a batch of 2 would run the sheets
+          // sequentially, and two slow ones could approach the 3-minute timeout.
+          // Aggregate throughput comes from `reserved` above, not from batching.
+          size: 1,
           partialResponses: true,
         },
       },

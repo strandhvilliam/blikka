@@ -22,7 +22,11 @@ const effectHandler = makeSqsRealtimeTask({
   taskName: TASK_NAME,
   spanName: 'ContactSheetGenerator.handler',
   eventKey: REALTIME_EVENT,
-  recordConcurrency: 2,
+  // One sheet at a time. A no-op today (the ESM delivers batch.size 1), but it keeps peak memory
+  // at one in-flight sheet if the batch size is ever raised. Concurrent sheets buy little anyway:
+  // 4096 MB is ~2.4 vCPU and the build is CPU-bound, so two sheets mostly contend rather than
+  // overlap, while doubling the resident originals.
+  recordConcurrency: 1,
   decodeRecord: (record) => parseBusEvent(record.body, FinalizedEventSchema),
   run: (input) =>
     Effect.gen(function* () {
