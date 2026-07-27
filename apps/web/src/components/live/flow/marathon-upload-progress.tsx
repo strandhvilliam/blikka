@@ -1,15 +1,16 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Progress } from '@/components/ui/progress'
 import type { Topic } from '@blikka/db'
-import { AlertTriangle, Check, Loader2, RefreshCw } from 'lucide-react'
+import { AlertCircle, Check, ChevronDown, Loader2, RefreshCw } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { AnimatePresence, motion } from 'motion/react'
+import { motion, useReducedMotion } from 'motion/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { getUploadSummaryPresentation } from '@/lib/flow/upload-error-presenter'
-import { FileProgressItem } from './file-progress-item'
+import { cn } from '@/lib/utils'
+import {
+  getUploadErrorPresentation,
+  getUploadSummaryPresentation,
+} from '@/lib/flow/upload-error-presenter'
 import type { UploadFileState } from '@/lib/flow/types'
 import { UPLOAD_PHASE } from '@/lib/flow/types'
 
@@ -21,6 +22,51 @@ interface MarathonUploadProgressProps {
   participantReference?: string
 }
 
+/**
+ * Uploads run at UPLOAD_CONCURRENCY_LIMIT = 1 and go out over `fetch`, which
+ * reports no progress events. A file is therefore only ever waiting, in
+ * flight, done or failed — there is no percentage to show. Overall progress is
+ * a discrete count, and the in-flight row gets indeterminate motion instead of
+ * a bar that would have to invent numbers.
+ */
+type RowPhase = 'waiting' | 'uploading' | 'uploaded' | 'error'
+
+const MIN_UPLOAD_PHASE_DISPLAY_MS = 2000
+const ROW_STAGGER_S = 0.035
+const EASE_OUT_STRONG = [0.23, 1, 0.32, 1] as const
+
+function toRowPhase(file: UploadFileState | undefined): RowPhase {
+  switch (file?.phase) {
+    case UPLOAD_PHASE.UPLOADED:
+      return 'uploaded'
+    case UPLOAD_PHASE.ERROR:
+      return 'error'
+    case UPLOAD_PHASE.UPLOADING:
+      return 'uploading'
+    default:
+      return 'waiting'
+  }
+}
+
+function formatTime(seconds: number) {
+  const mins = Math.floor(seconds / 60)
+  const secs = seconds % 60
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
+
+function RowStatusIcon({ phase }: { phase: RowPhase }) {
+  switch (phase) {
+    case 'uploaded':
+      return <Check className="h-4 w-4 text-emerald-600" strokeWidth={3} />
+    case 'uploading':
+      return <Loader2 className="h-4 w-4 animate-spin text-foreground/60" />
+    case 'error':
+      return <AlertCircle className="h-4 w-4 text-destructive" />
+    default:
+      return <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/25" />
+  }
+}
+
 export function MarathonUploadProgress({
   files,
   topics,
@@ -29,6 +75,7 @@ export function MarathonUploadProgress({
   participantReference,
 }: MarathonUploadProgressProps) {
   const t = useTranslations('FlowPage.uploadProgress')
+  const shouldReduceMotion = useReducedMotion()
   const [elapsedTime, setElapsedTime] = useState(0)
   const [minTimeReached, setMinTimeReached] = useState(false)
   const mountedAt = useRef(0)
@@ -37,24 +84,43 @@ export function MarathonUploadProgress({
     mountedAt.current = Date.now()
   }, [])
 
-  const progress = useMemo(() => {
-    const total = files.length || expectedCount
-    const completed = files.filter((f) => f.phase === UPLOAD_PHASE.UPLOADED).length
-    const failed = files.filter((f) => f.phase === UPLOAD_PHASE.ERROR).length
+  const rows = useMemo(
+    () =>
+      Array.from({ length: expectedCount }, (_, orderIndex) => ({
+        orderIndex,
+        name: topics.find((topic) => topic.orderIndex === orderIndex)?.name,
+        phase: toRowPhase(files.find((file) => file.orderIndex === orderIndex)),
+      })),
+    [files, topics, expectedCount],
+  )
 
-    return {
-      total,
-      completed,
-      failed,
-      percentage: total > 0 ? (completed / total) * 100 : 0,
-    }
-  }, [files, expectedCount])
+  const completed = rows.filter((row) => row.phase === 'uploaded').length
+  const failed = rows.filter((row) => row.phase === 'error').length
+  const hasFailures = failed > 0
 
-  const rawUploadsComplete = progress.completed === expectedCount
-  const hasFailures = progress.failed > 0
+  /* A failure does not stop the queue — the remaining files keep going. Only
+     once nothing is left in flight has the upload actually come to rest, and
+     only then is retrying safe (retrying earlier would race the live queue). */
+  const isSettled = rows.every((row) => row.phase === 'uploaded' || row.phase === 'error')
+  const isStalled = hasFailures && isSettled
+
+  const rawUploadsComplete = completed === expectedCount
   const uploadSummary = useMemo(() => getUploadSummaryPresentation(files), [files])
 
-  const MIN_UPLOAD_PHASE_DISPLAY_MS = 2000
+  /* The summary above only reflects the dominant error. Crew diagnosing a
+     failure on-site need the per-photo breakdown behind it — which photo, which
+     error, and the AWS identifiers to chase it with. */
+  const failureDetails = useMemo(
+    () =>
+      files
+        .filter((file) => file.phase === UPLOAD_PHASE.ERROR)
+        .map((file) => ({
+          orderIndex: file.orderIndex,
+          name: topics.find((topic) => topic.orderIndex === file.orderIndex)?.name,
+          presentation: getUploadErrorPresentation(file.error),
+        })),
+    [files, topics],
+  )
 
   useEffect(() => {
     if (!rawUploadsComplete) return
@@ -66,7 +132,7 @@ export function MarathonUploadProgress({
     return () => window.clearTimeout(timeout)
   }, [rawUploadsComplete])
 
-  const allUploadsComplete = rawUploadsComplete && minTimeReached
+  const isFinalizing = rawUploadsComplete && minTimeReached
 
   useEffect(() => {
     if (rawUploadsComplete) return
@@ -78,203 +144,243 @@ export function MarathonUploadProgress({
     return () => clearInterval(interval)
   }, [rawUploadsComplete])
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins}:${secs.toString().padStart(2, '0')}`
+  const rowStatusLabel: Record<RowPhase, string> = {
+    waiting: t('statusWaiting'),
+    uploading: t('statusUploading'),
+    uploaded: t('statusUploaded'),
+    error: t('statusFailedShort'),
   }
 
-  const stepIndicator = (
-    <div className="flex items-center gap-3">
-      <div className="flex items-center gap-2">
-        {allUploadsComplete ? (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-foreground">
-            <Check className="h-3 w-3 text-background" strokeWidth={3} />
-          </span>
-        ) : (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-foreground">
-            <Loader2 className="h-3 w-3 animate-spin text-foreground" />
-          </span>
-        )}
-        <span
-          className={`text-[11px] font-semibold uppercase tracking-widest ${allUploadsComplete ? 'text-foreground' : 'text-foreground'}`}
-        >
-          {allUploadsComplete ? t('stepUploaded') : t('stepUploading')}
-        </span>
-      </div>
-      <div className={`h-px w-5 ${allUploadsComplete ? 'bg-border' : 'bg-border/50'}`} />
-      <div className="flex items-center gap-2">
-        {allUploadsComplete ? (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-foreground/20">
-            <Loader2 className="h-3 w-3 animate-spin text-foreground/50" />
-          </span>
-        ) : (
-          <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-muted-foreground/20">
-            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/30" />
-          </span>
-        )}
-        <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground">
-          {t('stepFinalizing')}
-        </span>
-      </div>
-    </div>
-  )
+  const title = isFinalizing
+    ? t('titleReceived')
+    : isStalled
+      ? t('titleIssues')
+      : t('titleUploading')
+
+  const description = isFinalizing
+    ? t('descriptionFinalizing')
+    : isStalled
+      ? t('clickToRetry')
+      : t('keepPageOpenUntilReceived', { count: expectedCount })
+
+  const liveMessage = isFinalizing
+    ? t('descriptionFinalizing')
+    : hasFailures
+      ? failed === 1
+        ? t('oneFileFailed')
+        : t('multipleFilesFailed', { count: failed })
+      : t('completedOfTotal', { completed, total: expectedCount })
 
   return (
-    <div className="w-full flex items-center justify-center min-h-[60dvh]">
-      <Card className="w-full max-w-lg">
-        <CardHeader className="relative pt-8 pb-2">
-          {!allUploadsComplete && !hasFailures && (
-            <div className="absolute top-3 right-4">
-              <p className="text-xs text-muted-foreground/60 font-mono tabular-nums">
-                {formatTime(elapsedTime)}
-              </p>
-            </div>
-          )}
+    <div className="flex min-h-[60dvh] w-full flex-col justify-center">
+      <p className="sr-only" role="status" aria-live="polite">
+        {liveMessage}
+      </p>
 
-          <div className="flex flex-col items-center text-center gap-4">
-            <motion.div
-              initial={{ opacity: 0, y: -4 }}
-              animate={{ opacity: 1, y: 0 }}
-              key={allUploadsComplete ? 'complete' : 'uploading'}
-            >
-              {stepIndicator}
-            </motion.div>
+      {/* Header — same shape as every other step in the flow */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="mb-8 text-center"
+      >
+        <h1 className="font-gothic text-3xl font-medium tracking-tight text-foreground">{title}</h1>
+        <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      </motion.div>
 
-            <div className="space-y-2">
-              <CardTitle className="text-2xl font-semibold">
-                {allUploadsComplete
-                  ? t('titleReceived')
-                  : hasFailures
-                    ? t('titleIssues')
-                    : t('titleUploading')}
-              </CardTitle>
-              <p className="text-sm text-muted-foreground max-w-sm mx-auto leading-relaxed">
-                {allUploadsComplete
-                  ? t('descriptionFinalizing')
-                  : hasFailures
-                    ? t('clickToRetry')
-                    : t('thisMayTakeSeveralMinutes')}
-              </p>
+      <div className="space-y-6">
+        <div className="overflow-hidden rounded-2xl border-2 border-border bg-white">
+          <div className="px-5 pt-5 pb-4 text-center">
+            {/* The label is centred on the counter's axis, so the elapsed timer is pulled out
+                of flow rather than sharing a row that would push the label off-centre. */}
+            <div className="relative flex items-center justify-center">
+              {isFinalizing ? (
+                <p className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-700">
+                  <Check className="h-3 w-3" strokeWidth={3} />
+                  {t('uploadsCompleteLabel')}
+                </p>
+              ) : (
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                  {t('photosReceived')}
+                </p>
+              )}
+              {!isFinalizing && !isStalled && (
+                <p className="absolute right-0 font-mono text-[11px] tabular-nums text-muted-foreground">
+                  {formatTime(elapsedTime)}
+                </p>
+              )}
             </div>
+
+            <p className="mt-2 font-mono text-4xl font-medium leading-none tabular-nums text-foreground">
+              {completed}
+              <span className="text-muted-foreground">/{expectedCount}</span>
+            </p>
+
+            {isFinalizing && (
+              <p className="mt-3 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+                <Loader2 className="h-3 w-3 animate-spin" />
+                {t('finalizingInBackground')}
+              </p>
+            )}
           </div>
-        </CardHeader>
 
-        <CardContent className="space-y-6 pt-4">
-          {!allUploadsComplete && (
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>{t('overallProgress')}</span>
-                <span>
-                  {t('completedOfTotal', {
-                    completed: progress.completed,
-                    total: progress.total,
-                  })}
-                  {progress.failed > 0 && (
-                    <span className="text-destructive ml-1">
-                      ({progress.failed} {t('failed')})
-                    </span>
-                  )}
+          {/* Doubles as the divider between the count and the list */}
+          <div className="relative h-[3px] overflow-hidden bg-border">
+            <span
+              className={cn(
+                'absolute inset-0 origin-left bg-foreground transition-[transform,opacity] duration-[420ms] ease-out-strong',
+                isFinalizing && 'opacity-0',
+              )}
+              style={{ transform: `scaleX(${expectedCount > 0 ? completed / expectedCount : 0})` }}
+            />
+            {isFinalizing && (
+              <span className="absolute inset-0 animate-upload-sweep bg-foreground motion-reduce:animate-none" />
+            )}
+          </div>
+
+          <ul className="px-5">
+            {rows.map((row, index) => (
+              <motion.li
+                key={row.orderIndex}
+                data-phase={row.phase}
+                initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.28,
+                  delay: index * ROW_STAGGER_S,
+                  ease: EASE_OUT_STRONG,
+                }}
+                className={cn(
+                  'flex h-11 items-center gap-3 border-b border-dashed border-border text-sm transition-colors duration-200 last:border-b-0',
+                  'text-muted-foreground/50',
+                  'data-[phase=uploaded]:text-foreground',
+                  'data-[phase=uploading]:font-semibold data-[phase=uploading]:text-foreground',
+                  'data-[phase=error]:font-semibold data-[phase=error]:text-destructive',
+                )}
+              >
+                <span className="w-5 shrink-0 font-mono text-[11px] tabular-nums opacity-60">
+                  {String(index + 1).padStart(2, '0')}
                 </span>
-              </div>
-              <Progress value={progress.percentage} />
+                <span className="min-w-0 flex-1 truncate">
+                  {row.name ?? t('photoFallbackName', { number: index + 1 })}
+                </span>
+                <span className="flex h-4 w-4 shrink-0 items-center justify-center">
+                  <RowStatusIcon phase={row.phase} />
+                  <span className="sr-only">{rowStatusLabel[row.phase]}</span>
+                </span>
+              </motion.li>
+            ))}
+          </ul>
+
+          {/* Belongs to the submission, so it reads as a footer on the same card rather than a
+              second floating island. Always mounted — appearing at finalize would jump the list. */}
+          {participantReference && (
+            <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/30 px-5 py-3.5">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                {t('participantNumber')}
+              </span>
+              <span className="font-mono text-base font-bold tracking-widest text-foreground">
+                {participantReference}
+              </span>
             </div>
           )}
+        </div>
 
-          {hasFailures && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-lg"
-            >
-              <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
-              <div className="text-sm">
-                <p className="font-medium text-destructive">
-                  {progress.failed === 1
-                    ? t('oneFileFailed')
-                    : t('multipleFilesFailed', { count: progress.failed })}
-                </p>
-                {uploadSummary && (
-                  <p className="text-muted-foreground">{t(uploadSummary.bodyKey)}</p>
-                )}
-                {uploadSummary?.actionKey && (
-                  <p className="text-muted-foreground">{t(uploadSummary.actionKey)}</p>
-                )}
-              </div>
-            </motion.div>
-          )}
-
-          {!allUploadsComplete && (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              <AnimatePresence mode="popLayout">
-                {files.length > 0
-                  ? files.map((file) => (
-                      <FileProgressItem
-                        key={file.key}
-                        file={file}
-                        topic={topics.find((t) => t.orderIndex === file.orderIndex)}
-                      />
-                    ))
-                  : Array.from({ length: expectedCount }, (_, index) => (
-                      <motion.div
-                        key={`placeholder-${index}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-                      >
-                        <div className="flex-1 mr-3">
-                          <div className="h-4 bg-muted rounded animate-pulse w-3/4" />
+        {hasFailures && (
+          <motion.div
+            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.26, ease: EASE_OUT_STRONG }}
+            className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4"
+          >
+            <p className="text-sm font-semibold text-destructive">
+              {failed === 1 ? t('oneFileFailed') : t('multipleFilesFailed', { count: failed })}
+            </p>
+            {uploadSummary && (
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {t(uploadSummary.bodyKey)}
+              </p>
+            )}
+            {uploadSummary?.actionKey && (
+              <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                {t(uploadSummary.actionKey)}
+              </p>
+            )}
+            {failureDetails.length > 0 && (
+              <details className="group mt-3">
+                <summary className="flex cursor-pointer list-none select-none items-center gap-1.5 text-xs font-medium text-muted-foreground [&::-webkit-details-marker]:hidden">
+                  <ChevronDown
+                    className="h-3.5 w-3.5 transition-transform duration-200 group-open:rotate-180"
+                    aria-hidden
+                  />
+                  {t('technicalDetails')}
+                </summary>
+                <ul className="mt-2 space-y-2">
+                  {failureDetails.map((failure) => (
+                    <li
+                      key={failure.orderIndex}
+                      className="rounded-lg border border-destructive/20 bg-background/60 p-2.5 text-xs"
+                    >
+                      <p className="font-medium text-foreground">
+                        {String(failure.orderIndex + 1).padStart(2, '0')} ·{' '}
+                        {failure.name ??
+                          t('photoFallbackName', { number: failure.orderIndex + 1 })}
+                      </p>
+                      <p className="mt-0.5 text-muted-foreground">
+                        {t(failure.presentation.titleKey)}
+                      </p>
+                      {failure.presentation.technicalDetails && (
+                        <div className="mt-1.5 space-y-0.5 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                          {failure.presentation.technicalDetails.awsCode && (
+                            <p className="break-all">
+                              {t('awsCode')}: {failure.presentation.technicalDetails.awsCode}
+                            </p>
+                          )}
+                          {failure.presentation.technicalDetails.awsRequestId && (
+                            <p className="break-all">
+                              {t('requestId')}:{' '}
+                              {failure.presentation.technicalDetails.awsRequestId}
+                            </p>
+                          )}
+                          {failure.presentation.technicalDetails.httpStatus && (
+                            <p>
+                              {t('statusCode')}: {failure.presentation.technicalDetails.httpStatus}
+                            </p>
+                          )}
                         </div>
-                        <div className="w-5 h-5 bg-muted rounded-full animate-pulse" />
-                      </motion.div>
-                    ))}
-              </AnimatePresence>
-            </div>
-          )}
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
 
-          {allUploadsComplete && participantReference && (
-            <motion.div
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex items-center justify-center py-2"
-            >
-              <div className="px-8 py-4 rounded-xl border border-border bg-muted/30 text-center">
-                <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground mb-1">
-                  {t('participantNumber')}
-                </p>
-                <p className="text-2xl font-mono font-bold text-foreground tracking-widest">
-                  {participantReference}
-                </p>
+            {onRetry && isSettled && uploadSummary?.retriable !== false && (
+              <div className="mt-4 border-t border-dashed border-destructive/20 pt-4">
+                <Button
+                  onClick={onRetry}
+                  variant="outline"
+                  className="h-12 w-full rounded-full border-destructive/50 transition-transform duration-150 ease-out-strong hover:bg-destructive/10 active:scale-[0.97]"
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {t(uploadSummary?.retryLabelKey ?? 'retry')} ({failed})
+                </Button>
               </div>
-            </motion.div>
-          )}
-        </CardContent>
+            )}
+          </motion.div>
+        )}
 
-        <CardFooter className="flex flex-col gap-3 pb-8">
-          {hasFailures && onRetry && !allUploadsComplete && uploadSummary?.retriable !== false && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="w-full"
-            >
-              <Button onClick={onRetry} variant="outline" className="w-full">
-                <RefreshCw className="w-4 h-4 mr-2" />
-                {t(uploadSummary?.retryLabelKey ?? 'retry')} ({progress.failed})
-              </Button>
-            </motion.div>
-          )}
-
-          {allUploadsComplete && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-xs text-muted-foreground text-center"
-            >
-              {t('keepPageOpen')}
-            </motion.p>
-          )}
-        </CardFooter>
-      </Card>
+        {isFinalizing && (
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center text-xs text-muted-foreground"
+          >
+            {t('keepPageOpen')}
+          </motion.p>
+        )}
+      </div>
     </div>
   )
 }

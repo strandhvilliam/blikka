@@ -264,10 +264,12 @@ export function StaffLaptopUploadClient({
   // upload state out from under it. A sentinel history entry absorbs the press, and every
   // further press re-pushes it.
   //
-  // Armed only once the step query param has actually settled on `progress`, so the URL
-  // captured here is the one worth pinning — reading it inside the handler instead would
-  // read whatever the pop had already navigated to. Leaving `progress` disarms the guard,
-  // which is what keeps the in-app "Back to photos" stall escape working.
+  // The URL captured here is the one worth pinning — reading it inside the handler
+  // instead would read whatever the pop had already navigated to. Leaving `progress`
+  // disarms the guard, which is what keeps the in-app "Back to photos" stall escape
+  // working. `startUploadRun` awaits the step change before starting the run, so nuqs
+  // has already written `s=progress` to the URL by the time this arms (see the comment
+  // there for why pushing over a pending nuqs write breaks the step).
   useEffect(() => {
     if (!isUploadBusy || step !== 'progress') return
 
@@ -816,7 +818,12 @@ export function StaffLaptopUploadClient({
       return
     }
 
-    void setStep('progress')
+    // Await the step change instead of firing it off: nuqs writes the query param to the
+    // URL on a throttled flush, and the back-navigation guard's `history.pushState` cancels
+    // any nuqs write still pending at that moment — which snapped the step straight back to
+    // `upload`, hiding the whole progress screen until completion moved it to `complete`.
+    // Awaiting lets the flush land first, so the guard pushes over a settled URL.
+    await setStep('progress')
     await runUpload(
       participantSummary.reference,
       selectedPhotos,

@@ -3,10 +3,20 @@
 
 import { Button } from '@/components/ui/button'
 import { PrimaryButton } from '@/components/ui/primary-button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import { useTranslations } from 'next-intl'
 import { motion } from 'motion/react'
 import { useRef, useState, useMemo, type RefObject } from 'react'
-import { AlertTriangle, ChevronDown, ChevronUp, CloudUpload, Info, Loader2, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, CloudUpload, Info, Loader2, X } from 'lucide-react'
 import { format } from 'date-fns'
 import { COMMON_IMAGE_EXTENSIONS } from '@/lib/file-processing'
 import { BY_CAMERA_PREVIEW_MAX_HEIGHT_CLASS } from '@/lib/flow/constants'
@@ -203,6 +213,7 @@ export function ByCameraUploadInput({
   const inputRef = fileInputRef ?? internalFileInputRef
   const [isDragOver, setIsDragOver] = useState(false)
   const [exifExpanded, setExifExpanded] = useState(false)
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false)
 
   const exifData = photo?.exif || {}
   const relevantExifData = getRelevantExifData(exifData)
@@ -302,7 +313,7 @@ export function ByCameraUploadInput({
             {/* Remove button */}
             <button
               type="button"
-              onClick={() => onRemovePhoto(photo.orderIndex)}
+              onClick={() => setConfirmRemoveOpen(true)}
               className="absolute top-2.5 right-2.5 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 shadow-sm backdrop-blur transition-colors hover:bg-white"
             >
               <X className="h-4 w-4 text-muted-foreground" />
@@ -372,20 +383,20 @@ export function ByCameraUploadInput({
 
             {/* EXIF details toggle */}
             {hasExifData && (
-              <div className="border-t border-dashed border-border px-4 py-2">
+              <div className="border-t border-dashed border-border">
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-7 px-2 text-xs"
+                  className="h-auto w-full justify-center gap-1.5 rounded-none px-4 py-3 text-muted-foreground hover:bg-muted/50 hover:text-foreground focus-visible:bg-muted/50 focus-visible:text-foreground focus-visible:ring-0"
                   onClick={() => setExifExpanded(!exifExpanded)}
                 >
-                  <Info className="h-3.5 w-3.5" />
-                  <span>{t('photoDetails')}</span>
-                  {exifExpanded ? (
-                    <ChevronUp className="h-3.5 w-3.5" />
-                  ) : (
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  )}
+                  <Info className="size-3.5 opacity-60" strokeWidth={2} aria-hidden />
+                  <span className="text-xs font-medium tracking-wide">{t('photoDetails')}</span>
+                  <ChevronDown
+                    className={`size-3.5 opacity-60 transition-transform duration-200 ${exifExpanded ? 'rotate-180' : ''}`}
+                    strokeWidth={2}
+                    aria-hidden
+                  />
                 </Button>
               </div>
             )}
@@ -431,6 +442,28 @@ export function ByCameraUploadInput({
         disabled={isProcessing}
         className="hidden"
       />
+
+      {photo ? (
+        <AlertDialog open={confirmRemoveOpen} onOpenChange={setConfirmRemoveOpen}>
+          <AlertDialogContent onDismiss={() => setConfirmRemoveOpen(false)}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('confirmRemoveTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('confirmRemoveDescription')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-row gap-3">
+              <AlertDialogCancel className="mt-0 h-12 flex-1 rounded-full">
+                {t('confirmRemoveCancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="h-12 flex-1 rounded-full bg-brand-primary text-white hover:bg-brand-primary hover:opacity-90"
+                onClick={() => onRemovePhoto(photo.orderIndex)}
+              >
+                {t('confirmRemoveConfirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
     </>
   )
 }

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 
@@ -210,11 +210,7 @@ export function ParticipantNumberStep() {
           {t('participantNumber.title')}
         </h1>
         <p className="mx-auto mt-3 max-w-xs text-sm leading-relaxed text-muted-foreground">
-          {existingParticipantStatus === 'prepared' && flowVariant === 'upload'
-            ? t('participantNumber.descriptionPrepared')
-            : existingParticipantStatus
-              ? t('participantNumber.descriptionAlreadyExists')
-              : t('participantNumber.description')}
+          {t('participantNumber.description')}
         </p>
       </div>
 
@@ -260,12 +256,7 @@ export function ParticipantNumberStep() {
                       const numericValue = e.target.value.replace(/\D/g, '').slice(0, 4)
                       field.handleChange(numericValue)
                     }}
-                    onBlur={() => {
-                      if (field.state.value && field.state.value.length > 0) {
-                        field.handleChange(field.state.value.padStart(4, '0'))
-                      }
-                      field.handleBlur()
-                    }}
+                    onBlur={field.handleBlur}
                   />
                   {hasError && (
                     <p
@@ -298,10 +289,7 @@ export function ParticipantNumberStep() {
                   <span>{t('participantNumber.checking')}</span>
                 </>
               ) : (
-                <>
-                  <span>{t('participantNumber.continue')}</span>
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </>
+                t('participantNumber.continue')
               )}
             </PrimaryButton>
           )}
@@ -325,19 +313,13 @@ export function ParticipantNumberStep() {
                 : t(dialogCopyKey(confirmDialogKind, 'description'), { ref: pendingRef })}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className={isReplaceWarning ? 'flex-row gap-3' : undefined}>
-            <AlertDialogCancel
-              className={isReplaceWarning ? 'mt-0 h-12 flex-1 rounded-full' : undefined}
-            >
+          <AlertDialogFooter className="flex-row gap-3">
+            <AlertDialogCancel className="mt-0 h-12 flex-1 rounded-full">
               {t(dialogCopyKey(confirmDialogKind, 'cancel'))}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirm}
-              className={
-                isReplaceWarning
-                  ? 'h-12 flex-1 rounded-full bg-brand-primary text-white hover:bg-brand-primary hover:opacity-90'
-                  : undefined
-              }
+              className="h-12 flex-1 rounded-full bg-brand-primary text-white hover:bg-brand-primary hover:opacity-90"
             >
               {t(dialogCopyKey(confirmDialogKind, 'confirm'))}
             </AlertDialogAction>

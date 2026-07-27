@@ -6,6 +6,7 @@ import { Check, CloudUpload, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { AnimatePresence, motion } from 'motion/react'
 import { usePhotoStore } from '@/lib/flow/photo-store'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 interface UploadSectionProps {
   maxPhotos: number
@@ -15,6 +16,7 @@ interface UploadSectionProps {
 
 export function UploadSection({ maxPhotos, onUploadClick, isProcessingFiles }: UploadSectionProps) {
   const t = useTranslations('FlowPage.uploadStep')
+  const isMobile = useIsMobile()
   const photos = usePhotoStore((state) => state.photos)
 
   const allPhotosSelected = photos.length === maxPhotos && photos.length > 0
@@ -69,7 +71,11 @@ export function UploadSection({ maxPhotos, onUploadClick, isProcessingFiles }: U
               )}
             </div>
             <p className="mt-4 text-sm font-medium text-foreground">
-              {isProcessingFiles ? 'Preparing previews...' : t('clickToSelect')}
+              {isProcessingFiles
+                ? 'Preparing previews...'
+                : isMobile
+                  ? t('tapToSelectPhotos')
+                  : t('clickToSelect')}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               {t('photoCount', { current: photos.length, max: maxPhotos })}

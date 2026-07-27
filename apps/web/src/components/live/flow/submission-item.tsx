@@ -2,9 +2,19 @@
 
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 import type { Topic } from '@blikka/db'
 import { format } from 'date-fns'
-import { AlertTriangle, ChevronDown, ChevronUp, ImageIcon, Info, X } from 'lucide-react'
+import { AlertTriangle, ChevronDown, ImageIcon, Info, X } from 'lucide-react'
 import { PhotoReorderControls } from '@/components/photos/photo-reorder-controls'
 import { getCapturedAtDate } from '@/lib/exif-parsing'
 import { useTranslations } from 'next-intl'
@@ -124,6 +134,7 @@ export function SubmissionItem({
   const [expanded, setExpanded] = useState(false)
   const [showImageDialog, setShowImageDialog] = useState(false)
   const [largePreviewNonce, setLargePreviewNonce] = useState(0)
+  const [confirmRemoveOpen, setConfirmRemoveOpen] = useState(false)
 
   const exifData = photo?.exif || {}
   const relevantExifData = getRelevantExifData(exifData)
@@ -229,11 +240,11 @@ export function SubmissionItem({
             </p>
           </div>
 
-          <div className="flex shrink-0 flex-col items-center gap-0.5">
+          <div className="flex shrink-0 flex-col items-center gap-2.5">
             {onRemove ? (
               <button
                 type="button"
-                onClick={() => onRemove(photo.orderIndex)}
+                onClick={() => setConfirmRemoveOpen(true)}
                 aria-label={t('remove')}
                 className="flex h-7 w-7 items-center justify-center rounded-full bg-muted transition-colors hover:bg-muted-foreground/20"
               >
@@ -270,22 +281,22 @@ export function SubmissionItem({
 
       {/* Photo details toggle, or no-EXIF notice in the same footer row */}
       <div
-        className={`border-t border-dashed border-border px-3 py-2 ${!hasCaptureTime ? 'bg-amber-50/60' : ''}`}
+        className={`border-t border-dashed border-border ${!hasCaptureTime ? 'bg-amber-50/60 px-3 py-2' : ''}`}
       >
         {hasCaptureTime && hasExifData ? (
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-xs"
+            className="h-auto w-full justify-center gap-1.5 rounded-none px-3 py-3 text-muted-foreground hover:bg-muted/50 hover:text-foreground focus-visible:bg-muted/50 focus-visible:text-foreground focus-visible:ring-0"
             onClick={() => setExpanded(!expanded)}
           >
-            <Info className="h-3.5 w-3.5" />
-            <span>{t('photoDetails')}</span>
-            {expanded ? (
-              <ChevronUp className="h-3.5 w-3.5" />
-            ) : (
-              <ChevronDown className="h-3.5 w-3.5" />
-            )}
+            <Info className="size-3.5 opacity-60" strokeWidth={2} aria-hidden />
+            <span className="text-xs font-medium tracking-wide">{t('photoDetails')}</span>
+            <ChevronDown
+              className={`size-3.5 opacity-60 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+              strokeWidth={2}
+              aria-hidden
+            />
           </Button>
         ) : !hasCaptureTime ? (
           <div role="alert" className="flex items-start gap-2 text-xs text-amber-900">
@@ -333,6 +344,28 @@ export function SubmissionItem({
           </DialogContent>
         </Dialog>
       )}
+
+      {onRemove ? (
+        <AlertDialog open={confirmRemoveOpen} onOpenChange={setConfirmRemoveOpen}>
+          <AlertDialogContent onDismiss={() => setConfirmRemoveOpen(false)}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('confirmRemoveTitle')}</AlertDialogTitle>
+              <AlertDialogDescription>{t('confirmRemoveDescription')}</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-row gap-3">
+              <AlertDialogCancel className="mt-0 h-12 flex-1 rounded-full">
+                {t('confirmRemoveCancel')}
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="h-12 flex-1 rounded-full bg-brand-primary text-white hover:bg-brand-primary hover:opacity-90"
+                onClick={() => onRemove(photo.orderIndex)}
+              >
+                {t('confirmRemoveConfirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      ) : null}
     </div>
   )
 }

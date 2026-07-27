@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { useMutation } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
-import { ArrowRight, Loader2 } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { z } from 'zod'
 import { isPossiblePhoneNumber, parsePhoneNumber, type Country } from 'react-phone-number-input'
@@ -485,10 +485,7 @@ export function ParticipantDetailsStep({ mode }: ParticipantDetailsStepProps) {
                     <span>{t('participantDetails.checking')}</span>
                   </>
                 ) : (
-                  <>
-                    <span>{t('participantDetails.continue')}</span>
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </>
+                  t('participantDetails.continue')
                 )}
               </PrimaryButton>
             )}
