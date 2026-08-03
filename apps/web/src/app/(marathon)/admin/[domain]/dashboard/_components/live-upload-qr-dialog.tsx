@@ -24,30 +24,27 @@ import { cn } from '@/lib/utils'
 
 const defaultParticipantDescription = (
   <>
-    This QR code and URL point at your marathon&apos;s{' '}
-    <span className="font-medium text-brand-black/85 dark:text-foreground">live</span> site — the
-    page participants open in a browser to register and upload their photos during the event. Share
-    it on a poster, slide, or chat, or open{' '}
-    <span className="font-medium text-brand-black/85 dark:text-foreground">Upload</span> in the
-    header for the same address.
+    Points at your marathon&apos;s{' '}
+    <span className="font-medium text-brand-black/85 dark:text-foreground">live</span> site, where
+    participants register and upload photos during the event. Share it on a poster, slide, or chat.
   </>
 )
 
 const MODE_PRESELECT_OPTIONS = [
   {
     value: 'none',
-    label: 'No preselection',
-    description: 'Participant chooses upload or crew registration',
+    label: 'Ask',
+    hint: 'Participant picks device or crew upload after scanning.',
   },
   {
     value: 'upload',
-    label: 'Device upload',
-    description: 'Skip choice and start phone/device upload',
+    label: 'Device',
+    hint: 'Scanning opens phone upload directly.',
   },
   {
     value: 'prepare',
-    label: 'Crew upload',
-    description: 'Skip choice and register for crew/SD-card upload',
+    label: 'Crew',
+    hint: 'Scanning opens crew / SD-card registration directly.',
   },
 ] as const
 
@@ -190,13 +187,23 @@ export function LiveUploadQrDialogBody({
       </header>
 
       {showParticipationModeControl ? (
-        <div className="space-y-3">
-          <div className="space-y-1">
-            <Label className="text-sm font-medium text-brand-black dark:text-card-foreground">
-              Preselected upload mode
-            </Label>
-            <p className="text-sm leading-relaxed text-brand-black/60 dark:text-muted-foreground">
-              Optional. Classic marathon only — when set, scanning skips the upload-choice dialog.
+        <div className="flex flex-col gap-3 rounded-xl border border-brand-black/10 bg-brand-black/[0.02] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6 dark:border-white/10 dark:bg-white/[0.03]">
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-2">
+              <Label className="text-sm font-medium text-brand-black dark:text-card-foreground">
+                Preselected mode
+              </Label>
+              <span className="text-xs text-brand-black/45 dark:text-muted-foreground">
+                classic only
+              </span>
+            </div>
+            <p className="mt-1 text-xs leading-relaxed text-brand-black/60 dark:text-muted-foreground">
+              {selectedOption.hint}
+              {modePreselect !== 'none' ? (
+                <span className="ml-1.5 font-mono text-[11px] text-brand-black/45 dark:text-muted-foreground/80">
+                  ?mode={modePreselect}
+                </span>
+              ) : null}
             </p>
           </div>
           <ToggleGroup
@@ -207,29 +214,18 @@ export function LiveUploadQrDialogBody({
               onModePreselectChange?.(value as ModePreselectValue)
             }}
             variant="outline"
-            spacing={2}
-            className="flex w-full flex-col sm:flex-row"
+            className="shrink-0 self-start border-brand-black/15 bg-white sm:self-auto dark:border-white/15 dark:bg-card"
           >
             {MODE_PRESELECT_OPTIONS.map((option) => (
               <ToggleGroupItem
                 key={option.value}
                 value={option.value}
-                className="h-auto min-h-10 flex-1 justify-start whitespace-normal rounded-md px-3 py-2.5 text-left"
-                aria-label={option.label}
+                className="h-9 px-4 text-sm data-[state=on]:bg-brand-black data-[state=on]:text-brand-white dark:data-[state=on]:bg-white dark:data-[state=on]:text-brand-black"
               >
-                <span className="flex flex-col items-start gap-0.5">
-                  <span className="text-sm font-medium">{option.label}</span>
-                  <span className="text-xs font-normal text-muted-foreground">
-                    {option.description}
-                  </span>
-                </span>
+                {option.label}
               </ToggleGroupItem>
             ))}
           </ToggleGroup>
-          <p className="text-xs text-brand-black/55 dark:text-muted-foreground">
-            Current link uses: {selectedOption.label}
-            {modePreselect !== 'none' ? ` (?mode=${modePreselect})` : ''}
-          </p>
         </div>
       ) : null}
 
