@@ -300,6 +300,7 @@ const makeContactSheetGenerator = Effect.gen(function* () {
           { name: 'domain', value: domain },
           { name: 'participant-reference', value: reference },
         ],
+        idempotencyKey: `contact-sheet-ready/${domain}/${reference}`,
       })
       yield* markEmailSent
     },

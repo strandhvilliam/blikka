@@ -8,7 +8,7 @@ export interface SendEmailAttachment {
   readonly filename?: string | false
   readonly path?: string
   readonly contentType?: string
-  readonly inlineContentId?: string
+  readonly contentId?: string
 }
 
 export interface SendEmailParams {
@@ -21,6 +21,21 @@ export interface SendEmailParams {
   readonly cc?: string | string[]
   readonly bcc?: string | string[]
   readonly tags?: Array<{ name: string; value: string }>
+  /**
+   * Resend idempotency key (`<event-type>/<entity-id>`). Same key + same payload
+   * returns the original response without resending. Keys expire after 24 hours.
+   */
+  readonly idempotencyKey: string
+}
+
+export interface SendBatchEmailParams extends Omit<SendEmailParams, 'idempotencyKey' | 'attachments'> {}
+
+export interface SendBatchOptions {
+  /**
+   * One key for the whole batch (`batch-<event-type>/<batch-id>`).
+   * Batch API does not support per-email keys or attachments.
+   */
+  readonly idempotencyKey: string
 }
 
 export class SendEmailError extends Schema.TaggedErrorClass<SendEmailError>()('SendEmailError', {
@@ -75,7 +90,8 @@ export class EmailService extends Context.Service<
     ) => Effect.Effect<{ readonly id: string }, SendEmailError>
     /** Send a batch of emails. */
     readonly sendBatch: (
-      params: SendEmailParams[],
+      params: SendBatchEmailParams[],
+      options: SendBatchOptions,
     ) => Effect.Effect<readonly string[], SendEmailError>
   }
 >()('@blikka/email/email-service') {}
@@ -116,17 +132,20 @@ const makeEmailService = Effect.gen(function* () {
 
     const result = yield* resendClient
       .use((client) =>
-        client.emails.send({
-          from: params.from ?? 'support@blikka.app',
-          to: params.to,
-          subject: params.subject,
-          html,
-          attachments: params.attachments,
-          replyTo: params.replyTo,
-          cc: params.cc,
-          bcc: params.bcc,
-          tags: sanitizeTags(params.tags),
-        }),
+        client.emails.send(
+          {
+            from: params.from ?? 'support@blikka.app',
+            to: params.to,
+            subject: params.subject,
+            html,
+            attachments: params.attachments,
+            replyTo: params.replyTo,
+            cc: params.cc,
+            bcc: params.bcc,
+            tags: sanitizeTags(params.tags),
+          },
+          { idempotencyKey: params.idempotencyKey },
+        ),
       )
       .pipe(
         Effect.mapError(
@@ -156,7 +175,7 @@ const makeEmailService = Effect.gen(function* () {
   }, Effect.retry(rateLimitRetry))
 
   const sendBatch: EmailService['Service']['sendBatch'] = Effect.fn('EmailService.sendBatch')(
-    function* (params: SendEmailParams[]) {
+    function* (params: SendBatchEmailParams[], options: SendBatchOptions) {
       const htmlArray = yield* Effect.all(
         params.map((param) =>
           Effect.tryPromise({
@@ -176,7 +195,6 @@ const makeEmailService = Effect.gen(function* () {
         to: param.to,
         subject: param.subject,
         html: htmlArray[index]!,
-        attachments: param.attachments,
         replyTo: param.replyTo,
         cc: param.cc,
         bcc: param.bcc,
@@ -184,7 +202,9 @@ const makeEmailService = Effect.gen(function* () {
       }))
 
       const result = yield* resendClient
-        .use((client) => client.batch.send(emails))
+        .use((client) =>
+          client.batch.send(emails, { idempotencyKey: options.idempotencyKey }),
+        )
         .pipe(
           Effect.mapError(
             (error) =>

@@ -714,7 +714,7 @@ const makeVotingService = Effect.gen(function* () {
       warning: NotificationWarning | null
     }> = yield* Effect.forEach(
       chunks,
-      (chunk) => {
+      (chunk, chunkIndex) => {
         const emails = chunk.map((session) => {
           const participantName = getParticipantDisplayName({
             firstName: session.firstName,
@@ -748,24 +748,31 @@ const makeVotingService = Effect.gen(function* () {
           }
         })
 
-        return emailService.sendBatch(emails).pipe(
-          Effect.as({
-            sentSessionIds: chunk.map((session) => session.id),
-            warning: null,
-          }),
-          Effect.catch((error) =>
-            Effect.logError('Failed to send voting invite email batch', error).pipe(
-              Effect.as({
-                sentSessionIds: [] as number[],
-                warning: {
-                  channel: 'email' as const,
-                  message: getErrorMessage(error, 'Failed to send voting invite email batch'),
-                  failedSessionIds: chunk.map((session) => session.id),
-                },
-              }),
+        const firstId = chunk[0]!.id
+        const lastId = chunk[chunk.length - 1]!.id
+
+        return emailService
+          .sendBatch(emails, {
+            idempotencyKey: `batch-voting-invite/${domain}/${firstId}-${lastId}-c${chunkIndex}`,
+          })
+          .pipe(
+            Effect.as({
+              sentSessionIds: chunk.map((session) => session.id),
+              warning: null,
+            }),
+            Effect.catch((error) =>
+              Effect.logError('Failed to send voting invite email batch', error).pipe(
+                Effect.as({
+                  sentSessionIds: [] as number[],
+                  warning: {
+                    channel: 'email' as const,
+                    message: getErrorMessage(error, 'Failed to send voting invite email batch'),
+                    failedSessionIds: chunk.map((session) => session.id),
+                  },
+                }),
+              ),
             ),
-          ),
-        )
+          )
       },
       { concurrency: 2 },
     )
@@ -850,6 +857,9 @@ const makeVotingService = Effect.gen(function* () {
                 { name: 'category', value: 'voting-invite' },
                 { name: 'marathon', value: marathonName },
               ],
+              // Uses last-sent timestamp so intentional resends get a new key after a successful
+              // send updates notificationLastSentAt; retries of the same attempt keep the same key.
+              idempotencyKey: `voting-invite/${session.id}/${session.notificationLastSentAt ?? 'initial'}`,
             })
             .pipe(
               Effect.as({ sent: true, error: null as string | null }),

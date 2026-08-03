@@ -576,10 +576,12 @@ const makeJuryService = Effect.gen(function* () {
       invitation,
       marathon,
       domain,
+      idempotencyKey,
     }: {
       invitation: JuryInvitationWithOptions
       marathon: Marathon
       domain: string
+      idempotencyKey: string
     }) {
       const email = normalizeEmail(invitation.email)
       if (!email) {
@@ -613,6 +615,7 @@ const makeJuryService = Effect.gen(function* () {
             { name: 'category', value: 'jury-invite' },
             { name: 'marathon', value: marathon.name },
           ],
+          idempotencyKey,
         })
         .pipe(
           Effect.as({ sent: true as const, warning: undefined as string | undefined }),
@@ -725,6 +728,7 @@ const makeJuryService = Effect.gen(function* () {
       invitation,
       marathon,
       domain,
+      idempotencyKey: `jury-invite/${invitation.id}`,
     })
 
     return {
@@ -773,6 +777,8 @@ const makeJuryService = Effect.gen(function* () {
         invitation,
         marathon,
         domain,
+        // New key per intentional resend; stable for in-process retries of this attempt.
+        idempotencyKey: `jury-invite/${invitation.id}/resend/${crypto.randomUUID()}`,
       })
 
       if (!sent) {

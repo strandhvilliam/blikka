@@ -144,6 +144,8 @@ export class BetterAuthService extends Context.Service<BetterAuthService>()(
                 companyName: authConfig.emailConfig.companyName,
                 companyLogoUrl: authConfig.emailConfig.companyLogoUrl,
               }),
+              // OTP value makes each code unique; retries of the same send keep the same key.
+              idempotencyKey: `sign-in-otp/${email}/${otp}`,
             })
             return
           }

@@ -105,6 +105,7 @@ export async function getStartedAction(input: GetStartedInput) {
             : null,
         ),
         tags: [{ name: 'type', value: 'get-started' }],
+        idempotencyKey: `get-started/${input.email}/${crypto.randomUUID()}`,
       }),
     )
 

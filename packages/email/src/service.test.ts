@@ -23,16 +23,18 @@ interface SendCall {
     readonly filename?: string | false
     readonly path?: string
     readonly contentType?: string
-    readonly inlineContentId?: string
+    readonly contentId?: string
   }>
   readonly replyTo?: string
   readonly cc?: string | string[]
   readonly bcc?: string | string[]
   readonly tags?: Array<{ name: string; value: string }>
+  readonly idempotencyKey?: string
 }
 
 interface BatchCall {
   readonly emails: ReadonlyArray<SendCall>
+  readonly idempotencyKey?: string
 }
 
 function makeTemplate(text = 'Hello from test') {
@@ -49,8 +51,8 @@ function makeResendTestLayer(opts: ResendFakeOptions = {}) {
 
   const fakeClient = {
     emails: {
-      send: (input: SendCall) => {
-        sendCalls.push(input)
+      send: (input: SendCall, options?: { idempotencyKey?: string }) => {
+        sendCalls.push({ ...input, idempotencyKey: options?.idempotencyKey })
         const mode = sendSequence[sendIndex] ?? 'ok'
         sendIndex += 1
         if (mode === 'reject') {
@@ -73,8 +75,8 @@ function makeResendTestLayer(opts: ResendFakeOptions = {}) {
       },
     },
     batch: {
-      send: (emails: ReadonlyArray<SendCall>) => {
-        batchCalls.push({ emails })
+      send: (emails: ReadonlyArray<SendCall>, options?: { idempotencyKey?: string }) => {
+        batchCalls.push({ emails, idempotencyKey: options?.idempotencyKey })
         const mode = batchSequence[batchIndex] ?? 'ok'
         batchIndex += 1
         if (mode === 'reject') {
@@ -145,6 +147,7 @@ describe('EmailService', () => {
         cc: 'cc@example.com',
         bcc: ['bcc@example.com'],
         tags: [{ name: 'Participant Ref!', value: 'ÅBC 123 !!!' }],
+        idempotencyKey: 'contact-sheet-ready/demo/ABC123',
       })
 
       assert.deepStrictEqual(out, { id: 'email-1' })
@@ -164,6 +167,7 @@ describe('EmailService', () => {
       assert.strictEqual(sendCalls[0]?.cc, 'cc@example.com')
       assert.deepStrictEqual(sendCalls[0]?.bcc, ['bcc@example.com'])
       assert.deepStrictEqual(sendCalls[0]?.tags, [{ name: 'Participant-Ref', value: 'ABC-123' }])
+      assert.strictEqual(sendCalls[0]?.idempotencyKey, 'contact-sheet-ready/demo/ABC123')
     }).pipe(Effect.provide(layer))
   })
 
@@ -177,6 +181,7 @@ describe('EmailService', () => {
         to: 'a@example.com',
         subject: 'Subject',
         template: makeTemplate(),
+        idempotencyKey: 'test/from',
       })
 
       assert.strictEqual(sendCalls[0]?.from, 'events@example.com')
@@ -193,6 +198,7 @@ describe('EmailService', () => {
           to: 'a@example.com',
           subject: 'Subject',
           template: makeTemplate(),
+          idempotencyKey: 'test/error',
         }),
       )
 
@@ -213,6 +219,7 @@ describe('EmailService', () => {
           to: 'a@example.com',
           subject: 'Subject',
           template: makeTemplate(),
+          idempotencyKey: 'test/no-retry',
         }),
       )
 
@@ -235,10 +242,12 @@ describe('EmailService', () => {
         to: 'a@example.com',
         subject: 'Subject',
         template: makeTemplate(),
+        idempotencyKey: 'test/rate-limit',
       })
 
       assert.strictEqual(out.id, 'email-3')
       assert.strictEqual(sendCalls.length, 3)
+      assert.ok(sendCalls.every((call) => call.idempotencyKey === 'test/rate-limit'))
     }).pipe(Effect.provide(layer))
   })
 
@@ -252,6 +261,7 @@ describe('EmailService', () => {
           to: 'a@example.com',
           subject: 'Subject',
           template: makeTemplate(),
+          idempotencyKey: 'test/no-data',
         }),
       )
 
@@ -270,6 +280,7 @@ describe('EmailService', () => {
           to: 'a@example.com',
           subject: 'Subject',
           template: makeTemplate(),
+          idempotencyKey: 'test/reject',
         }),
       )
 
@@ -284,23 +295,27 @@ describe('EmailService', () => {
 
     return Effect.gen(function* () {
       const email = yield* EmailService
-      const out = yield* email.sendBatch([
-        {
-          to: 'a@example.com',
-          subject: 'First',
-          template: makeTemplate('First body'),
-        },
-        {
-          from: 'events@example.com',
-          to: 'b@example.com',
-          subject: 'Second',
-          template: makeTemplate('Second body'),
-          tags: [{ name: ' ', value: '%%%' }],
-        },
-      ])
+      const out = yield* email.sendBatch(
+        [
+          {
+            to: 'a@example.com',
+            subject: 'First',
+            template: makeTemplate('First body'),
+          },
+          {
+            from: 'events@example.com',
+            to: 'b@example.com',
+            subject: 'Second',
+            template: makeTemplate('Second body'),
+            tags: [{ name: ' ', value: '%%%' }],
+          },
+        ],
+        { idempotencyKey: 'batch-voting-invite/demo/1-2-c0' },
+      )
 
       assert.deepStrictEqual(out, ['batch-1-1', 'batch-1-2'])
       assert.strictEqual(batchCalls.length, 1)
+      assert.strictEqual(batchCalls[0]?.idempotencyKey, 'batch-voting-invite/demo/1-2-c0')
       assert.strictEqual(batchCalls[0]?.emails[0]?.from, 'support@blikka.app')
       assert.strictEqual(batchCalls[0]?.emails[0]?.subject, 'First')
       assert.match(batchCalls[0]?.emails[0]?.html ?? '', /First body/)
@@ -319,13 +334,16 @@ describe('EmailService', () => {
     return Effect.gen(function* () {
       const email = yield* EmailService
       const err = yield* Effect.flip(
-        email.sendBatch([
-          {
-            to: 'a@example.com',
-            subject: 'Subject',
-            template: makeTemplate(),
-          },
-        ]),
+        email.sendBatch(
+          [
+            {
+              to: 'a@example.com',
+              subject: 'Subject',
+              template: makeTemplate(),
+            },
+          ],
+          { idempotencyKey: 'batch-test/error' },
+        ),
       )
 
       assert.instanceOf(err, SendEmailError)
