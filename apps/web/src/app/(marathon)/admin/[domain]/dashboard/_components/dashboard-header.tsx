@@ -28,12 +28,14 @@ type QuickLinkConfig = {
   showQrOption?: boolean
   qrHeading?: string
   qrDescription?: ReactNode
+  showParticipationModeControl?: boolean
 }
 
 type QrDialogState = {
   url: string
   qrHeading?: string
   qrDescription?: ReactNode
+  showParticipationModeControl?: boolean
 }
 
 async function copyQuickLinkUrl(url: string) {
@@ -62,7 +64,12 @@ function MobileQuickLinkRow({
   }
 
   const handleShowQr = () => {
-    onShowQr({ url, qrHeading: config.qrHeading, qrDescription: config.qrDescription })
+    onShowQr({
+      url,
+      qrHeading: config.qrHeading,
+      qrDescription: config.qrDescription,
+      showParticipationModeControl: config.showParticipationModeControl,
+    })
     onClose()
   }
 
@@ -126,6 +133,7 @@ function DashboardQuickLinkPopover({
       url: config.url,
       qrHeading: config.qrHeading,
       qrDescription: config.qrDescription,
+      showParticipationModeControl: config.showParticipationModeControl,
     })
   }
 
@@ -273,6 +281,7 @@ export function DashboardHeader() {
       url: participantSiteUrl,
       icon: Users,
       label: 'Upload',
+      showParticipationModeControl: true,
     },
     {
       url: computerUploadSiteUrl,
@@ -350,6 +359,7 @@ export function DashboardHeader() {
           onOpenChange={handleQrOpenChange}
           heading={qrDialog.qrHeading}
           description={qrDialog.qrDescription}
+          showParticipationModeControl={qrDialog.showParticipationModeControl}
         />
       ) : null}
     </div>
