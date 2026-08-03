@@ -38,3 +38,46 @@ export function getCapturedAtDate(exif?: ExifData | null): Date | null {
 export function getExifDate(exif?: ExifData | null): Date | null {
   return getCapturedAtDate(exif)
 }
+
+/** The subset of EXIF tags surfaced in the photo details tables. */
+export function getRelevantExifData(exif?: ExifData | null): Record<string, string> {
+  const relevantData: Record<string, string> = {}
+  if (!exif) return relevantData
+
+  if (exif.Make && typeof exif.Make === 'string') relevantData['Camera Make'] = exif.Make
+  if (exif.Model && typeof exif.Model === 'string') relevantData['Camera Model'] = exif.Model
+
+  if (exif.ExposureTime && typeof exif.ExposureTime === 'number') {
+    const exposureValue = exif.ExposureTime
+    relevantData['Exposure'] =
+      exposureValue < 1 ? `1/${Math.round(1 / exposureValue)}s` : `${exposureValue}s`
+  }
+
+  if (exif.FNumber && typeof exif.FNumber === 'number')
+    relevantData['Aperture'] = `f/${exif.FNumber}`
+
+  if (exif.ISO && (typeof exif.ISO === 'number' || typeof exif.ISO === 'string'))
+    relevantData['ISO'] = `ISO ${exif.ISO}`
+
+  if (exif.FocalLength && typeof exif.FocalLength === 'number')
+    relevantData['Focal Length'] = `${exif.FocalLength}mm`
+
+  const capturedAt = getCapturedAtDate(exif)
+  if (capturedAt) {
+    relevantData['Date Taken'] = capturedAt.toLocaleDateString()
+    relevantData['Time Taken'] = capturedAt.toLocaleTimeString()
+  }
+
+  if (exif.LensModel && typeof exif.LensModel === 'string') relevantData['Lens'] = exif.LensModel
+
+  if (
+    exif.latitude &&
+    exif.longitude &&
+    typeof exif.latitude === 'number' &&
+    typeof exif.longitude === 'number'
+  ) {
+    relevantData['GPS'] = `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
+  }
+
+  return relevantData
+}

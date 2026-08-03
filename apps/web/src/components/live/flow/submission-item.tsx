@@ -16,7 +16,7 @@ import type { Topic } from '@blikka/db'
 import { format } from 'date-fns'
 import { AlertTriangle, ChevronDown, ImageIcon, Info, X } from 'lucide-react'
 import { PhotoReorderControls } from '@/components/photos/photo-reorder-controls'
-import { getCapturedAtDate } from '@/lib/exif-parsing'
+import { getCapturedAtDate, getRelevantExifData } from '@/lib/exif-parsing'
 import { useTranslations } from 'next-intl'
 import { motion } from 'motion/react'
 import { useState } from 'react'
@@ -164,8 +164,7 @@ export function SubmissionItem({
     ruleKey: highestPriorityResult?.ruleKey,
   }
   const showValidationMessage =
-    Boolean(displayValidation.message) &&
-    displayValidation.outcome !== VALIDATION_OUTCOME.PASSED
+    Boolean(displayValidation.message) && displayValidation.outcome !== VALIDATION_OUTCOME.PASSED
 
   if (!photo) {
     return (
@@ -216,9 +215,7 @@ export function SubmissionItem({
             <p className="text-xs font-semibold text-muted-foreground">#{index + 1}</p>
             <p className="mt-0.5 text-base font-semibold text-foreground">{topic?.name}</p>
 
-            {validationResults &&
-              validationResults.length === 0 &&
-              showPassedValidation && (
+            {validationResults && validationResults.length === 0 && showPassedValidation && (
               <div className="mt-1.5 flex items-center gap-2">
                 <ValidationStatusBadge outcome={VALIDATION_OUTCOME.PASSED} severity="error" />
               </div>
@@ -293,7 +290,7 @@ export function SubmissionItem({
             <Info className="size-3.5 opacity-60" strokeWidth={2} aria-hidden />
             <span className="text-xs font-medium tracking-wide">{t('photoDetails')}</span>
             <ChevronDown
-              className={`size-3.5 opacity-60 transition-transform duration-200 ${expanded ? 'rotate-180' : ''}`}
+              className={`size-3.5 opacity-60 transition-transform duration-200 motion-reduce:transition-none ${expanded ? 'rotate-180' : ''}`}
               strokeWidth={2}
               aria-hidden
             />
@@ -307,12 +304,7 @@ export function SubmissionItem({
       </div>
 
       {expanded && hasExifData && (
-        <motion.div
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-          className="border-t border-dashed border-border px-4 pb-3"
-        >
+        <div className="border-t border-dashed border-border px-4 pb-3">
           <table className="mt-2 w-full text-xs">
             <tbody>
               {Object.entries(relevantExifData).map(([key, value]) => (
@@ -323,7 +315,7 @@ export function SubmissionItem({
               ))}
             </tbody>
           </table>
-        </motion.div>
+        </div>
       )}
 
       {showImageDialog && (
@@ -368,46 +360,4 @@ export function SubmissionItem({
       ) : null}
     </div>
   )
-}
-
-function getRelevantExifData(exif: Record<string, unknown>): Record<string, string> {
-  const relevantData: Record<string, string> = {}
-  if (!exif) return relevantData
-
-  if (exif.Make && typeof exif.Make === 'string') relevantData['Camera Make'] = exif.Make
-  if (exif.Model && typeof exif.Model === 'string') relevantData['Camera Model'] = exif.Model
-
-  if (exif.ExposureTime && typeof exif.ExposureTime === 'number') {
-    const exposureValue = exif.ExposureTime
-    relevantData['Exposure'] =
-      exposureValue < 1 ? `1/${Math.round(1 / exposureValue)}s` : `${exposureValue}s`
-  }
-
-  if (exif.FNumber && typeof exif.FNumber === 'number')
-    relevantData['Aperture'] = `f/${exif.FNumber}`
-
-  if (exif.ISO && (typeof exif.ISO === 'number' || typeof exif.ISO === 'string'))
-    relevantData['ISO'] = `ISO ${exif.ISO}`
-
-  if (exif.FocalLength && typeof exif.FocalLength === 'number')
-    relevantData['Focal Length'] = `${exif.FocalLength}mm`
-
-  const capturedAt = getCapturedAtDate(exif)
-  if (capturedAt) {
-    relevantData['Date Taken'] = capturedAt.toLocaleDateString()
-    relevantData['Time Taken'] = capturedAt.toLocaleTimeString()
-  }
-
-  if (exif.LensModel && typeof exif.LensModel === 'string') relevantData['Lens'] = exif.LensModel
-
-  if (
-    exif.latitude &&
-    exif.longitude &&
-    typeof exif.latitude === 'number' &&
-    typeof exif.longitude === 'number'
-  ) {
-    relevantData['GPS'] = `${exif.latitude.toFixed(6)}, ${exif.longitude.toFixed(6)}`
-  }
-
-  return relevantData
 }
