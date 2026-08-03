@@ -296,3 +296,144 @@ html.lenis body {
     transform: translateX(400%);
   }
 }
+
+/* Confirmation page — the closing beat of the upload flow.
+   These entrances are predetermined and run once, so they are CSS animations:
+   they stay off the main thread while the submitted photos decode. */
+
+@keyframes confirmation-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes confirmation-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Never from scale(0) — the mark has a shape before it lands. */
+@keyframes confirmation-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  60% {
+    transform: scale(1.04);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Blur masks the crossfade, so the count reads as one object settling. */
+@keyframes confirmation-settle {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+    transform: scale(1);
+  }
+}
+
+/* One-shot ripple that settles, rather than a ring pulsing forever. */
+@keyframes confirmation-ripple {
+  from {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.85);
+  }
+}
+
+/* A nudge towards the series below, not a loop — two beats and it stops. */
+@keyframes confirmation-nudge {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(5px);
+  }
+}
+
+/* Own keyframes rather than a shared fade: a generic fade ends at opacity 1,
+   and under `animation-fill-mode: both` that final keyframe outranks any
+   opacity utility on the element — which would paint the wallpaper at full
+   strength, on top of the type it sits behind. */
+@keyframes confirmation-wallpaper-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 0.15;
+  }
+}
+
+@layer utilities {
+  .confirmation-fade {
+    animation: confirmation-fade 320ms var(--ease-out-strong) both;
+  }
+  .confirmation-rise {
+    animation: confirmation-rise 320ms var(--ease-out-strong) both;
+  }
+  .confirmation-pop {
+    animation: confirmation-pop 380ms var(--ease-out-strong) both;
+  }
+  .confirmation-settle {
+    animation: confirmation-settle 420ms var(--ease-out-strong) both;
+  }
+  .confirmation-ripple {
+    animation: confirmation-ripple 1100ms var(--ease-out-strong) 420ms both;
+  }
+  .confirmation-nudge {
+    animation: confirmation-nudge 900ms var(--ease-out-strong) 1400ms 2 both;
+  }
+  .confirmation-wallpaper {
+    animation: confirmation-wallpaper-in 700ms var(--ease-out-strong) 80ms both;
+  }
+
+  .confirmation-hide-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .confirmation-hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Reduced motion keeps the ordering cue but drops every transform, the ripple
+   and the nudge. */
+@media (prefers-reduced-motion: reduce) {
+  .confirmation-rise,
+  .confirmation-pop,
+  .confirmation-settle {
+    animation: confirmation-fade 200ms ease both;
+  }
+  .confirmation-ripple,
+  .confirmation-nudge {
+    animation: none;
+  }
+  .confirmation-wallpaper {
+    animation-duration: 200ms;
+    animation-delay: 0ms;
+  }
+}

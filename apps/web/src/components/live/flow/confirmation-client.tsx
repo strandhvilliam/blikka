@@ -1,16 +1,11 @@
 'use client'
 
-import dynamic from 'next/dynamic'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import { useDomain } from '@/lib/domain-provider'
 import { useTRPC } from '@/lib/trpc/client'
 
 import { ConfirmationMarathonClient } from './confirmation-marathon-client'
 import { ConfirmationByCameraClient } from './confirmation-by-camera-client'
-
-const Confetti = dynamic(() => import('react-confetti').then((mod) => mod.default), {
-  ssr: false,
-})
 
 interface ConfirmationClientProps {
   params: {
@@ -32,10 +27,6 @@ export function ConfirmationClient({ params }: ConfirmationClientProps) {
     return <ConfirmationByCameraClient params={params} topics={marathon.topics} />
   }
 
-  return (
-    <>
-      <Confetti recycle={false} numberOfPieces={400} />
-      <ConfirmationMarathonClient params={params} />
-    </>
-  )
+  // Confetti lives inside the marathon view — it gates on reduced motion there.
+  return <ConfirmationMarathonClient params={params} />
 }
