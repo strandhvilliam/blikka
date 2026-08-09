@@ -10,6 +10,7 @@ import {
   createTRPCRouter,
   domainProcedure,
   publicProcedure,
+  rateLimitByReferenceMiddleware,
   requireMatchingInputDomainMiddleware,
 } from '../root'
 import { UploadInitializerService } from '../../core/upload-initializer/service'
@@ -17,6 +18,7 @@ import { UploadInitializerService } from '../../core/upload-initializer/service'
 export const uploadInitializerRouter = createTRPCRouter({
   initializeUploadFlow: publicProcedure
     .input(Schema.toStandardSchemaV1(InitializeUploadFlowSchema))
+    .use(rateLimitByReferenceMiddleware)
     .mutation(
       trpcEffect(
         Effect.fn('UploadInitializerRouter.initializeUploadFlow')(function* ({ input }) {

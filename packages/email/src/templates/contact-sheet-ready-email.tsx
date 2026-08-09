@@ -84,6 +84,15 @@ export function ContactSheetReadyEmail({
                 <Text className="m-0 text-sm leading-6 text-[#5f564d]">{contactSheetFilename}</Text>
               </Section>
 
+              <Section className="mb-6 rounded-lg border border-[#e8d5c4] bg-[#fff8f1] px-5 py-4">
+                <Text className="m-0 mb-1 text-sm font-semibold text-[#151515]">
+                  Please remember
+                </Text>
+                <Text className="m-0 text-sm leading-6 text-[#5f564d]">
+                  Please do not share these photos publicly until we let you know it is okay.
+                </Text>
+              </Section>
+
               <Text className="mb-7 text-sm leading-6 text-[#6e665d]">
                 Keep this email if you want an easy overview of your submitted photos.
               </Text>

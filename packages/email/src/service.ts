@@ -75,10 +75,14 @@ function isRateLimitError(error: unknown): boolean {
  * participant's email arriving ~10 minutes late (up to 5 times over, per `retry: 5`).
  *
  * `Schedule.max` stops as soon as either schedule finishes, so `recurs(5)` bounds the retries.
+ * Jittered so a wave of senders that hit a 429 together doesn't retry in lockstep.
  */
 const rateLimitRetry = {
   while: (error: SendEmailError) => error.retryable === true,
-  schedule: Schedule.max([Schedule.exponential(Duration.millis(500)), Schedule.recurs(5)]),
+  schedule: Schedule.max([
+    Schedule.exponential(Duration.millis(500)).pipe(Schedule.jittered),
+    Schedule.recurs(5),
+  ]),
 }
 
 export class EmailService extends Context.Service<

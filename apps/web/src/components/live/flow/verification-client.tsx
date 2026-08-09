@@ -1,21 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'motion/react'
 import { useTranslations } from 'next-intl'
 import { useQuery } from '@tanstack/react-query'
 import { RefreshCcw } from 'lucide-react'
 import { notFound, useRouter } from 'next/navigation'
-import {
-  getParticipantRealtimeChannel,
-  getRealtimeChannelEnvironmentFromNodeEnv,
-  getRealtimeResultEventName,
-} from '@blikka/realtime/contract'
 
 import { cn, formatDomainPathname } from '@/lib/utils'
 import { useDomain } from '@/lib/domain-provider'
-import { useRealtime } from '@/lib/realtime-client'
-import { parseUploadRealtimeEventData } from '@/lib/upload-status-realtime'
 import { useTRPC } from '@/lib/trpc/client'
 import { flowStateClientParamSerializer } from '@/lib/flow-state-params-client'
 import { QrCodeGenerator } from '@/components/qr-code-generator'
@@ -37,13 +30,10 @@ interface VerificationClientProps {
   verificationMode: MarathonVerificationMode
 }
 
-const REALTIME_CHANNEL_ENV = getRealtimeChannelEnvironmentFromNodeEnv(process.env.NODE_ENV)
-const PARTICIPANT_VERIFIED_EVENT = getRealtimeResultEventName('participant-verified')
-const PARTICIPANT_VALIDATED_EVENT = getRealtimeResultEventName('participant-validated')
-const VERIFICATION_EVENTS = [PARTICIPANT_VERIFIED_EVENT, PARTICIPANT_VALIDATED_EVENT] as const
-const VERIFICATION_POLL_INTERVAL_MS = 60_000
-const VALIDATION_DECISION_POLL_INTERVAL_MS = 10_000
-const VALIDATION_DECISION_QR_POLL_INTERVAL_MS = 30_000
+/** Detects the staff QR scan (`status === 'verified'`), so it stays tight while the QR is on screen. */
+const VERIFICATION_POLL_INTERVAL_MS = 5_000
+const VALIDATION_DECISION_POLL_INTERVAL_MS = 5_000
+const VALIDATION_DECISION_QR_POLL_INTERVAL_MS = 15_000
 const FINAL_VALIDATION_DECISIONS = new Set<ValidationDecision>(['passed', 'flagged'])
 
 const LIVE_QUERY_REFETCH_OPTIONS = {
@@ -101,7 +91,7 @@ export function VerificationClient({
   const t = useTranslations('VerificationPage')
   const { uploadFlowState } = useUploadFlowState()
   const [refreshTimeout, setRefreshTimeout] = useState(0)
-  const [showQrCode, setShowQrCode] = useState(verificationMode === 'all')
+  const showQrCode = verificationMode === 'all'
   const [validationTimedOut, setValidationTimedOut] = useState(false)
 
   const confirmationHref = useMemo(() => {
@@ -109,10 +99,6 @@ export function VerificationClient({
     return formatDomainPathname(`/live/confirmation${serializedParams}`, domain)
   }, [domain, uploadFlowState])
 
-  const participantChannel = useMemo(
-    () => getParticipantRealtimeChannel(REALTIME_CHANNEL_ENV, domain, participantRef),
-    [domain, participantRef],
-  )
   const isFlaggedMode = verificationMode === 'flagged'
 
   const {
@@ -170,22 +156,6 @@ export function VerificationClient({
     ),
   )
 
-  const handlersRef = useRef({
-    confirmationHref,
-    router,
-    refetchValidationStatus,
-    setShowQrCode,
-  })
-
-  useEffect(() => {
-    handlersRef.current = {
-      confirmationHref,
-      router,
-      refetchValidationStatus,
-      setShowQrCode,
-    }
-  }, [confirmationHref, refetchValidationStatus, router])
-
   useEffect(() => {
     if (verificationMode === 'none') {
       router.replace(confirmationHref)
@@ -237,34 +207,6 @@ export function VerificationClient({
     validationStatusIsError,
     validationTimedOut,
   ])
-
-  useRealtime({
-    events: [...VERIFICATION_EVENTS],
-    channels: participantChannel ? [participantChannel] : [],
-    enabled: Boolean(domain) && Boolean(participantRef) && participantChannel.length > 0,
-    onData: ({ event, data: rawData }) => {
-      const data = parseUploadRealtimeEventData(rawData)
-      if (!data) return
-      if (data.domain && data.domain !== domain) return
-      if (data.reference !== participantRef) return
-
-      if (event === PARTICIPANT_VERIFIED_EVENT) {
-        if (data.outcome !== 'error') {
-          handlersRef.current.router.replace(handlersRef.current.confirmationHref)
-        }
-        return
-      }
-
-      if (event === PARTICIPANT_VALIDATED_EVENT) {
-        if (data.outcome === 'error') {
-          handlersRef.current.setShowQrCode(true)
-          return
-        }
-
-        void handlersRef.current.refetchValidationStatus()
-      }
-    },
-  })
 
   useEffect(() => {
     if (refreshTimeout <= 0) return

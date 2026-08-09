@@ -9,21 +9,15 @@ import { FINALIZATION_STATE, UPLOAD_PHASE } from '@/lib/flow/types'
 import {
   MIN_UPLOAD_PROGRESS_DISPLAY_MS,
   PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS,
-  PARTICIPANT_FINALIZATION_REALTIME_POLL_INTERVAL_MS,
   PARTICIPANT_FINALIZATION_TIMEOUT_MS,
   UPLOAD_FLOW_STATUS_QUERY_MAX_RETRY_DELAY_MS,
   shouldRetryStatusQuery,
 } from '@/lib/flow/constants'
-import { useRealtimeHealth } from '@/lib/use-realtime-health'
-import { useUploadStatusRealtime } from '@/lib/use-upload-status-realtime'
 
 interface UseUploadFinalizationOptions {
   domain: string
   reference: string
 }
-
-/** Unused realtime handlers: this hook only reacts to `participant-finalized`. */
-function noop() {}
 
 export function useUploadFinalization({ domain, reference }: UseUploadFinalizationOptions) {
   const trpc = useTRPC()
@@ -131,9 +125,7 @@ export function useUploadFinalization({ domain, reference }: UseUploadFinalizati
     (finalizationState === FINALIZATION_STATE.FINALIZING ||
       finalizationState === FINALIZATION_STATE.TIMEOUT_BLOCKED)
 
-  const { isHealthy: isRealtimeHealthy } = useRealtimeHealth()
-
-  const { data: participant, refetch: refetchParticipantStatus } = useQuery(
+  const { data: participant } = useQuery(
     trpc.participants.getPublicParticipantStatus.queryOptions(
       {
         domain,
@@ -141,11 +133,7 @@ export function useUploadFinalization({ domain, reference }: UseUploadFinalizati
       },
       {
         enabled: participantQueryEnabled,
-        refetchInterval: participantQueryEnabled
-          ? isRealtimeHealthy
-            ? PARTICIPANT_FINALIZATION_REALTIME_POLL_INTERVAL_MS
-            : PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS
-          : false,
+        refetchInterval: participantQueryEnabled ? PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS : false,
         refetchIntervalInBackground: true,
         retry: shouldRetryStatusQuery,
         retryDelay: (attemptIndex) =>
@@ -153,24 +141,6 @@ export function useUploadFinalization({ domain, reference }: UseUploadFinalizati
       },
     ),
   )
-
-  /**
-   * The finalizer emits `participant-finalized` after writing the settled status, so it is safe
-   * to read on. Guarded because `refetch` ignores `enabled`.
-   */
-  const handleParticipantFinalized = useCallback(() => {
-    if (!participantQueryEnabled) return
-    void refetchParticipantStatus()
-  }, [participantQueryEnabled, refetchParticipantStatus])
-
-  useUploadStatusRealtime({
-    domain,
-    reference,
-    enabled: isUploading && !!reference && fileListLength > 0,
-    onSubmissionProcessed: noop,
-    onParticipantFinalized: handleParticipantFinalized,
-    onEventError: noop,
-  })
 
   useEffect(() => {
     if (!participant) {

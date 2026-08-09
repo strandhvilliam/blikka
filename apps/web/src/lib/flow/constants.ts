@@ -34,9 +34,8 @@ export const UPLOAD_TIMEOUT_MS = 1000 * 60 * 3 // 3 minutes
 export const UPLOAD_CONCURRENCY_LIMIT = 1
 export const MIN_UPLOAD_PROGRESS_DISPLAY_MS = 3000 // 3 seconds
 
-/** `participant-finalized` is the primary signal; the poll is a backstop, so it slows while connected. */
-export const PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS = 5000 // 5 seconds
-export const PARTICIPANT_FINALIZATION_REALTIME_POLL_INTERVAL_MS = 15000 // 15 seconds
+/** The only finalization signal — no push channel nudges this along. */
+export const PARTICIPANT_FINALIZATION_POLL_INTERVAL_MS = 4000 // 4 seconds
 
 /** Continue even if the status hasn't settled — the photos are already in S3 by this point. */
 export const PARTICIPANT_FINALIZATION_TIMEOUT_MS = 1000 * 60 // 1 minute
