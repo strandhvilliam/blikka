@@ -336,29 +336,26 @@ html.lenis body {
   }
 }
 
-/* Blur masks the crossfade, so the count reads as one object settling. */
-@keyframes confirmation-settle {
+/* Opacity only: the glow carries its centring translates in utilities, and a
+   transform keyframe under `animation-fill-mode: both` would outrank them. */
+@keyframes confirmation-glow {
   from {
     opacity: 0;
-    filter: blur(8px);
-    transform: scale(0.97);
   }
   to {
     opacity: 1;
-    filter: blur(0);
-    transform: scale(1);
   }
 }
 
 /* One-shot ripple that settles, rather than a ring pulsing forever. */
 @keyframes confirmation-ripple {
   from {
-    opacity: 0.45;
+    opacity: 0.5;
     transform: scale(1);
   }
   to {
     opacity: 0;
-    transform: scale(1.85);
+    transform: scale(2.1);
   }
 }
 
@@ -375,19 +372,6 @@ html.lenis body {
   }
 }
 
-/* Own keyframes rather than a shared fade: a generic fade ends at opacity 1,
-   and under `animation-fill-mode: both` that final keyframe outranks any
-   opacity utility on the element — which would paint the wallpaper at full
-   strength, on top of the type it sits behind. */
-@keyframes confirmation-wallpaper-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 0.15;
-  }
-}
-
 @layer utilities {
   .confirmation-fade {
     animation: confirmation-fade 320ms var(--ease-out-strong) both;
@@ -398,17 +382,18 @@ html.lenis body {
   .confirmation-pop {
     animation: confirmation-pop 380ms var(--ease-out-strong) both;
   }
-  .confirmation-settle {
-    animation: confirmation-settle 420ms var(--ease-out-strong) both;
+  .confirmation-glow {
+    animation: confirmation-glow 700ms var(--ease-out-strong) 120ms both;
   }
+  /* Two rings, staggered — a burst that reads as one event, not a pulse loop. */
   .confirmation-ripple {
-    animation: confirmation-ripple 1100ms var(--ease-out-strong) 420ms both;
+    animation: confirmation-ripple 1200ms var(--ease-out-strong) 380ms both;
+  }
+  .confirmation-ripple-late {
+    animation: confirmation-ripple 1200ms var(--ease-out-strong) 620ms both;
   }
   .confirmation-nudge {
     animation: confirmation-nudge 900ms var(--ease-out-strong) 1400ms 2 both;
-  }
-  .confirmation-wallpaper {
-    animation: confirmation-wallpaper-in 700ms var(--ease-out-strong) 80ms both;
   }
 
   .confirmation-hide-scrollbar {
@@ -420,19 +405,19 @@ html.lenis body {
   }
 }
 
-/* Reduced motion keeps the ordering cue but drops every transform, the ripple
+/* Reduced motion keeps the ordering cue but drops every transform, the ripples
    and the nudge. */
 @media (prefers-reduced-motion: reduce) {
   .confirmation-rise,
-  .confirmation-pop,
-  .confirmation-settle {
+  .confirmation-pop {
     animation: confirmation-fade 200ms ease both;
   }
   .confirmation-ripple,
+  .confirmation-ripple-late,
   .confirmation-nudge {
     animation: none;
   }
-  .confirmation-wallpaper {
+  .confirmation-glow {
     animation-duration: 200ms;
     animation-delay: 0ms;
   }

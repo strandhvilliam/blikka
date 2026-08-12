@@ -20,6 +20,19 @@ const Confetti = dynamic(() => import('react-confetti').then((mod) => mod.defaul
 const THUMBNAILS_BUCKET = process.env.NEXT_PUBLIC_THUMBNAILS_BUCKET_NAME
 const SUBMISSIONS_BUCKET = process.env.NEXT_PUBLIC_SUBMISSIONS_BUCKET_NAME
 
+/** Wider than the brand palette — this is the one screen that gets to celebrate. */
+const CONFETTI_COLORS = [
+  '#22C55E',
+  '#10B981',
+  '#FE4D3A',
+  '#F5A623',
+  '#FACC15',
+  '#3B82F6',
+  '#A855F7',
+  '#EC4899',
+  '#14B8A6',
+]
+
 export interface ConfirmationImage {
   imageUrl: string | undefined
   name: string
@@ -68,7 +81,12 @@ export function ConfirmationMarathonClient({ params }: ConfirmationMarathonClien
       orderIndex: submission.topic?.orderIndex ?? index,
     }))
 
-  const tags = [participant.deviceGroup?.name, participant.competitionClass?.name].filter(Boolean)
+  const participantName = `${params.participantFirstName} ${params.participantLastName}`.trim()
+  const chips = [
+    participantName,
+    participant.competitionClass?.name,
+    participant.deviceGroup?.name,
+  ].filter((chip): chip is string => Boolean(chip))
 
   return (
     <div className="w-full overflow-x-clip">
@@ -81,176 +99,162 @@ export function ConfirmationMarathonClient({ params }: ConfirmationMarathonClien
         {!reduceMotion && images.length > 0 ? (
           <Confetti
             recycle={false}
-            numberOfPieces={220}
-            gravity={0.18}
-            colors={['#FE4D3A', '#FE3923', '#1C1C1C', '#E8E4DF', '#F5A623']}
+            numberOfPieces={420}
+            gravity={0.2}
+            colors={CONFETTI_COLORS}
             style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 40 }}
           />
         ) : null}
       </Suspense>
 
-      {/* Opening beat — the whole first screen */}
-      <section className="relative flex min-h-dvh flex-col items-center justify-center px-6 pt-16 pb-16">
-        {/* The series itself, as wallpaper */}
-        {images.length > 0 ? (
-          <div
-            aria-hidden="true"
-            className="confirmation-wallpaper pointer-events-none absolute inset-0 -z-10 grid auto-rows-min grid-cols-4 content-start gap-1 overflow-hidden [mask-image:linear-gradient(to_bottom,black_0%,black_24%,transparent_68%)]"
-          >
-            {images.map((image) =>
-              image.imageUrl ? (
-                <div key={image.orderIndex} className="aspect-square overflow-hidden">
-                  <img
-                    src={image.imageUrl}
-                    alt=""
-                    loading="lazy"
-                    className="h-full w-full object-cover blur-[1px]"
-                  />
-                </div>
-              ) : null,
-            )}
-          </div>
-        ) : null}
+      {/*
+       * Opening beat — the whole first screen. The oversized bottom padding is
+       * what lifts the centred stack above optical centre, leaving room for the
+       * timeline and the scroll cue without either falling below the fold.
+       */}
+      <section className="relative mx-auto flex min-h-dvh w-full max-w-md flex-col items-center justify-center px-5 pt-8 pb-24">
+        <div
+          aria-hidden="true"
+          className="confirmation-glow pointer-events-none absolute top-1/2 left-1/2 -z-10 h-[520px] w-[520px] -translate-x-1/2 -translate-y-[62%] rounded-full [background:radial-gradient(circle,rgba(16,185,129,0.22)_0%,rgba(16,185,129,0.06)_42%,transparent_70%)]"
+        />
 
         <p
           className="confirmation-fade text-center text-[11px] font-semibold tracking-[0.24em] text-muted-foreground uppercase"
-          style={{ animationDelay: '160ms' }}
+          style={{ animationDelay: '120ms' }}
         >
           {marathon.name}
         </p>
 
-        <div className="relative mt-8">
+        <div className="relative mt-6">
           <span
-            className="confirmation-ripple absolute inset-0 rounded-full border border-brand-primary"
+            className="confirmation-ripple absolute inset-0 rounded-full border-2 border-emerald-500"
             aria-hidden="true"
           />
           <span
-            className="confirmation-pop relative flex h-12 w-12 items-center justify-center rounded-full bg-brand-primary"
-            style={{ animationDelay: '240ms' }}
+            className="confirmation-ripple-late absolute inset-0 rounded-full border border-emerald-500/60"
+            aria-hidden="true"
+          />
+          <span
+            className="confirmation-pop relative flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 shadow-xl shadow-emerald-500/30"
+            style={{ animationDelay: '180ms' }}
           >
-            <Check className="h-6 w-6 text-white" strokeWidth={3} />
+            <Check className="h-8 w-8 text-white" strokeWidth={3} />
           </span>
         </div>
 
-        <p
-          className="confirmation-settle mt-7 font-special-gothic text-[86px] leading-[0.86] text-brand-primary tabular-nums"
-          style={{ animationDelay: '340ms' }}
-        >
-          {images.length}
-        </p>
-        <p
-          className="confirmation-rise mt-2 text-[13px] font-medium tracking-[0.14em] text-muted-foreground uppercase"
-          style={{ animationDelay: '400ms' }}
-        >
-          {t('photosDelivered')}
-        </p>
         <h1
-          className="confirmation-rise mt-5 text-center font-gothic text-[26px] leading-tight font-medium tracking-tight text-balance text-foreground"
-          style={{ animationDelay: '460ms' }}
+          className="confirmation-rise mt-6 text-center font-gothic text-[30px] leading-tight font-medium tracking-tight text-balance text-foreground"
+          style={{ animationDelay: '300ms' }}
         >
-          {t('seriesComplete')}
+          {t('uploadSucceeded')}
         </h1>
-
         <p
-          className="confirmation-rise mt-6 flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2 text-[13px] text-muted-foreground shadow-sm"
-          style={{ animationDelay: '520ms' }}
+          className="confirmation-rise mt-2.5 max-w-[32ch] text-center text-[14px] leading-relaxed text-balance text-muted-foreground"
+          style={{ animationDelay: '360ms' }}
         >
-          <span className="font-mono text-[15px] font-bold text-foreground tabular-nums">
+          {t('seriesDelivered', { count: images.length })}
+        </p>
+
+        <div
+          className="confirmation-rise mt-5 flex flex-wrap items-center justify-center gap-2"
+          style={{ animationDelay: '440ms' }}
+        >
+          <span className="rounded-full border border-border bg-card px-3 py-1.5 font-mono text-[13px] font-bold text-foreground tabular-nums shadow-sm">
             #{participant.reference}
           </span>
-          <span className="h-3 w-px bg-border" aria-hidden="true" />
-          {params.participantFirstName} {params.participantLastName}
-        </p>
+          {chips.map((chip) => (
+            <span
+              key={chip}
+              className="rounded-full border border-border bg-card px-3 py-1.5 text-[13px] text-muted-foreground shadow-sm"
+            >
+              {chip}
+            </span>
+          ))}
+        </div>
+
+        {/*
+         * The whole timeline, on the first screen — the page answers "and now?"
+         * before asking anyone to scroll.
+         *
+         * A rail rather than numbered badges: the hairline carries the sequence,
+         * so no row needs a numeral of its own. Sized tight — an eyebrow instead
+         * of a heading, 13px rows — so it clears the fold.
+         */}
+        <div
+          className="confirmation-rise mt-6 w-full rounded-2xl border border-border bg-card px-5 py-5 text-left shadow-sm"
+          style={{ animationDelay: '520ms' }}
+        >
+          <p className="text-center text-[10px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
+            {t('whatsNext')}
+          </p>
+          <ol className="mt-4">
+            {[1, 2, 3, 4].map((step) => (
+              <li
+                key={step}
+                className="relative border-l border-border pb-3.5 pl-5 last:border-l-transparent last:pb-0"
+              >
+                {/* 7px dot straddling the 1px rail: -4px puts its centre on the border. */}
+                <span
+                  aria-hidden="true"
+                  className="absolute top-[3px] -left-[4px] h-[7px] w-[7px] rounded-full border border-border bg-card"
+                />
+                <p className="text-[13px] leading-snug text-muted-foreground">
+                  {t(`steps.${step}`)}
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
 
         {images.length > 0 ? (
           <div
-            className="confirmation-fade absolute inset-x-0 bottom-8 flex flex-col items-center gap-1.5"
+            className="confirmation-fade absolute inset-x-0 bottom-6 flex flex-col items-center gap-2"
             style={{ animationDelay: '900ms' }}
           >
             <p className="text-[10px] font-semibold tracking-[0.2em] text-muted-foreground uppercase">
-              {t('yourSeries')}
+              {t('scrollForSeries')}
             </p>
-            <ChevronDown className="confirmation-nudge h-4 w-4 text-muted-foreground" />
+            <span className="confirmation-nudge flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card shadow-sm">
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            </span>
           </div>
         ) : null}
       </section>
 
-      {/* The series, as a spread */}
+      {/* The series, below the fold */}
       {images.length > 0 ? (
-        <section className="mx-auto w-full max-w-[520px] px-4 pb-4">
-          {Array.from({ length: Math.ceil(images.length / 3) }, (_, group) => {
-            const [lead, ...rest] = images.slice(group * 3, group * 3 + 3)
-            if (!lead) return null
-            return (
-              <div key={group} className="mb-2">
-                <PhotoTile
-                  image={lead}
-                  index={group * 3}
-                  ratio="aspect-[3/2]"
-                  onOpen={setViewing}
-                />
-                {rest.length > 0 ? (
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {rest.map((image, offset) => (
-                      <PhotoTile
-                        key={image.orderIndex}
-                        image={image}
-                        index={group * 3 + offset + 1}
-                        ratio="aspect-square"
-                        onOpen={setViewing}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-              </div>
-            )
-          })}
+        <section className="mx-auto w-full max-w-md px-5 pt-2">
+          <div className="mb-4 flex items-baseline justify-between">
+            <h2 className="font-gothic text-2xl font-medium tracking-tight text-foreground">
+              {t('yourSeries')}
+            </h2>
+            <span className="font-mono text-[13px] text-muted-foreground tabular-nums">
+              {images.length}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            {images.map((image, index) => (
+              <PhotoTile
+                key={image.orderIndex}
+                image={image}
+                index={index}
+                onOpen={setViewing}
+              />
+            ))}
+          </div>
         </section>
       ) : null}
 
-      {/* What happens now */}
-      <section className="mx-auto w-full max-w-[520px] px-6 pt-10 pb-4">
-        <h2 className="font-gothic text-2xl font-medium tracking-tight text-foreground">
-          {t('whatsNext')}
-        </h2>
-        <ol className="mt-5">
-          {[1, 2, 3, 4].map((step) => (
-            <li key={step} className="flex gap-4 border-t border-border py-4 last:border-b">
-              <span className="mt-0.5 font-mono text-[13px] font-bold text-brand-primary tabular-nums">
-                {String(step).padStart(2, '0')}
-              </span>
-              <p className="min-w-0 text-[15px] leading-snug text-foreground">
-                {step === 3
-                  ? t('steps.3', { juryDate: '31/8', resultsDate: '1/9' })
-                  : step === 4
-                    ? t('steps.4', { prizeDate: '20/8' })
-                    : t(`steps.${step}`)}
-              </p>
-            </li>
-          ))}
-        </ol>
-      </section>
-
       {/* Close */}
       <section
-        className="mx-auto w-full max-w-[520px] px-6 pt-6"
+        className="mx-auto w-full max-w-md px-5 pt-8"
         style={{ paddingBottom: 'max(40px, env(safe-area-inset-bottom))' }}
       >
-        <div className="rounded-2xl bg-muted/50 px-5 py-4">
-          <p className="text-[11px] font-semibold tracking-[0.16em] text-muted-foreground uppercase">
-            {t('registeredAs')}
-          </p>
-          <p className="mt-1.5 text-[15px] font-semibold text-foreground">
-            {params.participantFirstName} {params.participantLastName}
-          </p>
-          <p className="mt-0.5 text-[13px] text-muted-foreground">
-            {['#' + participant.reference, ...tags].join(' · ')}
-          </p>
-        </div>
         <button
           type="button"
           onClick={handleRedirect}
-          className="mx-auto mt-6 flex h-11 items-center gap-2 rounded-full px-4 text-[13px] font-semibold text-muted-foreground transition-transform duration-150 ease-out-strong active:scale-[0.97]"
+          className="mx-auto flex h-11 items-center gap-2 rounded-full border border-border bg-card px-5 text-[13px] font-semibold text-muted-foreground shadow-sm transition-transform duration-150 ease-out-strong active:scale-[0.97]"
         >
           <Recycle className="h-4 w-4" />
           {t('startAgain')}
@@ -271,26 +275,24 @@ export function ConfirmationMarathonClient({ params }: ConfirmationMarathonClien
 function PhotoTile({
   image,
   index,
-  ratio,
   onOpen,
 }: {
   image: ConfirmationImage
   index: number
-  ratio: string
   onOpen: (index: number) => void
 }) {
   return (
     <button
       type="button"
       onClick={() => onOpen(index)}
-      className="block w-full text-left transition-transform duration-150 ease-out-strong active:scale-[0.99]"
+      className="block w-full text-left transition-transform duration-150 ease-out-strong active:scale-[0.98]"
     >
-      <div className={`${ratio} overflow-hidden rounded-xl bg-muted`}>
+      <div className="aspect-square overflow-hidden rounded-xl bg-muted">
         {image.imageUrl ? (
           <img
             src={image.imageUrl}
             alt={image.name}
-            loading={index < 3 ? 'eager' : 'lazy'}
+            loading={index < 4 ? 'eager' : 'lazy'}
             className="h-full w-full object-cover"
           />
         ) : (

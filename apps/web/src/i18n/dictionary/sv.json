@@ -400,16 +400,16 @@
     "byCameraMissedTopicTitle": "Du deltog inte i detta tema",
     "byCameraMissedTopicMessage": "Uppladdningsperioden för {topic} har avslutats. Du kan stänga den här sidan.",
     "byCameraCurrentTopic": "aktuella temat",
-    "photosDelivered": "foton inlämnade",
-    "seriesComplete": "Din bildserie är komplett.",
+    "uploadSucceeded": "Uppladdningen lyckades!",
+    "seriesDelivered": "{count, plural, =0 {Din anmälan är bekräftad.} =1 {Ditt foto är inlämnat och redo för bedömning.} other {Alla # foton är inlämnade och redo för bedömning.}}",
+    "scrollForSeries": "Skrolla för att se dina bilder",
     "yourSeries": "Din bildserie",
-    "registeredAs": "Registrerad som",
     "closeViewer": "Stäng foto",
     "steps": {
       "1": "Vi verifierar alla bildserier medan ni sover gott. (Spara era bilder i en vecka i fall vi hittar något fel)",
       "2": "Bilderna går till tryck redan i början av nästa vecka",
-      "3": "Jury möts {juryDate}. Först {resultsDate} får ni dela era tävlingsbilder utanför vår grupp på Facebook",
-      "4": "Boka in {prizeDate} redan nu då årets prisgala är planerad!"
+      "3": "När juryn har träffats och resultaten är klara får ni dela era tävlingsbilder utanför vår grupp på Facebook",
+      "4": "Årets prisgala planeras redan nu"
     }
   },
   "VotingViewerPage": {

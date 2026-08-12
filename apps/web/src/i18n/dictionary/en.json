@@ -400,16 +400,16 @@
     "byCameraMissedTopicTitle": "You didn't take part in this topic",
     "byCameraMissedTopicMessage": "The upload period for {topic} has ended. You can close this page.",
     "byCameraCurrentTopic": "the current topic",
-    "photosDelivered": "photos delivered",
-    "seriesComplete": "Your series is complete.",
+    "uploadSucceeded": "Upload succeeded!",
+    "seriesDelivered": "{count, plural, =0 {Your registration is confirmed.} =1 {Your photo is delivered and ready for judging.} other {All # photos are delivered and ready for judging.}}",
+    "scrollForSeries": "Scroll to see your submissions",
     "yourSeries": "Your series",
-    "registeredAs": "Registered as",
     "closeViewer": "Close photo",
     "steps": {
       "1": "We verify all photo series while you sleep well. (Save your photos for a week in case something goes wrong)",
       "2": "The photos go to print already at the beginning of next week",
-      "3": "The jury meets {juryDate}. First {resultsDate} you can share your competition photos outside our group on Facebook",
-      "4": "Book in {prizeDate} already as the annual prize ceremony is planned!"
+      "3": "Once the jury has met and the results are announced, you can share your competition photos outside our group on Facebook",
+      "4": "The annual prize ceremony is already being planned"
     }
   },
   "VotingViewerPage": {
