@@ -22,10 +22,7 @@ interface ParticipantConfirmationDialogProps {
   expectedParticipantRef: string
 }
 
-export function formatParticipantRefForDisplay(ref: string | undefined | null): string {
-  if (!ref) return ''
-  return ref.replace(/^0+/, '') || '0'
-}
+const PARTICIPANT_REF_PLACEHOLDER = '––––'
 
 export function ParticipantConfirmationDialog({
   open,
@@ -92,7 +89,7 @@ export function ParticipantConfirmationDialog({
               'text-center !text-4xl h-16 font-bold font-mono tracking-widest bg-background',
               showError && 'border-red-500 focus-visible:ring-red-500',
             )}
-            placeholder={formatParticipantRefForDisplay(expectedParticipantRef)}
+            placeholder={PARTICIPANT_REF_PLACEHOLDER}
             maxLength={4}
             enterKeyHint="done"
           />
