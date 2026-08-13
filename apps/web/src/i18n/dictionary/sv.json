@@ -406,10 +406,10 @@
     "yourSeries": "Din bildserie",
     "closeViewer": "Stäng foto",
     "steps": {
-      "1": "Vi verifierar alla bildserier medan ni sover gott. (Spara era bilder i en vecka i fall vi hittar något fel)",
-      "2": "Bilderna går till tryck redan i början av nästa vecka",
-      "3": "När juryn har träffats och resultaten är klara får ni dela era tävlingsbilder utanför vår grupp på Facebook",
-      "4": "Årets prisgala planeras redan nu"
+      "1": "Vi kontrollerar alla bildserier – spara dina original en vecka.",
+      "2": "Bilderna går till tryck nästa vecka.",
+      "3": "Du får dela dina bilder publikt när resultaten är klara.",
+      "4": "Årets prisgala planeras."
     }
   },
   "VotingViewerPage": {

@@ -406,10 +406,10 @@
     "yourSeries": "Your series",
     "closeViewer": "Close photo",
     "steps": {
-      "1": "We verify all photo series while you sleep well. (Save your photos for a week in case something goes wrong)",
-      "2": "The photos go to print already at the beginning of next week",
-      "3": "Once the jury has met and the results are announced, you can share your competition photos outside our group on Facebook",
-      "4": "The annual prize ceremony is already being planned"
+      "1": "We verify every series — keep your originals for a week.",
+      "2": "Photos go to print next week.",
+      "3": "You can share your photos publicly once results are announced.",
+      "4": "The annual prize ceremony is being planned."
     }
   },
   "VotingViewerPage": {
