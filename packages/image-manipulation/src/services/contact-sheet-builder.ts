@@ -229,12 +229,16 @@ function getImageLabel(
 }
 
 /**
- * Centre a prepared image inside its cell's image box.
+ * Place a prepared image in its cell: left-aligned horizontally, centred vertically.
  *
- * Uses the image's real dimensions rather than the nominal `imageWidth`/`imageHeight`: those
- * describe a 3:2 photo, and anything wider (a panoramic frame, most sponsor logos) comes back
- * from `fit: 'inside'` at the full box width. Offsetting such an image by the 3:2 gutter pushed
- * it past its cell — and, in the right-hand column, past the canvas edge, where libvips clips it.
+ * The left edge is the nominal 3:2 gutter — the same offset {@link generateTextLabelSvg} starts
+ * its caption at — so a portrait frame, a square crop and a landscape frame all share one left
+ * edge with their captions, instead of each floating to its own centre.
+ *
+ * The gutter is clamped against the image's real width rather than the nominal `imageWidth`:
+ * anything wider than 3:2 (a panoramic frame, most sponsor logos) comes back from `fit: 'inside'`
+ * at the full box width, and offsetting it by the gutter pushed it past its cell — and, in the
+ * right-hand column, past the canvas edge, where libvips clips it.
  */
 function getImagePosition({
   x,
@@ -249,9 +253,11 @@ function getImagePosition({
   height: number
   sheetVariables: SheetVariables
 }) {
+  const gutter = Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)
+
   return {
     top: y + Math.max(0, Math.floor((sheetVariables.availableImageHeight - height) / 2)),
-    left: x + Math.max(0, Math.floor((sheetVariables.cellWidth - width) / 2)),
+    left: x + Math.max(0, Math.min(gutter, sheetVariables.cellWidth - width)),
   }
 }
 
