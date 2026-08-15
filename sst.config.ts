@@ -350,10 +350,51 @@ export default $config({
     })
 
     /* OBSERVABILITY ALARMS
-     * CloudWatch alarms → a single SNS topic, so a live event surfaces failures fast.
-     * The topic has no subscription yet: subscribe an email/Slack endpoint (console or
-     * `aws sns subscribe`) to actually receive alerts. See docs/observability-improvements.md. */
+     * CloudWatch alarms → a single SNS topic, so a live event surfaces failures fast. */
     const alertsTopic = new aws.sns.Topic('ObservabilityAlerts')
+
+    /* Slack delivery for that topic, via AWS Chatbot (console name: "Amazon Q Developer in chat
+     * applications"). Authorizing the Slack workspace is a one-time OAuth handshake in the AWS
+     * console and cannot be expressed here; it is what produces SLACK_TEAM_ID. SLACK_ALERTS_CHANNEL_ID
+     * comes from Slack's "View channel details", and the channel needs `/invite @Amazon Q` first.
+     *
+     * Production only: every stage builds its own topic and its own alarms, so a dev stage wired to
+     * the same channel would page on its own test traffic. Missing ids skip the resource rather than
+     * failing the deploy, so a prod deploy from a machine without them still goes through. */
+    const slackTeamId = process.env.SLACK_TEAM_ID
+    const slackChannelId = process.env.SLACK_ALERTS_CHANNEL_ID
+    if ($app.stage === 'production' && slackTeamId && slackChannelId) {
+      const chatbotRole = new aws.iam.Role('ChatbotAlertsRole', {
+        assumeRolePolicy: JSON.stringify({
+          Version: '2012-10-17',
+          Statement: [
+            {
+              Effect: 'Allow',
+              Principal: { Service: 'chatbot.amazonaws.com' },
+              Action: 'sts:AssumeRole',
+            },
+          ],
+        }),
+      })
+
+      /* Lets the alarm card render its metric graph inline. */
+      new aws.iam.RolePolicyAttachment('ChatbotAlertsReadOnly', {
+        role: chatbotRole.name,
+        policyArn: 'arn:aws:iam::aws:policy/CloudWatchReadOnlyAccess',
+      })
+
+      new aws.chatbot.SlackChannelConfiguration('SlackAlerts', {
+        configurationName: `blikka-${$app.stage}-alerts`,
+        iamRoleArn: chatbotRole.arn,
+        slackTeamId,
+        slackChannelId,
+        snsTopicArns: [alertsTopic.arn],
+        /* Ceiling on what anyone can run *from* the channel. Left unset, AWS defaults this to
+         * AdministratorAccess, which turns the Slack channel into a shell on the account. */
+        guardrailPolicyArns: ['arn:aws:iam::aws:policy/ReadOnlyAccess'],
+        loggingLevel: 'ERROR',
+      })
+    }
 
     const dlqDepthAlarm = (name: string, queueName: $util.Input<string>) =>
       new aws.cloudwatch.MetricAlarm(name, {
