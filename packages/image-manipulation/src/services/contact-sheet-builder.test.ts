@@ -337,6 +337,47 @@ describe('ContactSheetBuilder', () => {
     }),
   )
 
+  it.effect('left-aligns a portrait photo with its caption', () =>
+    Effect.gen(function* () {
+      // `fit: 'inside'` leaves a 2:3 frame height-bound and far narrower than its cell, so
+      // centring it would strand the caption in the white space to its left.
+      const { state } = yield* runWithState(
+        makeInitialState({
+          prepareSize: (call) => ({
+            width: Math.floor(call.height * (2 / 3)),
+            height: call.height,
+          }),
+        }),
+        () =>
+          Effect.gen(function* () {
+            const builder = yield* ContactSheetBuilder
+            yield* builder.createSheet({
+              reference: 'REF123',
+              images: makeImages(8),
+              sponsorPosition: 'bottom-right',
+              topics: makeTopics(8),
+              format: 'classic',
+            })
+          }),
+      )
+
+      // Each captioned photo composites as [photo, caption]; the reference overlay trails.
+      const items = state.canvasCalls[0]?.items ?? []
+      assert.lengthOf(items, 17)
+
+      for (let index = 0; index < 8; index++) {
+        const photo = items[index * 2]
+        const caption = items[index * 2 + 1]
+        const captionSvg = caption?.input?.toString() ?? ''
+        const textX = Number(/<text x="(\d+)"/.exec(captionSvg)?.[1])
+
+        // The caption SVG spans the whole cell, so the text's own x is the shared left edge.
+        assert.strictEqual(textX, 65)
+        assert.strictEqual(photo?.left, (caption?.left ?? 0) + textX)
+      }
+    }),
+  )
+
   it.effect('maps sharp failures to contact sheet build failures', () =>
     Effect.gen(function* () {
       const sharpError = new SharpError({ message: 'sharp failed' })
