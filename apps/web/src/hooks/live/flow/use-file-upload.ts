@@ -121,9 +121,9 @@ export function useFileUpload() {
   )
 
   const retryFailedFiles = useCallback(async (): Promise<void> => {
-    const failedFiles = selectFailedFiles(useUploadStore.getState()).filter(
-      (file) => file.error?.retriable !== false,
-    )
+    // Errors classified as non-retriable are retried anyway — the classification
+    // is too often wrong in the field to justify stranding a participant on it.
+    const failedFiles = selectFailedFiles(useUploadStore.getState())
     if (failedFiles.length === 0) return
 
     if (reference) {

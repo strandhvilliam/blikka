@@ -158,7 +158,7 @@ function ByCameraProgressUploadPhase({
         </div>
       </div>
 
-      {status === 'error' && onRetry && uploadSummary?.retriable !== false && (
+      {status === 'error' && onRetry && (
         <div className="mt-4 border-t border-dashed border-destructive/20 pt-4">
           <Button
             onClick={onRetry}

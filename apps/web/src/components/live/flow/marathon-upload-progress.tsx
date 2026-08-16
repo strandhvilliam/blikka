@@ -356,7 +356,7 @@ export function MarathonUploadProgress({
               </details>
             )}
 
-            {onRetry && isSettled && uploadSummary?.retriable !== false && (
+            {onRetry && isSettled && (
               <div className="mt-4 border-t border-dashed border-destructive/20 pt-4">
                 <Button
                   onClick={onRetry}
