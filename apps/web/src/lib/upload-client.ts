@@ -133,10 +133,14 @@ export function classifyUploadError({
   error,
   httpStatus,
   awsCode,
+  awsRequestId,
+  awsHostId,
 }: {
   error: Error
   httpStatus?: number
   awsCode?: string
+  awsRequestId?: string
+  awsHostId?: string
 }): ClientUploadErrorCode {
   const message = error.message.toLowerCase()
   const normalizedAwsCode = awsCode?.trim()
@@ -191,11 +195,19 @@ export function classifyUploadError({
     return 'AWS_FORBIDDEN'
   }
 
-  if (
-    normalizedAwsCode !== undefined ||
-    (httpStatus !== undefined && httpStatus >= 400 && httpStatus < 500)
-  ) {
+  if (normalizedAwsCode !== undefined) {
     return 'AWS_BAD_REQUEST'
+  }
+
+  if (httpStatus !== undefined && httpStatus >= 400 && httpStatus < 500) {
+    // S3 rejections carry an XML <Code> and/or x-amz-request-id headers. A bare
+    // 4xx with neither was manufactured by something between the client and S3
+    // (venue firewall, transparent proxy) — a network problem, not a problem
+    // with the user's file.
+    if (awsRequestId !== undefined || awsHostId !== undefined) {
+      return 'AWS_BAD_REQUEST'
+    }
+    return 'FIREWALL_OR_PROXY_BLOCKED'
   }
 
   if (error instanceof TypeError && message.includes('fetch')) {
@@ -250,7 +262,7 @@ function createUploadError({
   awsHostId?: string
   rawResponseSnippet?: string
 }): ClientUploadError {
-  const code = classifyUploadError({ error, httpStatus, awsCode })
+  const code = classifyUploadError({ error, httpStatus, awsCode, awsRequestId, awsHostId })
   const retryMode = getRetryMode(code)
 
   return {
@@ -340,5 +352,65 @@ export async function uploadFileToPresignedUrl({
         source: 'browser',
       }),
     }
+  }
+}
+
+export const UPLOAD_AUTO_RETRY_DELAYS_MS: readonly number[] = [1_000, 3_000, 8_000]
+
+export function isAutoRetriableUploadError(error: ClientUploadError): boolean {
+  if (error.retryMode !== 'same-url') {
+    return false
+  }
+
+  // TIMEOUT already consumed a full timeout budget per attempt, and
+  // NETWORK_OFFLINE cannot succeed until connectivity returns — both surface
+  // to the user immediately instead of retrying silently.
+  return error.code !== 'TIMEOUT' && error.code !== 'NETWORK_OFFLINE'
+}
+
+function jitteredDelay(delayMs: number) {
+  return delayMs * (0.75 + Math.random() * 0.5)
+}
+
+/**
+ * Like `uploadFileToPresignedUrl`, but silently retries transient network and
+ * AWS failures on the same presigned URL before reporting an error.
+ */
+export async function uploadFileToPresignedUrlWithRetry({
+  file,
+  presignedUrl,
+  timeoutMs,
+  contentType,
+  retryDelaysMs = UPLOAD_AUTO_RETRY_DELAYS_MS,
+  onRetry,
+}: {
+  file: File
+  presignedUrl: string
+  timeoutMs?: number
+  /** When set, must match the Content-Type used to sign the presigned URL. */
+  contentType?: string
+  /** Backoff schedule between attempts; its length caps the number of retries. */
+  retryDelaysMs?: readonly number[]
+  onRetry?: (error: ClientUploadError, nextAttempt: number) => void
+}): Promise<
+  { ok: true; attempts: number } | { ok: false; error: ClientUploadError; attempts: number }
+> {
+  let attempts = 0
+
+  for (;;) {
+    attempts += 1
+    const result = await uploadFileToPresignedUrl({ file, presignedUrl, timeoutMs, contentType })
+
+    if (result.ok) {
+      return { ok: true, attempts }
+    }
+
+    const delayMs = retryDelaysMs[attempts - 1]
+    if (delayMs === undefined || !isAutoRetriableUploadError(result.error)) {
+      return { ok: false, error: result.error, attempts }
+    }
+
+    onRetry?.(result.error, attempts + 1)
+    await new Promise((resolve) => setTimeout(resolve, jitteredDelay(delayMs)))
   }
 }

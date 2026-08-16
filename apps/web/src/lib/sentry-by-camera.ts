@@ -169,6 +169,8 @@ export function captureByCameraS3UploadFailed(
     file?: File
     /** Effective Content-Type header on the presigned PUT (must match signature) */
     requestContentType?: string
+    /** Total PUT attempts for this file, including silent auto-retries */
+    attempts?: number
   },
 ) {
   if (!clientOnly()) return
@@ -185,6 +187,9 @@ export function captureByCameraS3UploadFailed(
   }
   if (options?.requestContentType !== undefined) {
     extras.requestContentType = options.requestContentType
+  }
+  if (options?.attempts !== undefined) {
+    extras.attempts = options.attempts
   }
 
   Sentry.captureMessage(error.message || 's3_presigned_put_failed', {
