@@ -1,6 +1,6 @@
 import { Effect, Layer, Schema, Context } from 'effect'
 import sharp from 'sharp'
-import type { OverlayOptions } from 'sharp'
+import type { FailOnOptions, OverlayOptions } from 'sharp'
 import { MAX_DECODE_INPUT_PIXELS } from '../constants'
 
 /**
@@ -104,12 +104,13 @@ export class SharpImageService extends Context.Service<
 >()('@blikka/packages/image-manipulation/SharpImageService') {}
 
 const makeSharpImageService = Effect.gen(function* () {
-  const makeSharpImage = (image: Uint8Array<ArrayBufferLike>) =>
+  const makeSharpImage = (image: Uint8Array<ArrayBufferLike>, failOn?: FailOnOptions) =>
     Effect.try({
       try: () =>
         sharp(image, {
           sequentialRead: true,
           limitInputPixels: MAX_DECODE_INPUT_PIXELS,
+          ...(failOn ? { failOn } : {}),
         }),
       catch: (error) =>
         new SharpError({
@@ -149,27 +150,55 @@ const makeSharpImageService = Effect.gen(function* () {
   const prepareForCanvas: SharpImageService['Service']['prepareForCanvas'] = Effect.fn(
     'SharpImageService.prepareForCanvas',
   )(function* (buffer, width, height, fit, background) {
-    const sharpImage = yield* makeSharpImage(buffer)
-    const { data, info } = yield* Effect.tryPromise({
-      try: () =>
-        sharpImage
-          // Auto-orient first: EXIF orientation decides which of the source dimensions is the
-          // width, so resizing before it would fit the wrong box (same order as `resize` above).
-          .rotate()
-          .resize(width, height, {
-            fit,
-            withoutEnlargement: false,
-            background,
-          })
-          .jpeg()
-          .toBuffer({ resolveWithObject: true }),
-      catch: (error) =>
-        new SharpError({
-          cause: error,
-          message: 'Failed to prepare image for canvas',
-          reason: classifyFailureReason(error),
+    const attemptDecode = (failOn?: FailOnOptions) =>
+      Effect.gen(function* () {
+        const sharpImage = yield* makeSharpImage(buffer, failOn)
+        return yield* Effect.tryPromise({
+          try: () =>
+            sharpImage
+              // Auto-orient first: EXIF orientation decides which of the source dimensions is
+              // the width, so resizing before it would fit the wrong box (same order as
+              // `resize` above).
+              .rotate()
+              .resize(width, height, {
+                fit,
+                withoutEnlargement: false,
+                background,
+              })
+              .jpeg()
+              .toBuffer({ resolveWithObject: true }),
+          catch: (error) =>
+            new SharpError({
+              cause: error,
+              message: 'Failed to prepare image for canvas',
+              reason: classifyFailureReason(error),
+            }),
+        })
+      })
+
+    // `failOn` defaults to 'warning', which aborts on the first decode issue. A damaged upload
+    // (e.g. a corrupt restart marker from a network-interrupted upload) doesn't have to sink the
+    // whole contact sheet: retrying once with `failOn: 'none'` tells libvips to decode as much of
+    // the image as it can instead of throwing, trading perfect fidelity in the damaged region for
+    // a sheet that still builds.
+    //
+    // Retried on any decode failure, not just ones `classifyFailureReason` calls
+    // `damaged-image` — libvips' text-only errors mean that classifier is necessarily incomplete
+    // (e.g. a corrupted SOS byte reports as "Invalid SOS parameters", which matches none of its
+    // patterns and falls to `unknown`). The lenient retry is a synchronous, local re-decode of
+    // bytes already in memory, so an attempt that can't be salvaged (pixel limit, not an image,
+    // genuinely truncated data) just fails again for negligible extra cost.
+    const { data, info } = yield* attemptDecode().pipe(
+      Effect.catch((error) =>
+        Effect.gen(function* () {
+          yield* Effect.logWarning(
+            'Image failed strict decode; retrying leniently to salvage the contact sheet',
+            { decodeError: error.message, reason: error.reason },
+          )
+          return yield* attemptDecode('none')
         }),
-    })
+      ),
+    )
 
     return { buffer: data, width: info.width, height: info.height }
   })
