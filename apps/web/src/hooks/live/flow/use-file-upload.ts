@@ -4,14 +4,14 @@ import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { useMutation } from '@tanstack/react-query'
 import { useTRPC } from '@/lib/trpc/client'
-import { uploadFileToPresignedUrl } from '@/lib/upload-client'
+import { uploadFileToPresignedUrlWithRetry } from '@/lib/upload-client'
 import { useUploadStore, selectFailedFiles } from '@/lib/flow/upload-store'
 import { resolveSelectedImageContentType } from '@/lib/file-processing'
 import type { PhotoWithPresignedUrl, UploadFileState, UploadPhase } from '@/lib/flow/types'
 import { UPLOAD_PHASE } from '@/lib/flow/types'
 import { UPLOAD_TIMEOUT_MS, UPLOAD_CONCURRENCY_LIMIT } from '@/lib/flow/constants'
 import { chunk } from '@/lib/flow/utils'
-import { captureByCameraS3UploadFailed } from '@/lib/sentry-by-camera'
+import { byCameraBreadcrumb, captureByCameraS3UploadFailed } from '@/lib/sentry-by-camera'
 import { useDomain } from '@/lib/domain-provider'
 import { useUploadFlowState } from '@/hooks/live/flow/use-upload-flow-state'
 import { useUploadFinalization } from '@/hooks/live/flow/use-upload-finalization'
@@ -61,11 +61,19 @@ export function useFileUpload() {
 
       try {
         updateFilePhase(file.key, UPLOAD_PHASE.UPLOADING, 0)
-        const result = await uploadFileToPresignedUrl({
+        const result = await uploadFileToPresignedUrlWithRetry({
           file: file.file,
           presignedUrl: file.presignedUrl,
           timeoutMs: UPLOAD_TIMEOUT_MS,
           contentType: file.contentType,
+          onRetry: (error, nextAttempt) => {
+            byCameraBreadcrumb('s3_put_auto_retry', {
+              submissionKey: file.key,
+              orderIndex: file.orderIndex,
+              classifiedCode: error.code,
+              nextAttempt,
+            })
+          },
         })
 
         if (!result.ok) {
@@ -74,6 +82,7 @@ export function useFileUpload() {
             submissionKey: file.key,
             file: file.file,
             requestContentType: file.contentType ?? (file.file.type || 'image/jpeg'),
+            attempts: result.attempts,
           })
           return
         }

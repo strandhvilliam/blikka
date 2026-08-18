@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { classifyUploadError, uploadFileToPresignedUrl } from './upload-client'
+import {
+  classifyUploadError,
+  uploadFileToPresignedUrl,
+  uploadFileToPresignedUrlWithRetry,
+} from './upload-client'
 
 afterEach(() => {
   vi.unstubAllGlobals()
@@ -239,5 +243,163 @@ describe('upload-client', () => {
         presignedUrl: 'https://example.com/upload',
       }),
     ).resolves.toEqual({ ok: true })
+  })
+
+  it('maps a bare 4xx without AWS markers to a network problem, not an invalid file', async () => {
+    stubOnlineStatus(true)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        createResponse({
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          body: 'Bad Request',
+        }),
+      ),
+    )
+
+    const result = await uploadFileToPresignedUrl({
+      file: new File(['image'], 'photo.jpg', { type: 'image/jpeg' }),
+      presignedUrl: 'https://example.com/upload',
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) {
+      throw new Error('Expected upload to fail')
+    }
+
+    expect(result.error.code).toBe('FIREWALL_OR_PROXY_BLOCKED')
+    expect(result.error.friendlyMessageKey).toBe('errorNetworkBlockedBody')
+    expect(result.error.retryMode).toBe('same-url')
+  })
+
+  it('keeps a 4xx with S3 request-id headers classified as an AWS rejection', async () => {
+    stubOnlineStatus(true)
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        createResponse({
+          ok: false,
+          status: 400,
+          statusText: 'Bad Request',
+          body: 'Bad Request',
+          headers: {
+            'x-amz-request-id': 'request-header',
+          },
+        }),
+      ),
+    )
+
+    const result = await uploadFileToPresignedUrl({
+      file: new File(['image'], 'photo.jpg', { type: 'image/jpeg' }),
+      presignedUrl: 'https://example.com/upload',
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) {
+      throw new Error('Expected upload to fail')
+    }
+
+    expect(result.error.code).toBe('AWS_BAD_REQUEST')
+  })
+
+  it('auto-retries transient network failures and succeeds', async () => {
+    stubOnlineStatus(true)
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+      .mockResolvedValue(createResponse({ ok: true, status: 200, statusText: 'OK' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const onRetry = vi.fn()
+    const result = await uploadFileToPresignedUrlWithRetry({
+      file: new File(['image'], 'photo.jpg', { type: 'image/jpeg' }),
+      presignedUrl: 'https://example.com/upload',
+      retryDelaysMs: [0, 0],
+      onRetry,
+    })
+
+    expect(result).toEqual({ ok: true, attempts: 2 })
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(onRetry).toHaveBeenCalledWith(
+      expect.objectContaining({ code: 'NETWORK_UNREACHABLE' }),
+      2,
+    )
+  })
+
+  it('gives up once the retry schedule is exhausted', async () => {
+    stubOnlineStatus(true)
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await uploadFileToPresignedUrlWithRetry({
+      file: new File(['image'], 'photo.jpg', { type: 'image/jpeg' }),
+      presignedUrl: 'https://example.com/upload',
+      retryDelaysMs: [0, 0],
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) {
+      throw new Error('Expected upload to fail')
+    }
+
+    expect(result.attempts).toBe(3)
+    expect(result.error.code).toBe('NETWORK_UNREACHABLE')
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+  })
+
+  it('does not auto-retry errors that need a refreshed URL', async () => {
+    stubOnlineStatus(true)
+    const fetchMock = vi.fn().mockResolvedValue(
+      createResponse({
+        ok: false,
+        status: 403,
+        statusText: 'Forbidden',
+        body: `
+          <Error>
+            <Code>SignatureDoesNotMatch</Code>
+            <Message>The request signature we calculated does not match the signature you provided.</Message>
+          </Error>
+        `,
+      }),
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await uploadFileToPresignedUrlWithRetry({
+      file: new File(['image'], 'photo.jpg', { type: 'image/jpeg' }),
+      presignedUrl: 'https://example.com/upload',
+      retryDelaysMs: [0, 0],
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) {
+      throw new Error('Expected upload to fail')
+    }
+
+    expect(result.attempts).toBe(1)
+    expect(result.error.code).toBe('UPLOAD_SIGNATURE_INVALID')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not auto-retry while offline', async () => {
+    stubOnlineStatus(false)
+    const fetchMock = vi.fn().mockRejectedValue(new TypeError('Failed to fetch'))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await uploadFileToPresignedUrlWithRetry({
+      file: new File(['image'], 'photo.jpg', { type: 'image/jpeg' }),
+      presignedUrl: 'https://example.com/upload',
+      retryDelaysMs: [0, 0],
+    })
+
+    expect(result.ok).toBe(false)
+    if (result.ok) {
+      throw new Error('Expected upload to fail')
+    }
+
+    expect(result.attempts).toBe(1)
+    expect(result.error.code).toBe('NETWORK_OFFLINE')
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })
