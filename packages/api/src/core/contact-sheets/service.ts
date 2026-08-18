@@ -16,8 +16,15 @@ import {
   type CompetitionClass,
 } from '@blikka/db'
 import { S3Service, S3ServiceLayer, type S3ClientError } from '@blikka/aws'
+import {
+  ContactSheetReadyEmail,
+  EmailService,
+  EmailServiceLayer,
+  contactSheetReadyEmailSubject,
+  type SendEmailError,
+} from '@blikka/email'
 import { BadRequestError, NotFoundError, failNotFoundIfNone } from '../errors'
-import type { GenerateContactSheet } from './contracts'
+import type { GenerateContactSheet, SendContactSheetConfirmationEmail } from './contracts'
 
 const VALID_PHOTO_COUNTS = [8, 24]
 const VALID_CONTACT_SHEET_FORMATS = ['classic', 'a3'] as const
@@ -53,6 +60,18 @@ export class ContactSheetsService extends Context.Service<
       DbError | BadRequestError | NotFoundError | S3ClientError | ContactSheetError,
       never
     >
+    /**
+     * Resends the contact-sheet-ready email for the participant's most recently generated
+     * contact sheet. Used by admins to manually redeliver an email a participant says they
+     * never received.
+     */
+    readonly sendConfirmationEmail: (
+      input: SendContactSheetConfirmationEmail,
+    ) => Effect.Effect<
+      { success: boolean },
+      DbError | BadRequestError | NotFoundError | S3ClientError | SendEmailError,
+      never
+    >
   }
 >()('@blikka/api/contact-sheets-api-service') {}
 
@@ -64,6 +83,7 @@ const makeContactSheetsService = Effect.gen(function* () {
   const contactSheetsRepository = yield* ContactSheetsRepository
   const s3 = yield* S3Service
   const contactSheetBuilder = yield* ContactSheetBuilder
+  const emailService = yield* EmailService
   const contactSheetsBucketName = yield* Config.string('CONTACT_SHEETS_BUCKET_NAME')
   const submissionsBucketName = yield* Config.string('SUBMISSIONS_BUCKET_NAME')
   const sponsorsBucketName = yield* Config.string('SPONSORS_BUCKET_NAME')
@@ -197,8 +217,78 @@ const makeContactSheetsService = Effect.gen(function* () {
     }
   })
 
+  const sendConfirmationEmail: ContactSheetsService['Service']['sendConfirmationEmail'] = Effect.fn(
+    'ContactSheetsService.sendConfirmationEmail',
+  )(function* ({ domain, reference }) {
+    const participantRow = yield* participantsRepository
+      .getParticipantByReference({ reference, domain })
+      .pipe(failNotFoundIfNone('Participant', { reference, domain }))
+
+    if (!participantRow.email) {
+      return yield* Effect.fail(
+        new BadRequestError({
+          message: 'Participant has no email address on file',
+        }),
+      )
+    }
+
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
+
+    const latestContactSheet = participantRow.contactSheets
+      .toSorted((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .at(0)
+
+    if (!latestContactSheet) {
+      return yield* Effect.fail(
+        new BadRequestError({
+          message: 'No contact sheet has been generated for this participant yet',
+        }),
+      )
+    }
+
+    const sheet = yield* s3
+      .getFile(contactSheetsBucketName, latestContactSheet.key)
+      .pipe(failNotFoundIfNone('ContactSheetImage', { key: latestContactSheet.key }))
+
+    const contactSheetFilename = `contact-sheet-${reference}.jpg`
+    const emailProps = {
+      participantName: `${participantRow.firstname} ${participantRow.lastname}`.trim() || 'there',
+      participantReference: reference,
+      marathonName: marathon.name,
+      marathonLogoUrl: marathon.logoUrl,
+      contactSheetFilename,
+      photoCount: participantRow.submissions.length,
+    }
+
+    yield* emailService.send({
+      to: participantRow.email,
+      subject: contactSheetReadyEmailSubject(emailProps),
+      template: ContactSheetReadyEmail(emailProps),
+      attachments: [
+        {
+          filename: contactSheetFilename,
+          content: Buffer.from(sheet),
+          contentType: 'image/jpeg',
+        },
+      ],
+      tags: [
+        { name: 'event', value: 'contact-sheet-ready-manual' },
+        { name: 'domain', value: domain },
+        { name: 'participant-reference', value: reference },
+      ],
+      // Distinct from the automated flow's idempotency key so a manual resend is never
+      // deduped against (or by) the original send — each click should always deliver.
+      idempotencyKey: `contact-sheet-ready-manual/${domain}/${reference}/${Date.now()}`,
+    })
+
+    return { success: true }
+  })
+
   return ContactSheetsService.of({
     generateContactSheet,
+    sendConfirmationEmail,
   })
 })
 
@@ -208,5 +298,7 @@ export const ContactSheetsServiceLayerNoDeps = Layer.effect(
 )
 
 export const ContactSheetsServiceLayer = ContactSheetsServiceLayerNoDeps.pipe(
-  Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer, ContactSheetBuilderLayer)),
+  Layer.provide(
+    Layer.mergeAll(DbLayer, S3ServiceLayer, ContactSheetBuilderLayer, EmailServiceLayer),
+  ),
 )

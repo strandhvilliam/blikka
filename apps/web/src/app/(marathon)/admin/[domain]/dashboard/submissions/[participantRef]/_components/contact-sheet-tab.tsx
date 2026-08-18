@@ -7,6 +7,7 @@ import {
   Download,
   Grid3x3,
   Loader2,
+  Mail,
   RefreshCw,
   Upload,
   type LucideIcon,
@@ -117,6 +118,9 @@ export function ContactSheetTab({ participantRef }: ContactSheetTabProps) {
   const generateContactSheetMutation = useMutation(
     trpc.contactSheets.generateContactSheet.mutationOptions(),
   )
+  const sendConfirmationEmailMutation = useMutation(
+    trpc.contactSheets.sendConfirmationEmail.mutationOptions(),
+  )
 
   const sortedContactSheets = useMemo(
     () =>
@@ -147,6 +151,20 @@ export function ContactSheetTab({ participantRef }: ContactSheetTabProps) {
         },
         onError: (error) => {
           toast.error(getErrorMessage(error, 'Failed to generate contact sheet'))
+        },
+      },
+    )
+  }
+
+  const handleSendConfirmationEmail = () => {
+    sendConfirmationEmailMutation.mutate(
+      { domain, reference: participantRef },
+      {
+        onSuccess: () => {
+          toast.success('Confirmation email sent')
+        },
+        onError: (error) => {
+          toast.error(getErrorMessage(error, 'Failed to send confirmation email'))
         },
       },
     )
@@ -243,6 +261,19 @@ export function ContactSheetTab({ participantRef }: ContactSheetTabProps) {
                 icon={Download}
                 label="Download"
                 pendingLabel="Downloading…"
+              />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSendConfirmationEmail}
+              disabled={sendConfirmationEmailMutation.isPending}
+            >
+              <ButtonIconLabel
+                pending={sendConfirmationEmailMutation.isPending}
+                icon={Mail}
+                label="Send confirmation email"
+                pendingLabel="Sending…"
               />
             </Button>
             <Button

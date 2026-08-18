@@ -1,5 +1,6 @@
 import { assert, describe, it } from '@effect/vitest'
 import { S3Service } from '@blikka/aws'
+import { EmailService } from '@blikka/email'
 import {
   ContactSheetsRepository,
   MarathonsRepository,
@@ -24,13 +25,19 @@ interface TestState {
         id: number
         marathonId: number
         reference: string
+        firstname: string
+        lastname: string
+        email: string | null
         submissions: ReadonlyArray<{ key: string; topic: { orderIndex: number } }>
         competitionClass: CompetitionClass | null
+        contactSheets: ReadonlyArray<{ key: string; createdAt: string }>
       }
     | undefined
-  readonly marathon: { readonly contactSheetFormat: string } | undefined
+  readonly marathon: { readonly contactSheetFormat: string; readonly name: string; readonly logoUrl: string | null } | undefined
   readonly savedContactSheets: ReadonlyArray<Record<string, unknown>>
   readonly sheetInputs: ReadonlyArray<{ format?: 'classic' | 'a3' }>
+  readonly sentEmails: ReadonlyArray<{ to: string; subject: string }>
+  readonly emailSendShouldFail: boolean
 }
 
 /** Submission rows as the participant query returns them: a key plus the topic that orders it. */
@@ -57,12 +64,18 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
     id: 1,
     marathonId: 1,
     reference,
+    firstname: 'Jane',
+    lastname: 'Doe',
+    email: 'jane@example.com',
     competitionClass: makeCompetitionClass(8),
     submissions: makeSubmissions(8),
+    contactSheets: [],
   },
-  marathon: { contactSheetFormat: 'classic' },
+  marathon: { contactSheetFormat: 'classic', name: 'Demo Marathon', logoUrl: null },
   savedContactSheets: [],
   sheetInputs: [],
+  sentEmails: [],
+  emailSendShouldFail: false,
   ...overrides,
 })
 
@@ -115,6 +128,22 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       })).pipe(Effect.as(Buffer.from('contact-sheet'))),
   } as unknown as ContactSheetBuilder['Service'])
 
+  const emailService = EmailService.of({
+    send: (input: { to: string; subject: string }) =>
+      Effect.gen(function* () {
+        const state = yield* Ref.get(stateRef)
+        if (state.emailSendShouldFail) {
+          return yield* Effect.fail(new Error('resend rejected email'))
+        }
+        yield* updateTestState(stateRef, (current) => ({
+          ...current,
+          sentEmails: [...current.sentEmails, { to: input.to, subject: input.subject }],
+        }))
+        return { id: 'email-1' }
+      }),
+    sendBatch: () => Effect.die('not used in contact sheet tests'),
+  } as unknown as EmailService['Service'])
+
   return ContactSheetsServiceLayerNoDeps.pipe(
     Layer.provide(
       Layer.mergeAll(
@@ -125,6 +154,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
         Layer.succeed(ContactSheetsRepository)(contactSheetsRepository),
         Layer.succeed(S3Service)(s3Service),
         Layer.succeed(ContactSheetBuilder)(contactSheetBuilder),
+        Layer.succeed(EmailService)(emailService),
       ),
     ),
   )
@@ -175,7 +205,9 @@ describe('ContactSheetsService', () => {
 
   it.effect('uses marathon contact sheet format when generating', () =>
     Effect.gen(function* () {
-      const stateRef = yield* Ref.make(makeInitialState({ marathon: { contactSheetFormat: 'a3' } }))
+      const stateRef = yield* Ref.make(
+        makeInitialState({ marathon: { contactSheetFormat: 'a3', name: 'Demo Marathon', logoUrl: null } }),
+      )
 
       const { state } = yield* runWithState(
         stateRef,
@@ -200,8 +232,12 @@ describe('ContactSheetsService', () => {
             id: 1,
             marathonId: 1,
             reference,
+            firstname: 'Jane',
+            lastname: 'Doe',
+            email: 'jane@example.com',
             competitionClass: makeCompetitionClass(8),
             submissions: [],
+            contactSheets: [],
           },
         }),
       )
@@ -232,8 +268,12 @@ describe('ContactSheetsService', () => {
             id: 1,
             marathonId: 1,
             reference,
+            firstname: 'Jane',
+            lastname: 'Doe',
+            email: 'jane@example.com',
             competitionClass: makeCompetitionClass(8),
             submissions: makeSubmissions(1),
+            contactSheets: [],
           },
         }),
       )
@@ -276,4 +316,105 @@ describe('ContactSheetsService', () => {
       assert.instanceOf(error, NotFoundError)
     }),
   )
+
+  describe('sendConfirmationEmail', () => {
+    it.effect('sends the contact-sheet-ready email for the latest contact sheet', () =>
+      Effect.gen(function* () {
+        const stateRef = yield* Ref.make(
+          makeInitialState({
+            participant: {
+              id: 1,
+              marathonId: 1,
+              reference,
+              firstname: 'Jane',
+              lastname: 'Doe',
+              email: 'jane@example.com',
+              competitionClass: makeCompetitionClass(8),
+              submissions: makeSubmissions(8),
+              contactSheets: [
+                { key: 'older-sheet.jpg', createdAt: '2026-01-01T00:00:00.000Z' },
+                { key: 'newest-sheet.jpg', createdAt: '2026-01-02T00:00:00.000Z' },
+              ],
+            },
+          }),
+        )
+
+        const { result, state } = yield* runWithState(
+          stateRef,
+          Effect.gen(function* () {
+            const service = yield* ContactSheetsService
+            return yield* service.sendConfirmationEmail({ domain, reference })
+          }),
+        )
+
+        assert.equal(result.success, true)
+        assert.equal(state.sentEmails.length, 1)
+        assert.equal(state.sentEmails[0]?.to, 'jane@example.com')
+      }),
+    )
+
+    it.effect('fails when the participant has no contact sheet yet', () =>
+      Effect.gen(function* () {
+        const stateRef = yield* Ref.make(makeInitialState())
+
+        const error = yield* runWithState(
+          stateRef,
+          Effect.gen(function* () {
+            const service = yield* ContactSheetsService
+            return yield* Effect.flip(service.sendConfirmationEmail({ domain, reference }))
+          }),
+        ).pipe(Effect.map(({ result }) => result))
+
+        assert.instanceOf(error, BadRequestError)
+        assert.match(error.message, /no contact sheet/i)
+      }),
+    )
+
+    it.effect('fails when the participant has no email on file', () =>
+      Effect.gen(function* () {
+        const stateRef = yield* Ref.make(
+          makeInitialState({
+            participant: {
+              id: 1,
+              marathonId: 1,
+              reference,
+              firstname: 'Jane',
+              lastname: 'Doe',
+              email: null,
+              competitionClass: makeCompetitionClass(8),
+              submissions: makeSubmissions(8),
+              contactSheets: [{ key: 'sheet.jpg', createdAt: '2026-01-01T00:00:00.000Z' }],
+            },
+          }),
+        )
+
+        const error = yield* runWithState(
+          stateRef,
+          Effect.gen(function* () {
+            const service = yield* ContactSheetsService
+            return yield* Effect.flip(service.sendConfirmationEmail({ domain, reference }))
+          }),
+        ).pipe(Effect.map(({ result }) => result))
+
+        assert.instanceOf(error, BadRequestError)
+        assert.match(error.message, /no email/i)
+      }),
+    )
+
+    it.effect('fails when the participant is not found', () =>
+      Effect.gen(function* () {
+        const stateRef = yield* Ref.make(makeInitialState({ participant: undefined }))
+
+        const error = yield* runWithState(
+          stateRef,
+          Effect.gen(function* () {
+            const service = yield* ContactSheetsService
+            return yield* Effect.flip(service.sendConfirmationEmail({ domain, reference }))
+          }),
+        ).pipe(Effect.map(({ result }) => result))
+
+        assert.instanceOf(error, NotFoundError)
+      }),
+    )
+  })
 })
