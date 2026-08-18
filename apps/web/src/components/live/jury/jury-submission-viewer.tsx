@@ -20,7 +20,7 @@ import { getParticipantAssetUrl } from '@/lib/jury/jury-utils'
 import { FullscreenImage } from '@/components/fullscreen-image'
 import { ActiveRatingFilterBadge } from './rating-filter'
 import { JurySubmissionCompactNav } from './jury-submission-compact-nav'
-import { JurySidebar } from './jury-sidebar'
+import { JurySidebar, type JurySidebarShortlistState } from './jury-sidebar'
 import { useDomain } from '@/lib/domain-provider'
 import { useJuryClientToken } from './jury-client-token-provider'
 import { useJuryViewerKeyboardShortcuts } from '@/hooks/live/jury/use-jury-viewer-keyboard-shortcuts'
@@ -31,6 +31,7 @@ import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query
 import { useJuryShortlist } from '@/hooks/live/jury/use-jury-shortlist'
 import { useJurySubmissionPreload } from '@/hooks/live/jury/use-jury-submission-preload'
 import { JurySubmissionPhoto } from './jury-submission-photo'
+import { JuryFullscreenLabel, JuryFullscreenOverlay } from './jury-fullscreen-overlay'
 
 export function JurySubmissionViewer({ initialIndex }: { initialIndex: number }) {
   const { selectedRatings, backToList } = useJuryReviewQueryState()
@@ -64,6 +65,8 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set())
   const [isSaving, setIsSaving] = useState(false)
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false)
+  /** Dialogs have to portal into the fullscreened element — nothing outside it paints. */
+  const [fullscreenContainer, setFullscreenContainer] = useState<HTMLElement | null>(null)
 
   const activeIndex = participants[currentParticipantIndex] ? currentParticipantIndex : 0
   const currentParticipant = participants[activeIndex] ?? null
@@ -239,8 +242,44 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     void setCurrentParticipantIndex(Math.min(participants.length - 1, currentParticipantIndex + 1))
   }, [currentParticipantIndex, participants.length, setCurrentParticipantIndex])
 
+  /** One pick state for both surfaces, so the sidebar and the fullscreen bar cannot drift. */
+  const shortlistState: JurySidebarShortlistState = useMemo(
+    () => ({
+      isShortlisted,
+      isWinner,
+      shortlistCount,
+      requiredSize,
+      isFull,
+      isSavingShortlist,
+      onToggleShortlist: handleToggleShortlist,
+      onWinnerClick: handleWinnerClick,
+    }),
+    [
+      handleToggleShortlist,
+      handleWinnerClick,
+      isFull,
+      isSavingShortlist,
+      isShortlisted,
+      isWinner,
+      requiredSize,
+      shortlistCount,
+    ],
+  )
+
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreenOpen((open) => (open ? false : canOpenFullscreen))
+  }, [canOpenFullscreen])
+
+  /** Paging onto a submission with no viewable asset would tear the viewer out of fullscreen. */
+  useEffect(() => {
+    if (isFullscreenOpen && !canOpenFullscreen) {
+      setIsFullscreenOpen(false)
+    }
+  }, [canOpenFullscreen, isFullscreenOpen])
+
   useJuryViewerKeyboardShortcuts({
     isFullscreenOpen,
+    canOpenFullscreen,
     localRating,
     goToPrev,
     goToNext,
@@ -248,6 +287,7 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     onRatingClick: handleRatingClick,
     onToggleShortlist: handleToggleShortlist,
     onWinnerClick: handleWinnerClick,
+    onToggleFullscreen: toggleFullscreen,
   })
 
   const { handleNotesChange } = useJuryNotesDebouncedSave({
@@ -281,7 +321,7 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
   return (
     <>
       <AlertDialog open={isWinnerDialogOpen} onOpenChange={setIsWinnerDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent portalContainer={fullscreenContainer}>
           <AlertDialogHeader>
             <AlertDialogTitle>
               {isWinner ? 'Remove your winner?' : 'Replace your winner?'}
@@ -332,7 +372,7 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
                 type="button"
                 className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-border/60 bg-white/85 text-brand-black opacity-100 shadow-sm backdrop-blur-sm transition-all hover:bg-white md:opacity-0 md:group-hover:opacity-100"
                 onClick={() => setIsFullscreenOpen(true)}
-                title="Fullscreen"
+                title="Fullscreen (F)"
                 aria-label="View image fullscreen"
               >
                 <Maximize2 className="h-4 w-4" />
@@ -378,16 +418,7 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
               isSaving={isSaving}
               onRatingClick={handleRatingClick}
               onNotesChange={handleNotesChange}
-              shortlist={{
-                isShortlisted,
-                isWinner,
-                shortlistCount,
-                requiredSize,
-                isFull,
-                isSavingShortlist,
-                onToggleShortlist: handleToggleShortlist,
-                onWinnerClick: handleWinnerClick,
-              }}
+              shortlist={shortlistState}
             />
           </div>
         </div>
@@ -400,6 +431,32 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
           sourceKind={invitation.inviteType === 'class' ? 'raw' : 'original'}
           isOpen={isFullscreenOpen}
           onClose={() => setIsFullscreenOpen(false)}
+          onContainerChange={setFullscreenContainer}
+          onPrev={goToPrev}
+          onNext={goToNext}
+          hasPrev={canGoToPrev}
+          hasNext={canGoToNext}
+          label={
+            <JuryFullscreenLabel
+              participant={currentParticipant}
+              invitation={invitation}
+              isSaving={isSaving || isSavingShortlist}
+            />
+          }
+          overlay={
+            <JuryFullscreenOverlay
+              rating={localRating}
+              onRatingClick={handleRatingClick}
+              hasNotes={localNotes.trim().length > 0}
+              shortlist={shortlistState}
+              currentParticipantIndex={currentParticipantIndex}
+              loadedParticipantCount={participants.length}
+              visibleTotal={totalParticipants}
+              isFetchingNextPage={isFetchingNextPage}
+              onGoToPrev={goToPrev}
+              onGoToNext={goToNext}
+            />
+          }
         />
       ) : null}
     </>

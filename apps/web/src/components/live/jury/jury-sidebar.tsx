@@ -232,6 +232,7 @@ function JurySidebarKeyboardShortcuts() {
         <ShortcutRow keys={['[', ']']} label="Adjust rating" />
         <ShortcutRow keys={['0']} label="Clear rating" />
         <ShortcutRow keys={['S']} label="Shortlist" />
+        <ShortcutRow keys={['F']} label="Fullscreen" />
         <ShortcutRow keys={['W']} label="Pick winner" />
         <ShortcutRow keys={['Esc']} label="Back to list" />
       </div>

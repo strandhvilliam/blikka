@@ -1,8 +1,9 @@
 'use client'
 
-import type { MouseEvent, TouchEvent, WheelEvent } from 'react'
+import type { MouseEvent, PointerEvent, ReactNode, TouchEvent, WheelEvent } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { X, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react'
+import { isShortcutBlockedTarget } from '@/lib/keyboard-shortcuts'
 import {
   SubmissionOptimizedOriginalImage,
   SubmissionRawOriginalImage,
@@ -15,23 +16,50 @@ export type FullscreenImageProps = {
   sourceKind?: 'original' | 'thumbnail' | 'raw'
   isOpen: boolean
   onClose: () => void
+  /** Rendered in the top bar, left of the zoom controls — what is on screen. */
+  label?: ReactNode
+  /** Rendered along the bottom edge. Replaces the default zoom/pan hint. */
+  overlay?: ReactNode
+  /** Supplying either handler adds edge chevrons and binds the arrow keys. */
+  onPrev?: () => void
+  onNext?: () => void
+  hasPrev?: boolean
+  hasNext?: boolean
+  /**
+   * Receives the fullscreened element while open, and `null` once closed. Nothing outside that
+   * subtree paints while the browser is in native fullscreen, so callers portal their dialogs
+   * into it rather than into `document.body`.
+   */
+  onContainerChange?: (element: HTMLElement | null) => void
 }
 
 const isFullscreenSupported =
   typeof document !== 'undefined' && 'fullscreenEnabled' in document && document.fullscreenEnabled
 
+/** Long enough that the controls do not blink away mid-glance, short enough to leave the photo alone. */
+const CHROME_IDLE_MS = 2600
+
+/**
+ * The fullscreened element stays mounted for as long as the viewer is open — remounting it would
+ * drop the browser out of fullscreen. Everything that belongs to *one photo* lives in the stage
+ * below, keyed by `src`, so paging to the next submission starts it unzoomed, unpanned, and with
+ * the controls back on screen without a single reset effect.
+ */
 export function FullscreenImage({
   src,
   alt,
   sourceKind = 'original',
   isOpen,
   onClose,
+  label,
+  overlay,
+  onPrev,
+  onNext,
+  hasPrev = false,
+  hasNext = false,
+  onContainerChange,
 }: FullscreenImageProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [scale, setScale] = useState(1)
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [isDragging, setIsDragging] = useState(false)
-  const dragStartRef = useRef({ x: 0, y: 0 })
 
   useEffect(() => {
     if (!containerRef.current || !isFullscreenSupported) return
@@ -46,6 +74,13 @@ export function FullscreenImage({
       })
     }
   }, [isOpen])
+
+  useEffect(() => {
+    if (!onContainerChange) return
+
+    onContainerChange(isOpen ? containerRef.current : null)
+    return () => onContainerChange(null)
+  }, [isOpen, onContainerChange])
 
   useEffect(() => {
     if (!isFullscreenSupported) return
@@ -86,9 +121,93 @@ export function FullscreenImage({
     }
   }, [isOpen])
 
+  if (!isOpen || !src) return null
+
+  return (
+    <div ref={containerRef} className="fixed inset-0 z-[100] bg-black">
+      <FullscreenStage
+        key={src}
+        src={src}
+        alt={alt}
+        sourceKind={sourceKind}
+        onClose={onClose}
+        label={label}
+        overlay={overlay}
+        onPrev={onPrev}
+        onNext={onNext}
+        hasPrev={hasPrev}
+        hasNext={hasNext}
+      />
+    </div>
+  )
+}
+
+function FullscreenStage({
+  src,
+  alt,
+  sourceKind,
+  onClose,
+  label,
+  overlay,
+  onPrev,
+  onNext,
+  hasPrev,
+  hasNext,
+}: Required<Pick<FullscreenImageProps, 'src' | 'alt' | 'sourceKind' | 'onClose'>> &
+  Pick<FullscreenImageProps, 'label' | 'overlay' | 'onPrev' | 'onNext'> & {
+    hasPrev: boolean
+    hasNext: boolean
+  }) {
+  const [scale, setScale] = useState(1)
+  const [position, setPosition] = useState({ x: 0, y: 0 })
+  const [isDragging, setIsDragging] = useState(false)
+  const dragStartRef = useRef({ x: 0, y: 0 })
+
+  /** Chrome is everything painted over the photo: top bar, edge chevrons, bottom overlay. */
+  const hasChrome = Boolean(overlay || onPrev || onNext)
+  const [isChromeVisible, setIsChromeVisible] = useState(true)
+  const hideTimerRef = useRef<number | null>(null)
+  const isPointerOverChromeRef = useRef(false)
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current === null) return
+    window.clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = null
+  }, [])
+
+  /** Show the chrome and restart the idle countdown — unless the pointer is resting on it. */
+  const revealChrome = useCallback(() => {
+    setIsChromeVisible(true)
+    clearHideTimer()
+    if (isPointerOverChromeRef.current) return
+    hideTimerRef.current = window.setTimeout(() => setIsChromeVisible(false), CHROME_IDLE_MS)
+  }, [clearHideTimer])
+
+  /** The controls start on screen and step aside once the juror has had a chance to read them. */
+  useEffect(() => {
+    hideTimerRef.current = window.setTimeout(() => setIsChromeVisible(false), CHROME_IDLE_MS)
+    return clearHideTimer
+  }, [clearHideTimer])
+
+  const chromeHoverProps = {
+    onPointerEnter: (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return
+      isPointerOverChromeRef.current = true
+      clearHideTimer()
+      setIsChromeVisible(true)
+    },
+    onPointerLeave: (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return
+      isPointerOverChromeRef.current = false
+      revealChrome()
+    },
+  }
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return
+      if (isShortcutBlockedTarget(e.target)) return
+
+      revealChrome()
 
       if (e.key === 'Escape') {
         onClose()
@@ -102,12 +221,18 @@ export function FullscreenImage({
           }
           return newScale
         })
+      } else if (e.key === 'ArrowLeft' && onPrev && hasPrev) {
+        e.preventDefault()
+        onPrev()
+      } else if (e.key === 'ArrowRight' && onNext && hasNext) {
+        e.preventDefault()
+        onNext()
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isOpen, onClose])
+  }, [onClose, onPrev, onNext, hasPrev, hasNext, revealChrome])
 
   const handleWheel = useCallback((e: WheelEvent) => {
     e.preventDefault()
@@ -220,6 +345,31 @@ export function FullscreenImage({
     }
   }, [scale])
 
+  /**
+   * With chrome on screen a tap belongs to it — it brings the controls back, or clears them out of
+   * the way again. With none there is nothing to summon, so a backdrop tap still closes the viewer.
+   */
+  const handleStageClick = useCallback(
+    (e: MouseEvent) => {
+      if (scale !== 1) return
+
+      if (hasChrome) {
+        if (isChromeVisible) {
+          clearHideTimer()
+          setIsChromeVisible(false)
+        } else {
+          revealChrome()
+        }
+        return
+      }
+
+      if (e.target === e.currentTarget) {
+        onClose()
+      }
+    },
+    [clearHideTimer, hasChrome, isChromeVisible, onClose, revealChrome, scale],
+  )
+
   const zoomIn = () => setScale((s) => Math.min(s * 1.3, 5))
   const zoomOut = () =>
     setScale((s) => {
@@ -230,60 +380,27 @@ export function FullscreenImage({
       return newScale
     })
 
-  if (!isOpen || !src) return null
+  const chromeClass = `transition-opacity duration-200 ${
+    isChromeVisible ? 'opacity-100' : 'pointer-events-none opacity-0'
+  }`
 
   return (
     <div
-      ref={containerRef}
-      className="fixed inset-0 z-[100] flex flex-col bg-black"
+      className="absolute inset-0"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onPointerMove={revealChrome}
     >
-      <div className="z-10 flex items-center justify-between bg-black/50 p-4">
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={zoomOut}
-            disabled={scale <= 1}
-            className="rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/30 disabled:opacity-50"
-          >
-            <ZoomOut className="h-5 w-5" />
-          </button>
-          <span className="min-w-[60px] text-center text-sm text-white">
-            {Math.round(scale * 100)}%
-          </span>
-          <button
-            type="button"
-            onClick={zoomIn}
-            disabled={scale >= 5}
-            className="rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/30 disabled:opacity-50"
-          >
-            <ZoomIn className="h-5 w-5" />
-          </button>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/30"
-        >
-          <X className="h-6 w-6" />
-        </button>
-      </div>
-
       <div
-        className="flex-1 cursor-grab overflow-hidden active:cursor-grabbing"
+        className="absolute inset-0 cursor-grab overflow-hidden active:cursor-grabbing"
         onWheel={handleWheel}
         onDoubleClick={handleDoubleClick}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        onClick={(e) => {
-          if (e.target === e.currentTarget && scale === 1) {
-            onClose()
-          }
-        }}
+        onClick={handleStageClick}
       >
         <div
           className="relative flex h-full w-full items-center justify-center transition-transform duration-100"
@@ -313,9 +430,87 @@ export function FullscreenImage({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 pb-[env(safe-area-inset-bottom)] text-center text-sm text-white/60">
-        <p>Double-click or pinch to zoom • Drag to pan</p>
+      <div
+        {...chromeHoverProps}
+        className={`absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-3 bg-gradient-to-b from-black/70 via-black/40 to-transparent p-4 pt-[max(1rem,env(safe-area-inset-top))] ${chromeClass}`}
+      >
+        <div className="flex min-w-0 items-center gap-3">{label}</div>
+
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={zoomOut}
+              disabled={scale <= 1}
+              aria-label="Zoom out"
+              className="rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/30 disabled:opacity-50"
+            >
+              <ZoomOut className="h-5 w-5" />
+            </button>
+            <span className="min-w-[60px] text-center text-sm text-white">
+              {Math.round(scale * 100)}%
+            </span>
+            <button
+              type="button"
+              onClick={zoomIn}
+              disabled={scale >= 5}
+              aria-label="Zoom in"
+              className="rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/30 disabled:opacity-50"
+            >
+              <ZoomIn className="h-5 w-5" />
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Exit fullscreen"
+            className="rounded-full bg-white/20 p-2 text-white transition-colors hover:bg-white/30"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
       </div>
+
+      {onPrev ? (
+        <button
+          type="button"
+          {...chromeHoverProps}
+          onClick={onPrev}
+          disabled={!hasPrev}
+          aria-label="Previous"
+          className={`absolute top-1/2 left-3 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/30 disabled:pointer-events-none disabled:opacity-0 ${chromeClass}`}
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      ) : null}
+
+      {onNext ? (
+        <button
+          type="button"
+          {...chromeHoverProps}
+          onClick={onNext}
+          disabled={!hasNext}
+          aria-label="Next"
+          className={`absolute top-1/2 right-3 z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/15 text-white backdrop-blur-sm transition-colors hover:bg-white/30 disabled:pointer-events-none disabled:opacity-0 ${chromeClass}`}
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      ) : null}
+
+      {overlay ? (
+        <div
+          {...chromeHoverProps}
+          className={`absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/80 via-black/50 to-transparent px-4 pt-10 pb-[max(1rem,env(safe-area-inset-bottom))] ${chromeClass}`}
+        >
+          {overlay}
+        </div>
+      ) : (
+        <div
+          className={`pointer-events-none absolute bottom-4 left-1/2 -translate-x-1/2 pb-[env(safe-area-inset-bottom)] text-center text-sm text-white/60 ${chromeClass}`}
+        >
+          <p>Double-click or pinch to zoom • Drag to pan</p>
+        </div>
+      )}
     </div>
   )
 }

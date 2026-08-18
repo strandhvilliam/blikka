@@ -1,9 +1,12 @@
 'use client'
 
 import { useEffect } from 'react'
+import { isShortcutBlockedTarget } from '@/lib/keyboard-shortcuts'
 
 type Params = {
+  /** Fullscreen owns navigation, Escape and zoom; the review keys stay live in both modes. */
   isFullscreenOpen: boolean
+  canOpenFullscreen: boolean
   localRating: number
   goToPrev: () => void
   goToNext: () => void
@@ -11,10 +14,12 @@ type Params = {
   onRatingClick: (star: number) => void
   onToggleShortlist: () => void
   onWinnerClick: () => void
+  onToggleFullscreen: () => void
 }
 
 export function useJuryViewerKeyboardShortcuts({
   isFullscreenOpen,
+  canOpenFullscreen,
   localRating,
   goToPrev,
   goToNext,
@@ -22,27 +27,29 @@ export function useJuryViewerKeyboardShortcuts({
   onRatingClick,
   onToggleShortlist,
   onWinnerClick,
+  onToggleFullscreen,
 }: Params) {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (isFullscreenOpen) return
-
-      if (event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLInputElement) {
-        return
-      }
+      if (isShortcutBlockedTarget(event.target)) return
 
       if (event.metaKey || event.ctrlKey || event.altKey) return
 
       switch (event.key) {
+        // Fullscreen binds the arrows itself, so it can reset the zoom as the photo changes.
         case 'ArrowLeft':
+          if (isFullscreenOpen) return
           event.preventDefault()
           goToPrev()
           break
         case 'ArrowRight':
+          if (isFullscreenOpen) return
           event.preventDefault()
           goToNext()
           break
+        // In fullscreen Escape means "leave fullscreen", which the browser and the viewer handle.
         case 'Escape':
+          if (isFullscreenOpen) return
           event.preventDefault()
           onBack()
           break
@@ -73,6 +80,12 @@ export function useJuryViewerKeyboardShortcuts({
           event.preventDefault()
           onWinnerClick()
           break
+        case 'f':
+        case 'F':
+          if (!isFullscreenOpen && !canOpenFullscreen) return
+          event.preventDefault()
+          onToggleFullscreen()
+          break
       }
     }
 
@@ -81,12 +94,14 @@ export function useJuryViewerKeyboardShortcuts({
       window.removeEventListener('keydown', handleKeyDown)
     }
   }, [
+    canOpenFullscreen,
     goToPrev,
     goToNext,
     onRatingClick,
     onBack,
     onToggleShortlist,
     onWinnerClick,
+    onToggleFullscreen,
     localRating,
     isFullscreenOpen,
   ])
