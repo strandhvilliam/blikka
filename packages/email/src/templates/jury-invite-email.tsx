@@ -94,8 +94,9 @@ export function JuryInviteEmail({
             </Section>
 
             <Text className="mb-6 text-sm leading-6 text-slate-600">
-              This link is personal to your jury session. Star ratings and notes are private review
-              aids; you must also choose 1st, 2nd, and 3rd place before completing the review.
+              This link is personal to your jury session. Stars and notes are private review aids —
+              you do not need to rate every submission. To complete the review, shortlist your
+              favorite submissions — in no particular order — and pick one of them as your winner.
             </Text>
 
             <Hr className="my-6 border-slate-200" />
