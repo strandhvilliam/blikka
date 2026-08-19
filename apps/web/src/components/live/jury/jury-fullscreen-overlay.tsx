@@ -81,8 +81,8 @@ export function JuryFullscreenOverlay({
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3 md:grid md:grid-cols-[1fr_auto_1fr]">
+        <div className="flex items-center gap-2 md:justify-self-start">
           <div className="flex items-center gap-0.5">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
@@ -116,7 +116,7 @@ export function JuryFullscreenOverlay({
           ) : null}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:justify-self-center">
           <button
             type="button"
             className={shortlist.isShortlisted ? chipActive : chipIdle}
@@ -152,7 +152,7 @@ export function JuryFullscreenOverlay({
           </span>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 md:justify-self-end">
           <button
             type="button"
             className="flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white transition-colors hover:bg-white/20 disabled:opacity-30"
