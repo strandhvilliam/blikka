@@ -10,6 +10,7 @@ import {
   GetJuryInvitationsByDomainInputSchema,
   GetJuryInvitationByIdInputSchema,
   GetJuryReviewResultsByInvitationIdInputSchema,
+  GetJuryResultsByDomainInputSchema,
   CreateJuryInvitationInputSchema,
   DeleteJuryInvitationInputSchema,
   GetJuryInvitationStatisticsByIdInputSchema,
@@ -64,6 +65,17 @@ export const juryRouter = createTRPCRouter({
               id: input.id,
             }),
           )
+        }),
+      ),
+    ),
+
+  getJuryResultsByDomain: domainProcedure
+    .input(Schema.toStandardSchemaV1(GetJuryResultsByDomainInputSchema))
+    .use(requireMatchingInputDomainMiddleware)
+    .query(
+      trpcEffect(
+        Effect.fn('JuryRouter.getJuryResultsByDomain')(function* ({ input }) {
+          return yield* JuryService.use((s) => s.getJuryResultsByDomain({ domain: input.domain }))
         }),
       ),
     ),

@@ -94,6 +94,34 @@ export function getParticipantAssetUrl(
   return buildS3Url(SUBMISSIONS_BUCKET, participant.submission?.key)
 }
 
+/**
+ * Admin review results carry the image keys on the participant row itself, unlike the juror-side
+ * participant shape, so they resolve through their own pair of helpers.
+ */
+export interface JuryResultParticipantAssets {
+  submissionKey: string | null
+  submissionThumbnailKey: string | null
+  contactSheetKey: string | null
+}
+
+/** Small preview of what the juror judged. Contact sheets have no separate thumbnail rendition. */
+export function getJuryResultThumbnailUrl(participant: JuryResultParticipantAssets) {
+  if (participant.contactSheetKey) {
+    return buildS3Url(CONTACT_SHEETS_BUCKET, participant.contactSheetKey)
+  }
+
+  return buildS3Url(THUMBNAILS_BUCKET, participant.submissionThumbnailKey)
+}
+
+/** Full-size asset for the fullscreen viewer. */
+export function getJuryResultFullUrl(participant: JuryResultParticipantAssets) {
+  if (participant.contactSheetKey) {
+    return buildS3Url(CONTACT_SHEETS_BUCKET, participant.contactSheetKey)
+  }
+
+  return buildS3Url(SUBMISSIONS_BUCKET, participant.submissionKey)
+}
+
 export function getShortlistedParticipantIds(
   picks: ReadonlyArray<{ participantId: number }>,
 ): Set<number> {

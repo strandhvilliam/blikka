@@ -53,6 +53,7 @@ import type {
   GetJuryParticipantCount,
   GetJuryRatingsByInvitation,
   GetJuryReviewResultsByInvitationIdInput,
+  GetJuryResultsByDomainInput,
   GetJuryShortlist,
   GetJurySubmissionsFromToken,
   SetJuryShortlistPick,
@@ -103,11 +104,14 @@ interface JuryInvitationWithMarathon extends JuryInvitationWithOptions {
   marathon: Marathon
 }
 
-interface JuryReviewResultsParticipantSummary {
-  id: number
-  reference: string
-  firstname: string
-  lastname: string
+/** The participant columns both admin result lists join on. */
+type JuryParticipantLabel = Pick<Participant, 'id' | 'reference' | 'firstname' | 'lastname'>
+
+interface JuryReviewResultsParticipantSummary extends JuryParticipantLabel {
+  /** The image the juror judged: the topic submission, or the contact sheet on a class invite. */
+  submissionKey: string | null
+  submissionThumbnailKey: string | null
+  contactSheetKey: string | null
 }
 
 interface JuryReviewResultsRatingRow {
@@ -121,6 +125,23 @@ interface JuryReviewResultsShortlistRow {
   participantId: number
   isWinner: boolean
   participant: JuryReviewResultsParticipantSummary
+}
+
+/**
+ * One juror's verdict, carrying enough scope to group jurors who reviewed the same topic or class.
+ * Grouping and consensus live in the client, which already owns how a scope is labelled.
+ */
+interface JuryDomainResultRow {
+  invitationId: number
+  displayName: string
+  email: string
+  status: string | null
+  inviteType: string
+  topic: { id: number; name: string; orderIndex: number } | null
+  competitionClass: { id: number; name: string } | null
+  deviceGroup: { id: number; name: string } | null
+  winner: JuryReviewResultsParticipantSummary | null
+  shortlist: JuryReviewResultsShortlistRow[]
 }
 
 /**
@@ -189,14 +210,31 @@ export class JuryService extends Context.Service<
       input: GetJuryInvitationByIdInput,
     ) => Effect.Effect<JuryInvitationWithOptions, DbError | JuryApiError, never>
 
-    /** Ratings and shortlist with participant labels for an invitation id (admin/reporting). */
+    /**
+     * The juror's outcome for an invitation as the admin needs to read it: who won, what else made
+     * the shortlist, how full that shortlist is meant to be, and the private ratings behind it.
+     */
     readonly getJuryReviewResultsByInvitationId: (
       input: GetJuryReviewResultsByInvitationIdInput,
     ) => Effect.Effect<
-      { ratings: JuryReviewResultsRatingRow[]; shortlist: JuryReviewResultsShortlistRow[] },
+      {
+        ratings: JuryReviewResultsRatingRow[]
+        shortlist: JuryReviewResultsShortlistRow[]
+        /** Picks needed to complete the review — the cap, or the review set when that is smaller. */
+        requiredShortlistSize: number
+        maxShortlistSize: number
+      },
       DbError | JuryApiError,
       never
     >
+
+    /**
+     * Every juror's verdict for a marathon in one read, so the admin can compare jurors who reviewed
+     * the same scope instead of clicking through invitations one at a time.
+     */
+    readonly getJuryResultsByDomain: (
+      input: GetJuryResultsByDomainInput,
+    ) => Effect.Effect<JuryDomainResultRow[], DbError | JuryApiError, never>
 
     /** Creates an invitation, issues a JWT, persists `token`, sends invite email, returns hydrated row. */
     readonly createJuryInvitation: (
@@ -217,7 +255,6 @@ export class JuryService extends Context.Service<
         progressPercentage: number
         averageRating: number
         ratingDistribution: { rating: number; count: number }[]
-        recentRatings: unknown[]
       },
       DbError | JuryApiError,
       never
@@ -465,28 +502,163 @@ const makeJuryService = Effect.gen(function* () {
         .getJuryInvitationById({ id })
         .pipe(failNotFoundIfNone('JuryInvitation', { id }))
 
-      const [ratings, shortlist] = yield* Effect.all(
+      const [ratings, shortlist, participantCount] = yield* Effect.all(
         [
           juryRepository.getJuryRatingsByInvitation({ invitationId: id }),
           juryRepository.getJuryShortlistByInvitation({ invitationId: id }),
+          juryRepository.getJuryParticipantCount({ invitationId: id }),
         ],
-        { concurrency: 2 },
+        { concurrency: 3 },
       )
+
+      // One preview lookup covers both lists — every shortlisted participant is usually rated too.
+      const participantIds = Array.from(
+        new Set([
+          ...ratings.map((rating) => rating.participantId),
+          ...shortlist.map((pick) => pick.participantId),
+        ]),
+      )
+      const previews = yield* juryRepository.getJuryParticipantPreviews({
+        invitationId: id,
+        participantIds,
+      })
+      const previewByParticipantId = new Map(
+        previews.map((preview) => [preview.participantId, preview] as const),
+      )
+
+      const toParticipantSummary = (
+        participant: JuryParticipantLabel,
+      ): JuryReviewResultsParticipantSummary => {
+        const preview = previewByParticipantId.get(participant.id)
+        return {
+          id: participant.id,
+          reference: participant.reference,
+          firstname: participant.firstname,
+          lastname: participant.lastname,
+          submissionKey: preview?.submissionKey ?? null,
+          submissionThumbnailKey: preview?.submissionThumbnailKey ?? null,
+          contactSheetKey: preview?.contactSheetKey ?? null,
+        }
+      }
 
       return {
         ratings: ratings.map((rating) => ({
           participantId: rating.participantId,
           rating: rating.rating,
           notes: rating.notes,
-          participant: rating.participant,
+          participant: toParticipantSummary(rating.participant),
         })),
         shortlist: shortlist.map((pick) => ({
           participantId: pick.participantId,
           isWinner: pick.isWinner,
-          participant: pick.participant,
+          participant: toParticipantSummary(pick.participant),
         })),
+        requiredShortlistSize: getRequiredJuryShortlistSize(participantCount.value),
+        maxShortlistSize: JURY_SHORTLIST_SIZE,
       }
     })
+
+  const getJuryResultsByDomain: JuryService['Service']['getJuryResultsByDomain'] = Effect.fn(
+    'JuryService.getJuryResultsByDomain',
+  )(function* ({ domain }) {
+    const invitations = yield* juryRepository.getJuryInvitationsByDomain({ domain })
+    // Every invitation from a domain lookup shares the marathon, so the first row settles the scope.
+    const marathonId = invitations[0]?.marathonId
+    if (marathonId === undefined) {
+      return []
+    }
+
+    const picks = yield* juryRepository.getJuryShortlistsByMarathonId({ marathonId })
+
+    const picksByInvitationId = new Map<number, typeof picks>()
+    for (const pick of picks) {
+      const existing = picksByInvitationId.get(pick.invitationId)
+      if (existing) {
+        existing.push(pick)
+      } else {
+        picksByInvitationId.set(pick.invitationId, [pick])
+      }
+    }
+
+    const previews = yield* juryRepository.getJuryParticipantPreviewsByMarathon({
+      marathonId,
+      topicIds: Array.from(
+        new Set(
+          invitations.flatMap((invitation) => (invitation.topicId ? [invitation.topicId] : [])),
+        ),
+      ),
+      participantIds: Array.from(new Set(picks.map((pick) => pick.participantId))),
+    })
+
+    const submissionByTopicAndParticipant = new Map(
+      previews.byTopic.map((row) => [`${row.topicId}:${row.participantId}`, row] as const),
+    )
+    const contactSheetByParticipant = new Map(
+      previews.contactSheets.map((row) => [row.participantId, row.contactSheetKey] as const),
+    )
+
+    return invitations.map((invitation) => {
+      const toParticipantSummary = (
+        participant: JuryParticipantLabel,
+      ): JuryReviewResultsParticipantSummary => {
+        if (invitation.inviteType === 'class') {
+          return {
+            id: participant.id,
+            reference: participant.reference,
+            firstname: participant.firstname,
+            lastname: participant.lastname,
+            submissionKey: null,
+            submissionThumbnailKey: null,
+            contactSheetKey: contactSheetByParticipant.get(participant.id) ?? null,
+          }
+        }
+
+        const submission =
+          invitation.topicId === null || invitation.topicId === undefined
+            ? undefined
+            : submissionByTopicAndParticipant.get(`${invitation.topicId}:${participant.id}`)
+
+        return {
+          id: participant.id,
+          reference: participant.reference,
+          firstname: participant.firstname,
+          lastname: participant.lastname,
+          submissionKey: submission?.submissionKey ?? null,
+          submissionThumbnailKey: submission?.submissionThumbnailKey ?? null,
+          contactSheetKey: null,
+        }
+      }
+
+      const shortlist = (picksByInvitationId.get(invitation.id) ?? []).map((pick) => ({
+        participantId: pick.participantId,
+        isWinner: pick.isWinner,
+        participant: toParticipantSummary(pick.participant),
+      }))
+
+      return {
+        invitationId: invitation.id,
+        displayName: invitation.displayName,
+        email: invitation.email,
+        status: invitation.status,
+        inviteType: invitation.inviteType,
+        topic: invitation.topic
+          ? {
+              id: invitation.topic.id,
+              name: invitation.topic.name,
+              orderIndex: invitation.topic.orderIndex,
+            }
+          : null,
+        competitionClass: invitation.competitionClass
+          ? { id: invitation.competitionClass.id, name: invitation.competitionClass.name }
+          : null,
+        deviceGroup: invitation.deviceGroup
+          ? { id: invitation.deviceGroup.id, name: invitation.deviceGroup.name }
+          : null,
+        winner: shortlist.find((pick) => pick.isWinner)?.participant ?? null,
+        shortlist,
+      } satisfies JuryDomainResultRow
+    })
+  })
 
   const ensureParticipantInInvitationScope = Effect.fn(
     'JuryService.ensureParticipantInInvitationScope',
@@ -571,67 +743,70 @@ const makeJuryService = Effect.gen(function* () {
       return expiry
     })
 
-  const sendJuryInviteEmailForInvitation = Effect.fn('JuryService.sendJuryInviteEmailForInvitation')(
-    function* ({
-      invitation,
-      marathon,
-      domain,
-      idempotencyKey,
-    }: {
-      invitation: JuryInvitationWithOptions
-      marathon: Marathon
-      domain: string
-      idempotencyKey: string
-    }) {
-      const email = normalizeEmail(invitation.email)
-      if (!email) {
-        return { sent: false, warning: 'No valid email address on this invitation' as string | undefined }
+  const sendJuryInviteEmailForInvitation = Effect.fn(
+    'JuryService.sendJuryInviteEmailForInvitation',
+  )(function* ({
+    invitation,
+    marathon,
+    domain,
+    idempotencyKey,
+  }: {
+    invitation: JuryInvitationWithOptions
+    marathon: Marathon
+    domain: string
+    idempotencyKey: string
+  }) {
+    const email = normalizeEmail(invitation.email)
+    if (!email) {
+      return {
+        sent: false,
+        warning: 'No valid email address on this invitation' as string | undefined,
       }
+    }
 
-      const juryUrl = buildJuryInviteUrl({ domain, token: invitation.token })
-      const scopeLabel = formatJuryScopeLabel({
-        inviteType: invitation.inviteType as 'topic' | 'class',
-        topicName: invitation.topic?.name ?? null,
-        competitionClassName: invitation.competitionClass?.name ?? null,
-        deviceGroupName: invitation.deviceGroup?.name ?? null,
+    const juryUrl = buildJuryInviteUrl({ domain, token: invitation.token })
+    const scopeLabel = formatJuryScopeLabel({
+      inviteType: invitation.inviteType as 'topic' | 'class',
+      topicName: invitation.topic?.name ?? null,
+      competitionClassName: invitation.competitionClass?.name ?? null,
+      deviceGroupName: invitation.deviceGroup?.name ?? null,
+    })
+    const expiresAtLabel = formatJuryExpiryLabel(invitation.expiresAt)
+    const emailProps = {
+      juryMemberName: invitation.displayName,
+      marathonName: marathon.name,
+      juryUrl,
+      marathonLogoUrl: marathon.logoUrl,
+      scopeLabel,
+      expiresAtLabel,
+      organizerNotes: invitation.notes,
+    }
+
+    const sendResult = yield* emailService
+      .send({
+        to: email,
+        subject: juryInviteEmailSubject(emailProps),
+        template: JuryInviteEmail(emailProps),
+        tags: [
+          { name: 'category', value: 'jury-invite' },
+          { name: 'marathon', value: marathon.name },
+        ],
+        idempotencyKey,
       })
-      const expiresAtLabel = formatJuryExpiryLabel(invitation.expiresAt)
-      const emailProps = {
-        juryMemberName: invitation.displayName,
-        marathonName: marathon.name,
-        juryUrl,
-        marathonLogoUrl: marathon.logoUrl,
-        scopeLabel,
-        expiresAtLabel,
-        organizerNotes: invitation.notes,
-      }
-
-      const sendResult = yield* emailService
-        .send({
-          to: email,
-          subject: juryInviteEmailSubject(emailProps),
-          template: JuryInviteEmail(emailProps),
-          tags: [
-            { name: 'category', value: 'jury-invite' },
-            { name: 'marathon', value: marathon.name },
-          ],
-          idempotencyKey,
-        })
-        .pipe(
-          Effect.as({ sent: true as const, warning: undefined as string | undefined }),
-          Effect.catch((error) =>
-            Effect.logError('Failed to send jury invite email', error).pipe(
-              Effect.as({
-                sent: false as const,
-                warning: getErrorMessage(error, 'Failed to send jury invite email'),
-              }),
-            ),
+      .pipe(
+        Effect.as({ sent: true as const, warning: undefined as string | undefined }),
+        Effect.catch((error) =>
+          Effect.logError('Failed to send jury invite email', error).pipe(
+            Effect.as({
+              sent: false as const,
+              warning: getErrorMessage(error, 'Failed to send jury invite email'),
+            }),
           ),
-        )
+        ),
+      )
 
-      return sendResult
-    },
-  )
+    return sendResult
+  })
 
   const createJuryInvitation: JuryService['Service']['createJuryInvitation'] = Effect.fn(
     'JuryService.createJuryInvitation',
@@ -746,51 +921,52 @@ const makeJuryService = Effect.gen(function* () {
       return yield* juryRepository.getJuryInvitationStatistics({ invitationId: id })
     })
 
-  const resendJuryInvitationEmail: JuryService['Service']['resendJuryInvitationEmail'] =
-    Effect.fn('JuryService.resendJuryInvitationEmail')(function* ({ id, domain }) {
-      const invitation = yield* juryRepository
-        .getJuryInvitationById({ id })
-        .pipe(failNotFoundIfNone('JuryInvitation', { id }))
+  const resendJuryInvitationEmail: JuryService['Service']['resendJuryInvitationEmail'] = Effect.fn(
+    'JuryService.resendJuryInvitationEmail',
+  )(function* ({ id, domain }) {
+    const invitation = yield* juryRepository
+      .getJuryInvitationById({ id })
+      .pipe(failNotFoundIfNone('JuryInvitation', { id }))
 
-      const marathon = yield* marathonsRepository
-        .getMarathonByDomain({ domain })
-        .pipe(failNotFoundIfNone('Marathon', { domain }))
+    const marathon = yield* marathonsRepository
+      .getMarathonByDomain({ domain })
+      .pipe(failNotFoundIfNone('Marathon', { domain }))
 
-      if (invitation.marathonId !== marathon.id) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: 'Invitation does not belong to this marathon',
-          }),
-        )
-      }
+    if (invitation.marathonId !== marathon.id) {
+      return yield* Effect.fail(
+        new BadRequestError({
+          message: 'Invitation does not belong to this marathon',
+        }),
+      )
+    }
 
-      const invitationExpiry = new Date(invitation.expiresAt)
-      if (invitationExpiry < new Date()) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: 'Cannot resend email for an expired invitation',
-          }),
-        )
-      }
+    const invitationExpiry = new Date(invitation.expiresAt)
+    if (invitationExpiry < new Date()) {
+      return yield* Effect.fail(
+        new BadRequestError({
+          message: 'Cannot resend email for an expired invitation',
+        }),
+      )
+    }
 
-      const { sent, warning } = yield* sendJuryInviteEmailForInvitation({
-        invitation,
-        marathon,
-        domain,
-        // New key per intentional resend; stable for in-process retries of this attempt.
-        idempotencyKey: `jury-invite/${invitation.id}/resend/${crypto.randomUUID()}`,
-      })
-
-      if (!sent) {
-        return yield* Effect.fail(
-          new BadRequestError({
-            message: warning ?? 'Failed to send jury invite email',
-          }),
-        )
-      }
-
-      return { sent: true }
+    const { sent, warning } = yield* sendJuryInviteEmailForInvitation({
+      invitation,
+      marathon,
+      domain,
+      // New key per intentional resend; stable for in-process retries of this attempt.
+      idempotencyKey: `jury-invite/${invitation.id}/resend/${crypto.randomUUID()}`,
     })
+
+    if (!sent) {
+      return yield* Effect.fail(
+        new BadRequestError({
+          message: warning ?? 'Failed to send jury invite email',
+        }),
+      )
+    }
+
+    return { sent: true }
+  })
 
   const extendJuryInvitationExpiry: JuryService['Service']['extendJuryInvitationExpiry'] =
     Effect.fn('JuryService.extendJuryInvitationExpiry')(function* ({ id, expiresAt }) {
@@ -1203,6 +1379,7 @@ const makeJuryService = Effect.gen(function* () {
     getJuryInvitationsByDomain,
     getJuryInvitationById,
     getJuryReviewResultsByInvitationId,
+    getJuryResultsByDomain,
     getJuryInvitationStatisticsById,
     createJuryInvitation,
     resendJuryInvitationEmail,

@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Mail, Tag, Users, Calendar } from 'lucide-react'
+import { Search, Mail, Tag, Users, Calendar, Trophy } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useSuspenseQuery } from '@tanstack/react-query'
@@ -23,6 +23,16 @@ export function JuryList({ selectedInvitationId, onSelectInvitation }: JuryListP
     trpc.jury.getJuryInvitationsByDomain.queryOptions({
       domain,
     }),
+  )
+  // Same read the Results tab uses, so the winner shows up here without a second round trip.
+  const { data: results } = useSuspenseQuery(
+    trpc.jury.getJuryResultsByDomain.queryOptions({ domain }),
+  )
+
+  const winnerReferenceByInvitationId = new Map(
+    results.flatMap((result) =>
+      result.winner ? [[result.invitationId, result.winner.reference] as const] : [],
+    ),
   )
 
   const [search, setSearch] = useState('')
@@ -66,6 +76,7 @@ export function JuryList({ selectedInvitationId, onSelectInvitation }: JuryListP
           ) : (
             filteredInvitations.map((invitation) => {
               const isActive = selectedInvitationId === invitation.id
+              const winnerReference = winnerReferenceByInvitationId.get(invitation.id)
               return (
                 <button
                   key={invitation.id}
@@ -117,6 +128,12 @@ export function JuryList({ selectedInvitationId, onSelectInvitation }: JuryListP
                         {format(new Date(invitation.expiresAt), 'MMM d')}
                       </span>
                     </div>
+                    {winnerReference !== undefined && (
+                      <span className="inline-flex w-fit items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200">
+                        <Trophy className="h-3 w-3" />
+                        Winner #{winnerReference}
+                      </span>
+                    )}
                   </div>
                 </button>
               )

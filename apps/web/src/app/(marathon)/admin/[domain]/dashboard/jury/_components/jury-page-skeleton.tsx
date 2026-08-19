@@ -1,6 +1,5 @@
 import { Skeleton } from '@/components/ui/skeleton'
-import { JuryListSkeleton } from './jury-list-skeleton'
-import { JuryInvitationDetailsSkeleton } from './jury-invitation-details-skeleton'
+import { JuryResultsTabSkeleton } from './jury-results-tab'
 
 export function JuryPageSkeleton() {
   return (
@@ -21,13 +20,15 @@ export function JuryPageSkeleton() {
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 flex rounded-xl border border-border bg-white overflow-hidden">
-        <div className="w-80 shrink-0 flex flex-col border-r border-border overflow-hidden">
-          <JuryListSkeleton />
+      <div className="min-w-0 shrink-0 border-b border-border">
+        <div className="flex w-full min-w-0 gap-6 sm:max-w-[320px]">
+          <Skeleton className="mb-2.5 h-4 w-16" />
+          <Skeleton className="mb-2.5 h-4 w-16" />
         </div>
-        <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          <JuryInvitationDetailsSkeleton />
-        </div>
+      </div>
+
+      <div className="mt-4 flex-1 min-h-0 overflow-hidden rounded-xl border border-border bg-white">
+        <JuryResultsTabSkeleton />
       </div>
     </div>
   )

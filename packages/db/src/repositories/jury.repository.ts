@@ -1,7 +1,8 @@
 import { DrizzleClient } from '../drizzle-client'
 import { Effect, Layer, Option, Context } from 'effect'
-import { eq, and, ne } from 'drizzle-orm'
+import { eq, and, ne, desc, inArray } from 'drizzle-orm'
 import {
+  contactSheets,
   juryInvitations,
   juryRatings,
   juryShortlistPicks,
@@ -49,12 +50,19 @@ type JurySubmissionListPage = {
   nextCursor: number | null
 }
 
-type JuryRatingRecentWithParticipant = JuryRating & {
+type JuryShortlistPickWithParticipant = JuryShortlistPick & {
   participant: JuryParticipantPublicFields
 }
 
-type JuryShortlistPickWithParticipant = JuryShortlistPick & {
-  participant: JuryParticipantPublicFields
+/**
+ * The image a juror actually judged a participant on: their submission for the invited topic, or
+ * their contact sheet when the invite covers a whole class.
+ */
+type JuryParticipantPreview = {
+  participantId: number
+  submissionKey: string | null
+  submissionThumbnailKey: string | null
+  contactSheetKey: string | null
 }
 
 interface JuryRatingWithParticipant extends JuryRating {
@@ -119,7 +127,6 @@ export class JuryRepository extends Context.Service<
         progressPercentage: number
         averageRating: number
         ratingDistribution: { rating: number; count: number }[]
-        recentRatings: JuryRatingRecentWithParticipant[]
       },
       DbError
     >
@@ -140,6 +147,41 @@ export class JuryRepository extends Context.Service<
     /** Shortlisted picks for a jury invitation, oldest pick first. */
     readonly getJuryShortlistByInvitation: (params: {
       invitationId: number
+    }) => Effect.Effect<JuryShortlistPickWithParticipant[], DbError>
+    /**
+     * Preview image keys for participants under an invitation, newest asset per participant.
+     * Participants with no image are absent rather than null-filled, so callers keep one lookup path.
+     * Submission `status` is deliberately not filtered on — it goes stale and would hide images that
+     * are in S3.
+     */
+    readonly getJuryParticipantPreviews: (params: {
+      invitationId: number
+      participantIds: number[]
+    }) => Effect.Effect<JuryParticipantPreview[], DbError>
+    /**
+     * The same previews for a whole marathon in two queries, since invitations across a jury cover
+     * different topics. Callers hold the invitation rows and so do the (topic, participant) pairing
+     * themselves; a class invite reads from `contactSheets` regardless of topic.
+     */
+    readonly getJuryParticipantPreviewsByMarathon: (params: {
+      marathonId: number
+      topicIds: number[]
+      participantIds: number[]
+    }) => Effect.Effect<
+      {
+        byTopic: {
+          topicId: number
+          participantId: number
+          submissionKey: string
+          submissionThumbnailKey: string | null
+        }[]
+        contactSheets: { participantId: number; contactSheetKey: string }[]
+      },
+      DbError
+    >
+    /** Every juror's shortlist picks across a marathon, for the cross-juror results view. */
+    readonly getJuryShortlistsByMarathonId: (params: {
+      marathonId: number
     }) => Effect.Effect<JuryShortlistPickWithParticipant[], DbError>
     /** Whether a participant is within a jury invitation's scope. */
     readonly participantMatchesInvitationScope: (params: {
@@ -195,6 +237,26 @@ export class JuryRepository extends Context.Service<
     }) => Effect.Effect<Option.Option<JuryRating[]>, DbError>
   }
 >()('@blikka/db/jury-repository') {}
+
+/**
+ * Rows arrive newest-first, so the first row seen for a participant is the one to keep. Participants
+ * with no rows are simply absent from the result.
+ */
+function collectNewestPerParticipant<Row extends { participantId: number }, Out>(
+  rows: ReadonlyArray<Row>,
+  toPreview: (row: Row) => Out,
+): Out[] {
+  const seen = new Set<number>()
+  const previews: Out[] = []
+
+  for (const row of rows) {
+    if (seen.has(row.participantId)) continue
+    seen.add(row.participantId)
+    previews.push(toPreview(row))
+  }
+
+  return previews
+}
 
 const makeJuryRepository = Effect.gen(function* () {
   const { use } = yield* DrizzleClient
@@ -596,6 +658,191 @@ const makeJuryRepository = Effect.gen(function* () {
         }),
       )
     })
+  /**
+   * Submissions for the given topics, newest first. Ordering is what lets callers keep the first row
+   * they see per (topic, participant) without a second pass.
+   */
+  const selectTopicSubmissionPreviews = Effect.fn('JuryRepository.selectTopicSubmissionPreviews')(
+    function* ({
+      marathonId,
+      topicIds,
+      participantIds,
+    }: {
+      marathonId: number
+      topicIds: number[]
+      participantIds: number[]
+    }) {
+      if (topicIds.length === 0 || participantIds.length === 0) {
+        return []
+      }
+
+      return yield* use((db) =>
+        db
+          .select({
+            topicId: submissions.topicId,
+            participantId: submissions.participantId,
+            key: submissions.key,
+            thumbnailKey: submissions.thumbnailKey,
+          })
+          .from(submissions)
+          .where(
+            and(
+              eq(submissions.marathonId, marathonId),
+              inArray(submissions.topicId, topicIds),
+              inArray(submissions.participantId, participantIds),
+            ),
+          )
+          .orderBy(desc(submissions.createdAt)),
+      )
+    },
+  )
+
+  /** Contact sheets for the given participants, newest first. */
+  const selectContactSheetPreviews = Effect.fn('JuryRepository.selectContactSheetPreviews')(
+    function* ({ marathonId, participantIds }: { marathonId: number; participantIds: number[] }) {
+      if (participantIds.length === 0) {
+        return []
+      }
+
+      return yield* use((db) =>
+        db
+          .select({
+            participantId: contactSheets.participantId,
+            key: contactSheets.key,
+          })
+          .from(contactSheets)
+          .where(
+            and(
+              eq(contactSheets.marathonId, marathonId),
+              inArray(contactSheets.participantId, participantIds),
+            ),
+          )
+          .orderBy(desc(contactSheets.createdAt)),
+      )
+    },
+  )
+
+  const getJuryParticipantPreviews: JuryRepository['Service']['getJuryParticipantPreviews'] =
+    Effect.fn('JuryRepository.getJuryParticipantPreviews')(function* ({
+      invitationId,
+      participantIds,
+    }) {
+      if (participantIds.length === 0) {
+        return []
+      }
+
+      const invitation = yield* use((db) =>
+        db.query.juryInvitations.findFirst({
+          where: (table, operators) => operators.eq(table.id, invitationId),
+        }),
+      )
+      if (!invitation) {
+        return yield* Effect.fail(
+          new DbError({
+            message: 'Invitation not found',
+          }),
+        )
+      }
+
+      if (invitation.inviteType === 'topic') {
+        const topicId = invitation.topicId
+        if (!topicId) {
+          return yield* Effect.fail(
+            new DbError({
+              message: 'Topic not found',
+            }),
+          )
+        }
+
+        const rows = yield* selectTopicSubmissionPreviews({
+          marathonId: invitation.marathonId,
+          topicIds: [topicId],
+          participantIds,
+        })
+
+        return collectNewestPerParticipant(rows, (row) => ({
+          participantId: row.participantId,
+          submissionKey: row.key,
+          submissionThumbnailKey: row.thumbnailKey,
+          contactSheetKey: null,
+        }))
+      }
+
+      const rows = yield* selectContactSheetPreviews({
+        marathonId: invitation.marathonId,
+        participantIds,
+      })
+
+      return collectNewestPerParticipant(rows, (row) => ({
+        participantId: row.participantId,
+        submissionKey: null,
+        submissionThumbnailKey: null,
+        contactSheetKey: row.key,
+      }))
+    })
+
+  const getJuryParticipantPreviewsByMarathon: JuryRepository['Service']['getJuryParticipantPreviewsByMarathon'] =
+    Effect.fn('JuryRepository.getJuryParticipantPreviewsByMarathon')(function* ({
+      marathonId,
+      topicIds,
+      participantIds,
+    }) {
+      const [topicRows, contactSheetRows] = yield* Effect.all(
+        [
+          selectTopicSubmissionPreviews({ marathonId, topicIds, participantIds }),
+          selectContactSheetPreviews({ marathonId, participantIds }),
+        ],
+        { concurrency: 2 },
+      )
+
+      const seenTopicKeys = new Set<string>()
+      const byTopic: {
+        topicId: number
+        participantId: number
+        submissionKey: string
+        submissionThumbnailKey: string | null
+      }[] = []
+      for (const row of topicRows) {
+        const key = `${row.topicId}:${row.participantId}`
+        if (seenTopicKeys.has(key)) continue
+        seenTopicKeys.add(key)
+        byTopic.push({
+          topicId: row.topicId,
+          participantId: row.participantId,
+          submissionKey: row.key,
+          submissionThumbnailKey: row.thumbnailKey,
+        })
+      }
+
+      return {
+        byTopic,
+        contactSheets: collectNewestPerParticipant(contactSheetRows, (row) => ({
+          participantId: row.participantId,
+          contactSheetKey: row.key,
+        })),
+      }
+    })
+
+  const getJuryShortlistsByMarathonId: JuryRepository['Service']['getJuryShortlistsByMarathonId'] =
+    Effect.fn('JuryRepository.getJuryShortlistsByMarathonId')(function* ({ marathonId }) {
+      return yield* use((db) =>
+        db.query.juryShortlistPicks.findMany({
+          where: (table, operators) => operators.eq(table.marathonId, marathonId),
+          with: {
+            participant: {
+              columns: {
+                id: true,
+                reference: true,
+                firstname: true,
+                lastname: true,
+              },
+            },
+          },
+          orderBy: (table, operators) => operators.asc(table.createdAt),
+        }),
+      )
+    })
+
   const deleteJuryRating: JuryRepository['Service']['deleteJuryRating'] = Effect.fn(
     'JuryRepository.deleteJuryRating',
   )(function* ({ invitationId, participantId }) {
@@ -1208,7 +1455,6 @@ const makeJuryRepository = Effect.gen(function* () {
         progressPercentage,
         averageRating,
         ratingDistribution,
-        recentRatings: ratings.slice(0, 5),
       }
     })
   return JuryRepository.of({
@@ -1227,6 +1473,9 @@ const makeJuryRepository = Effect.gen(function* () {
     getJuryRating,
     getJuryRatingsByInvitation,
     getJuryShortlistByInvitation,
+    getJuryParticipantPreviews,
+    getJuryParticipantPreviewsByMarathon,
+    getJuryShortlistsByMarathonId,
     participantMatchesInvitationScope,
     createJuryRating,
     updateJuryRating,

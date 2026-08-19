@@ -19,6 +19,9 @@ export default async function JuryPage({
 
   prefetch(trpc.marathons.getByDomain.queryOptions({ domain }))
 
+  // Feeds both the Results tab and the winner chips in the juror list.
+  prefetch(trpc.jury.getJuryResultsByDomain.queryOptions({ domain }))
+
   const selectedId = queryParams.invitation
   if (selectedId != null) {
     prefetch(

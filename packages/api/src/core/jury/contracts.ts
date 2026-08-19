@@ -10,6 +10,8 @@ export const GetJuryReviewResultsByInvitationIdInputSchema = Schema.Struct({
   id: Schema.Number,
 })
 
+export const GetJuryResultsByDomainInputSchema = Schema.Struct({ domain: Schema.String })
+
 export const CreateJuryInvitationInputSchema = Schema.Struct({
   domain: Schema.String,
   data: Schema.Struct({
@@ -149,6 +151,9 @@ export type GetJuryInvitationsByDomainInput = Schema.Schema.Type<
 export type GetJuryInvitationByIdInput = Schema.Schema.Type<typeof GetJuryInvitationByIdInputSchema>
 export type GetJuryReviewResultsByInvitationIdInput = Schema.Schema.Type<
   typeof GetJuryReviewResultsByInvitationIdInputSchema
+>
+export type GetJuryResultsByDomainInput = Schema.Schema.Type<
+  typeof GetJuryResultsByDomainInputSchema
 >
 export type CreateJuryInvitationInput = Schema.Schema.Type<typeof CreateJuryInvitationInputSchema>
 export type UpdateJuryInvitationInput = Schema.Schema.Type<typeof UpdateJuryInvitationInputSchema>

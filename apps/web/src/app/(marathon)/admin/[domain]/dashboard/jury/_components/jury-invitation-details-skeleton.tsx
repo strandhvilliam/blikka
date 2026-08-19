@@ -19,44 +19,12 @@ export function JuryInvitationDetailsSkeleton() {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Skeleton className="h-1 w-1 rounded-full" />
-            <Skeleton className="h-3 w-12" />
+            <Skeleton className="h-3 w-14" />
           </div>
-          <div className="rounded-lg border border-border/60 bg-muted/20 p-5 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Skeleton className="h-3 w-12" />
-                <Skeleton className="h-5 w-20" />
-              </div>
-              <div className="space-y-1.5">
-                <Skeleton className="h-3 w-10" />
-                <Skeleton className="h-4 w-28" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Skeleton className="h-3 w-16" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-              <div className="space-y-1.5">
-                <Skeleton className="h-3 w-14" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Skeleton className="h-3 w-12" />
-              <Skeleton className="h-4 w-40" />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-1 w-1 rounded-full" />
-            <Skeleton className="h-3 w-20" />
-          </div>
-          <div className="space-y-1.5">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Skeleton key={i} className="h-10 w-full rounded-lg" />
+          <Skeleton className="aspect-[4/3] w-full rounded-xl sm:aspect-[16/9]" />
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="aspect-square w-full rounded-lg" />
             ))}
           </div>
         </div>
@@ -64,10 +32,12 @@ export function JuryInvitationDetailsSkeleton() {
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             <Skeleton className="h-1 w-1 rounded-full" />
-            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-3 w-12" />
           </div>
-          <Skeleton className="h-10 w-full rounded-lg" />
+          <Skeleton className="h-36 w-full rounded-lg" />
         </div>
+
+        <Skeleton className="h-10 w-full rounded-lg" />
       </div>
     </>
   )

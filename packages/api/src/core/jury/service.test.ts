@@ -129,6 +129,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
     getJuryParticipantCount: () => Effect.die('not used in these tests'),
     participantMatchesInvitationScope: () => Effect.die('not used in these tests'),
     getJuryShortlistByInvitation: () => Effect.die('not used in these tests'),
+    getJuryParticipantPreviews: () => Effect.die('not used in these tests'),
     getJuryShortlistPick: () => Effect.die('not used in these tests'),
     createJuryShortlistPick: () => Effect.die('not used in these tests'),
     deleteJuryShortlistPick: () => Effect.die('not used in these tests'),

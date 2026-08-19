@@ -13,9 +13,10 @@ import {
   RefreshCw,
   CalendarPlus,
   MoreHorizontal,
-  Star,
+  ChevronDown,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +42,7 @@ import { useDomain } from '@/lib/domain-provider'
 import { getJuryEntryLink } from '@/lib/jury/jury-utils'
 import { format } from 'date-fns'
 import { JuryRatingsTable } from './jury-ratings-table'
-import { JuryShortlistSummary } from './jury-shortlist-summary'
+import { JuryResultOutcome } from './jury-result-outcome'
 import { JuryInvitationStatusBadge } from './jury-invitation-status-badge'
 import { JuryInvitationExtendDialog } from './jury-invitation-extend-dialog'
 import { JuryInvitationRegenerateDialog } from './jury-invitation-regenerate-dialog'
@@ -196,121 +197,66 @@ export function JuryInvitationDetailsContent({
             <div className="flex items-center gap-2 mb-3">
               <span className="h-1 w-1 rounded-full bg-brand-primary" />
               <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-                Review progress
+                Verdict
               </span>
             </div>
-            <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-4 sm:p-5">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-lg border border-border/60 bg-white px-3.5 py-3">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
-                    Reviewed
-                  </p>
-                  <p className="mt-1 flex items-baseline gap-1 font-gothic">
-                    <span className="text-2xl font-medium leading-none tabular-nums">
-                      {statistics.ratedParticipants}
-                    </span>
-                    <span className="text-sm text-muted-foreground tabular-nums">
-                      / {statistics.totalParticipants}
-                    </span>
-                  </p>
-                </div>
-                <div className="rounded-lg border border-border/60 bg-white px-3.5 py-3">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
-                    Avg rating
-                  </p>
-                  <p className="mt-1 flex items-center gap-1.5 font-gothic">
-                    <span className="text-2xl font-medium leading-none tabular-nums">
-                      {statistics.averageRating > 0 ? statistics.averageRating.toFixed(1) : '—'}
-                    </span>
-                    {statistics.averageRating > 0 && (
-                      <Star className="h-4 w-4 fill-brand-primary text-brand-primary" />
-                    )}
-                  </p>
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[12px]">
-                  <span className="text-muted-foreground">Progress</span>
-                  <span className="font-medium tabular-nums text-muted-foreground">
-                    {Math.round(Math.min(100, statistics.progressPercentage))}%
-                  </span>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-brand-primary transition-all"
-                    style={{ width: `${Math.min(100, statistics.progressPercentage)}%` }}
-                  />
-                </div>
-              </div>
-              {statistics.ratingDistribution.some(({ count }) => count > 0) && (
-                <div className="flex flex-wrap gap-1.5">
-                  {statistics.ratingDistribution.map(({ rating, count }) =>
-                    count > 0 ? (
-                      <span
-                        key={rating}
-                        className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-white px-2.5 py-1 text-[11px] font-medium tabular-nums"
-                      >
-                        {rating}
-                        <Star className="h-2.5 w-2.5 fill-brand-primary text-brand-primary" />
-                        <span className="text-muted-foreground">{count}</span>
-                      </span>
-                    ) : null,
-                  )}
-                </div>
-              )}
-            </div>
+            <JuryResultOutcome
+              shortlist={reviewResults.shortlist}
+              requiredShortlistSize={reviewResults.requiredShortlistSize}
+            />
           </section>
 
           <section>
             <div className="flex items-center gap-2 mb-3">
               <span className="h-1 w-1 rounded-full bg-brand-primary" />
               <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-                Details
+                Review
               </span>
             </div>
             <div className="rounded-lg border border-border/60 bg-muted/20 p-4 space-y-4 sm:p-5">
-              <div className="grid grid-cols-1 gap-4 min-w-0 sm:grid-cols-2">
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
-                    Status
-                  </p>
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <JuryInvitationStatusBadge status={invitation.status} />
-                    {isExpired && (
-                      <Badge variant="destructive" className="text-[10px]">
-                        Expired
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
-                    Type
-                  </p>
-                  <div className="flex min-w-0 items-center gap-2">
-                    {invitation.inviteType === 'topic' ? (
-                      <>
-                        <Tag className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <span className="text-[13px] break-words">Topic Invite</span>
-                      </>
-                    ) : (
-                      <>
-                        <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                        <span className="text-[13px] break-words">Class Invite</span>
-                      </>
-                    )}
-                  </div>
-                </div>
+              <div className="flex min-w-0 flex-wrap items-center gap-2">
+                <JuryInvitationStatusBadge status={invitation.status} />
+                {isExpired && (
+                  <Badge variant="destructive" className="text-[10px]">
+                    Expired
+                  </Badge>
+                )}
+                <span className="text-[12px] tabular-nums text-muted-foreground">
+                  {statistics.ratedParticipants} / {statistics.totalParticipants} entries reviewed
+                </span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full bg-brand-primary transition-all"
+                  style={{ width: `${Math.min(100, statistics.progressPercentage)}%` }}
+                />
               </div>
 
               <div className="grid grid-cols-1 gap-4 min-w-0 sm:grid-cols-2">
                 <div className="min-w-0">
                   <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
-                    Created
+                    Reviewing
                   </p>
                   <div className="flex min-w-0 items-start gap-2">
-                    <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
-                    <span className="text-[13px] break-words">{createdDate}</span>
+                    {invitation.inviteType === 'topic' ? (
+                      <>
+                        <Tag className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
+                        <span className="text-[13px] break-words">
+                          {invitation.topic
+                            ? `Topic ${invitation.topic.orderIndex + 1}: ${invitation.topic.name}`
+                            : 'Topic invite'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
+                        <span className="text-[13px] break-words">
+                          {[invitation.competitionClass?.name, invitation.deviceGroup?.name]
+                            .filter(Boolean)
+                            .join(' · ') || 'Class invite'}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="min-w-0">
@@ -324,37 +270,15 @@ export function JuryInvitationDetailsContent({
                 </div>
               </div>
 
-              {invitation.inviteType === 'topic' && invitation.topic && (
-                <div className="min-w-0">
-                  <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
-                    Topic
-                  </p>
-                  <p className="text-[13px] break-words">
-                    Topic {invitation.topic.orderIndex + 1}: {invitation.topic.name}
-                  </p>
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
+                  Invited
+                </p>
+                <div className="flex min-w-0 items-start gap-2">
+                  <Calendar className="h-3.5 w-3.5 shrink-0 text-muted-foreground mt-0.5" />
+                  <span className="text-[13px] break-words">{createdDate}</span>
                 </div>
-              )}
-
-              {invitation.inviteType === 'class' && (
-                <>
-                  {invitation.competitionClass && (
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
-                        Competition Class
-                      </p>
-                      <p className="text-[13px] break-words">{invitation.competitionClass.name}</p>
-                    </div>
-                  )}
-                  {invitation.deviceGroup && (
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70 mb-1.5">
-                        Device Group
-                      </p>
-                      <p className="text-[13px] break-words">{invitation.deviceGroup.name}</p>
-                    </div>
-                  )}
-                </>
-              )}
+              </div>
 
               {invitation.notes && (
                 <div className="min-w-0">
@@ -367,20 +291,27 @@ export function JuryInvitationDetailsContent({
             </div>
           </section>
 
-          <section>
-            <div className="flex items-center gap-2 mb-3">
-              <span className="h-1 w-1 rounded-full bg-brand-primary" />
+          {/*
+            Star ratings are the juror's private working notes for narrowing the field down, not the
+            result — they stay one click away so they cannot be mistaken for the verdict above.
+          */}
+          <Collapsible>
+            <CollapsibleTrigger className="group flex w-full items-center gap-2 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 text-left transition-colors hover:bg-muted/40">
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-180" />
               <span className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
-                Shortlist
+                Juror&apos;s working ratings
               </span>
-            </div>
-            <JuryShortlistSummary shortlist={reviewResults.shortlist} />
-          </section>
-
-          <JuryRatingsTable
-            ratings={reviewResults.ratings}
-            shortlist={reviewResults.shortlist}
-          />
+              <span className="ml-auto text-[12px] tabular-nums text-muted-foreground">
+                {reviewResults.ratings.length}
+              </span>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              <JuryRatingsTable
+                ratings={reviewResults.ratings}
+                shortlist={reviewResults.shortlist}
+              />
+            </CollapsibleContent>
+          </Collapsible>
 
           <section>
             <div className="flex items-center gap-2 mb-3">
