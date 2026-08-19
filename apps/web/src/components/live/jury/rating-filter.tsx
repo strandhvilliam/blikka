@@ -12,7 +12,7 @@ export function RatingFilterBar({
   isPending?: boolean
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-border/60 bg-white px-2.5 py-1.5">
+    <div className="scrollbar-hide flex min-w-0 items-center gap-1.5 overflow-x-auto rounded-2xl border border-border/60 bg-white px-2.5 py-1.5 md:flex-wrap md:overflow-visible">
       {[0, 1, 2, 3, 4, 5].map((rating) => {
         const isActive = selectedRatings.includes(rating)
         return (
@@ -21,7 +21,7 @@ export function RatingFilterBar({
             type="button"
             onClick={() => onToggle(rating)}
             aria-busy={isPending}
-            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
+            className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors duration-150 ${
               isActive
                 ? 'bg-brand-primary text-white'
                 : 'bg-neutral-50 text-brand-gray hover:bg-neutral-100 hover:text-brand-black'

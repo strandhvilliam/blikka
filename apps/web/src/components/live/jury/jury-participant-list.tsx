@@ -50,6 +50,21 @@ function useGridColumnCount(viewMode: ViewMode) {
   return viewMode === 'compact' ? 1 : columnCount
 }
 
+function useIsPageScrollLayout() {
+  const [isPageScroll, setIsPageScroll] = useState(false)
+
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 767px)')
+    const update = () => setIsPageScroll(query.matches)
+
+    update()
+    query.addEventListener('change', update)
+    return () => query.removeEventListener('change', update)
+  }, [])
+
+  return isPageScroll
+}
+
 export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResults: boolean }) {
   const {
     participants,
@@ -81,6 +96,7 @@ export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResul
       : `${totalMatchingParticipants} participants`
 
   const gridCols = useGridColumnCount(viewMode)
+  const isPageScroll = useIsPageScrollLayout()
 
   const rows = useMemo(() => {
     if (viewMode === 'compact') {
@@ -105,9 +121,28 @@ export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResul
     overscan: 5,
   })
 
+  const loadMoreSentinelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const el = loadMoreSentinelRef.current
+    if (!isPageScroll || !el) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting) && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage()
+        }
+      },
+      { rootMargin: '600px' },
+    )
+
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [fetchNextPage, hasNextPage, isFetchingNextPage, isPageScroll])
+
   useEffect(() => {
     const el = scrollContainerRef.current
-    if (!el || rows.length === 0) return
+    if (isPageScroll || !el || rows.length === 0) return
 
     const maybeFetchNext = () => {
       const items = rowVirtualizer.getVirtualItems()
@@ -121,7 +156,7 @@ export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResul
     maybeFetchNext()
     el.addEventListener('scroll', maybeFetchNext, { passive: true })
     return () => el.removeEventListener('scroll', maybeFetchNext)
-  }, [rowVirtualizer, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage])
+  }, [rowVirtualizer, rows.length, hasNextPage, isFetchingNextPage, fetchNextPage, isPageScroll])
 
   if (error) {
     return (
@@ -162,15 +197,14 @@ export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResul
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
+    <div className="flex flex-col gap-4 md:min-h-0 md:flex-1">
       <ListToolbar
         participantSummary={isInitialLoading ? '' : participantSummary}
         isRefreshingResults={isInitialLoading ? false : isRefreshingResults}
         isPending={isInitialLoading}
       />
 
-      {/* Takes the space the header leaves rather than guessing at it, so this is the only scroller. */}
-      <div ref={scrollContainerRef} className="min-h-0 flex-1 overflow-auto rounded-2xl">
+      <div ref={scrollContainerRef} className="rounded-2xl md:min-h-0 md:flex-1 md:overflow-auto">
         {isInitialLoading ? (
           <div className="grid grid-cols-1 gap-3 p-1">
             {Array.from({ length: 8 }, (_, index) => (
@@ -186,6 +220,39 @@ export function JuryParticipantList({ isRefreshingResults }: { isRefreshingResul
               </div>
             ))}
           </div>
+        ) : isPageScroll ? (
+          <>
+            <div
+              className={
+                viewMode === 'grid'
+                  ? 'grid grid-cols-2 gap-3 sm:grid-cols-3'
+                  : 'flex flex-col gap-3'
+              }
+            >
+              {participants.map((participant, index) => (
+                <JuryParticipantCard
+                  key={participant.id}
+                  participant={participant}
+                  rating={ratingByParticipantId.get(participant.id)?.rating ?? 0}
+                  isShortlisted={shortlistedIds.has(participant.id)}
+                  isWinner={winnerParticipantId === participant.id}
+                  onClick={() => selectParticipant(participant.id, index)}
+                  variant={viewMode}
+                />
+              ))}
+            </div>
+
+            {hasNextPage ? <div ref={loadMoreSentinelRef} aria-hidden className="h-px" /> : null}
+
+            {isFetchingNextPage ? (
+              <div className="flex justify-center py-6">
+                <div className="flex items-center gap-2 text-sm text-brand-gray">
+                  <Loader2 className="h-4 w-4 animate-spin text-brand-primary" />
+                  Loading more...
+                </div>
+              </div>
+            ) : null}
+          </>
         ) : (
           <>
             <div className="relative w-full" style={{ height: rowVirtualizer.getTotalSize() }}>
@@ -249,66 +316,117 @@ function ListToolbar({
   const { viewMode, setViewMode, selectedRatings, toggleRatingFilter, clearRatingFilter } =
     useJuryReviewQueryState()
 
+  const summary = (
+    <ListSummary
+      participantSummary={participantSummary}
+      isRefreshingResults={isRefreshingResults}
+      isPending={isPending}
+    />
+  )
+  const clearFilter =
+    selectedRatings.length > 0 ? <ClearFilterButton onClick={clearRatingFilter} /> : null
+  const filterBar = (
+    <RatingFilterBar
+      selectedRatings={selectedRatings}
+      onToggle={toggleRatingFilter}
+      isPending={isPending || isRefreshingResults}
+    />
+  )
+  const viewModeToggle = <ViewModeToggle viewMode={viewMode} onChange={setViewMode} />
+
   return (
     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-      <div className="flex items-center gap-3">
-        {isPending ? (
-          <Skeleton className="h-4 w-48 max-w-full" />
-        ) : (
-          <p className="flex items-center gap-2 text-sm font-medium text-brand-black">
-            {participantSummary}
-            {isRefreshingResults ? (
-              <span className="inline-flex items-center gap-1 text-xs font-normal text-brand-gray">
-                <Loader2 className="h-3 w-3 animate-spin text-brand-primary" />
-                Updating
-              </span>
-            ) : null}
-          </p>
-        )}
+      <div className="flex items-center justify-between gap-3 md:hidden">
+        {summary}
+        {viewModeToggle}
+      </div>
+      <div className="flex items-center gap-2 md:hidden">
+        {filterBar}
+        {clearFilter}
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {selectedRatings.length > 0 ? (
-          <button
-            type="button"
-            onClick={clearRatingFilter}
-            className="inline-flex items-center rounded-full border border-border/60 bg-white px-3 py-1.5 text-xs font-medium text-brand-gray transition-colors hover:border-brand-primary/30 hover:text-brand-black"
-          >
-            Clear filter
-          </button>
-        ) : null}
-        <RatingFilterBar
-          selectedRatings={selectedRatings}
-          onToggle={toggleRatingFilter}
-          isPending={isPending || isRefreshingResults}
-        />
-        <div className="flex items-center rounded-xl border border-border/60 bg-white">
-          <button
-            type="button"
-            onClick={() => void setViewMode('grid')}
-            className={`rounded-l-xl px-2.5 py-2 transition-colors ${
-              viewMode === 'grid'
-                ? 'bg-neutral-100 text-brand-black'
-                : 'text-brand-gray hover:text-brand-black'
-            }`}
-            aria-label="Grid view"
-          >
-            <Grid2x2 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={() => void setViewMode('compact')}
-            className={`rounded-r-xl px-2.5 py-2 transition-colors ${
-              viewMode === 'compact'
-                ? 'bg-neutral-100 text-brand-black'
-                : 'text-brand-gray hover:text-brand-black'
-            }`}
-            aria-label="Compact list view"
-          >
-            <List className="h-4 w-4" />
-          </button>
-        </div>
+      <div className="hidden items-center gap-3 md:flex">{summary}</div>
+
+      <div className="hidden flex-wrap items-center gap-2 md:flex">
+        {clearFilter}
+        {filterBar}
+        {viewModeToggle}
       </div>
+    </div>
+  )
+}
+
+function ListSummary({
+  participantSummary,
+  isRefreshingResults,
+  isPending,
+}: {
+  participantSummary: string
+  isRefreshingResults: boolean
+  isPending: boolean
+}) {
+  if (isPending) {
+    return <Skeleton className="h-4 w-48 max-w-full" />
+  }
+
+  return (
+    <p className="flex items-center gap-2 text-sm font-medium text-brand-black">
+      {participantSummary}
+      {isRefreshingResults ? (
+        <span className="inline-flex items-center gap-1 text-xs font-normal text-brand-gray">
+          <Loader2 className="h-3 w-3 animate-spin text-brand-primary" />
+          Updating
+        </span>
+      ) : null}
+    </p>
+  )
+}
+
+function ClearFilterButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex shrink-0 items-center rounded-full border border-border/60 bg-white px-3 py-1.5 text-xs font-medium text-brand-gray transition-colors hover:border-brand-primary/30 hover:text-brand-black"
+    >
+      Clear filter
+    </button>
+  )
+}
+
+function ViewModeToggle({
+  viewMode,
+  onChange,
+}: {
+  viewMode: ViewMode
+  onChange: (viewMode: ViewMode) => void
+}) {
+  return (
+    <div className="flex shrink-0 items-center rounded-xl border border-border/60 bg-white">
+      <button
+        type="button"
+        onClick={() => void onChange('grid')}
+        className={`rounded-l-xl px-2.5 py-2 transition-colors ${
+          viewMode === 'grid'
+            ? 'bg-neutral-100 text-brand-black'
+            : 'text-brand-gray hover:text-brand-black'
+        }`}
+        aria-label="Grid view"
+      >
+        <Grid2x2 className="h-4 w-4" />
+      </button>
+      <button
+        type="button"
+        onClick={() => void onChange('compact')}
+        className={`rounded-r-xl px-2.5 py-2 transition-colors ${
+          viewMode === 'compact'
+            ? 'bg-neutral-100 text-brand-black'
+            : 'text-brand-gray hover:text-brand-black'
+        }`}
+        aria-label="Compact list view"
+      >
+        <List className="h-4 w-4" />
+      </button>
     </div>
   )
 }

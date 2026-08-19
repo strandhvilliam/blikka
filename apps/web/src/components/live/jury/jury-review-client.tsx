@@ -47,15 +47,12 @@ function JuryReviewClientContent() {
     isClientMounted && selectedParticipantId !== null && participants.length > 0
 
   return (
-    // The page itself does not scroll: the header is pinned and whichever pane is showing owns the
-    // only scrollbar. Sizing the pane off the viewport instead lands it in a nested scroller that
-    // fights the page for the wheel.
-    <main className="h-dvh overflow-hidden bg-neutral-50 bg-dot-pattern-light">
-      <div className="mx-auto flex h-full w-full max-w-[1440px] flex-col gap-4 px-4 py-5 md:px-6 md:py-6">
+    <main className="min-h-dvh bg-neutral-50 bg-dot-pattern-light md:h-dvh md:overflow-hidden">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-4 px-4 py-5 md:h-full md:px-6 md:py-6">
         <JuryReviewHeader />
 
         {shouldShowViewer ? (
-          <div className="min-h-0 flex-1 overflow-auto">
+          <div className="md:min-h-0 md:flex-1 md:overflow-auto">
             <JurySubmissionViewer initialIndex={selectedIndex} />
           </div>
         ) : (

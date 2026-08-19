@@ -112,8 +112,8 @@ export function JuryReviewHeader() {
 
   return (
     <header className="shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-white">
-      <div className="flex flex-col gap-4 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 items-center gap-4">
+      <div className="flex flex-col gap-3 px-4 py-3.5 sm:gap-4 sm:px-5 sm:py-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex min-w-0 items-center gap-3 sm:gap-4">
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="shrink-0 cursor-default">
@@ -126,7 +126,7 @@ export function JuryReviewHeader() {
             </TooltipContent>
           </Tooltip>
           <div className="min-w-0">
-            <h1 className="font-gothic text-2xl font-medium leading-none tracking-tight text-brand-black">
+            <h1 className="font-gothic text-xl font-medium leading-none tracking-tight text-brand-black sm:text-2xl">
               Jury Review
             </h1>
             <div className="mt-1.5 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
@@ -143,7 +143,7 @@ export function JuryReviewHeader() {
           </div>
         </div>
 
-        <div className="flex min-w-0 items-center justify-end gap-3">
+        <div className="flex min-w-0 items-center justify-between gap-3 sm:justify-end">
           <div className="flex min-w-0 items-center gap-2.5">
             <div
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-primary/10 font-gothic text-[13px] font-medium tracking-tight text-brand-primary"
@@ -151,7 +151,7 @@ export function JuryReviewHeader() {
             >
               {sessionInitials}
             </div>
-            <div className="min-w-0 text-right sm:text-left">
+            <div className="min-w-0 text-left">
               <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-gray">
                 Your session
               </p>
@@ -167,7 +167,7 @@ export function JuryReviewHeader() {
             </div>
           </div>
 
-          <div className="h-10 w-px shrink-0 bg-border/60" aria-hidden />
+          <div className="hidden h-10 w-px shrink-0 bg-border/60 sm:block" aria-hidden />
 
           <AlertDialog>
             <AlertDialogTrigger asChild>
@@ -205,7 +205,7 @@ export function JuryReviewHeader() {
         </div>
       </div>
 
-      <div className="border-t border-border/60 bg-muted/20 px-5 py-3">
+      <div className="border-t border-border/60 bg-muted/20 px-4 py-3 sm:px-5">
         <div className="mb-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
           <div className="flex items-center gap-2">
             <p className="text-[11px] font-semibold uppercase tracking-widest text-brand-gray">
@@ -254,12 +254,17 @@ export function JuryReviewHeader() {
         </div>
 
         {headerShortlistCount === 0 ? (
-          <p className="rounded-xl border border-dashed border-border/70 bg-white/40 px-3 py-3 text-center text-[13px] text-brand-gray">
-            Open a submission and hit <ShortcutKey>S</ShortcutKey> to shortlist it, then{' '}
-            <ShortcutKey>W</ShortcutKey> to make one of your picks the winner.
+          <p className="rounded-xl border border-dashed border-border/70 bg-white/40 px-3 py-2.5 text-center text-[13px] text-brand-gray sm:py-3">
+            <span className="sm:hidden">
+              Open a submission and tap Shortlist, then make one of your picks the winner.
+            </span>
+            <span className="hidden sm:inline">
+              Open a submission and hit <ShortcutKey>S</ShortcutKey> to shortlist it, then{' '}
+              <ShortcutKey>W</ShortcutKey> to make one of your picks the winner.
+            </span>
           </p>
         ) : (
-          <div className="flex flex-wrap gap-2">
+          <div className="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {picks.map((pick) => (
               <button
                 key={pick.participantId}
@@ -267,7 +272,7 @@ export function JuryReviewHeader() {
                 onClick={() => openParticipant(pick.participantId)}
                 aria-label={`Shortlisted #${pick.reference}${pick.isWinner ? ' — your winner' : ''}. Open submission.`}
                 className={cn(
-                  'inline-flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-sm font-medium tabular-nums shadow-sm transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 focus-visible:ring-offset-1 active:scale-[0.98]',
+                  'inline-flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-sm font-medium tabular-nums shadow-sm transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 focus-visible:ring-offset-1 active:scale-[0.98]',
                   pick.isWinner
                     ? 'border-amber-200 bg-amber-50/80 text-brand-black hover:border-amber-300'
                     : 'border-border/60 bg-white text-brand-black hover:border-brand-primary/40',
@@ -283,7 +288,7 @@ export function JuryReviewHeader() {
               (_, index) => (
                 <span
                   key={`empty-${index}`}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-dashed border-border/70 bg-white/40 px-2.5 py-1.5 text-sm font-medium text-brand-gray/60"
+                  className="hidden shrink-0 items-center gap-1.5 rounded-full border border-dashed border-border/70 bg-white/40 px-2.5 py-1.5 text-sm font-medium text-brand-gray/60 sm:inline-flex"
                 >
                   Empty
                 </span>

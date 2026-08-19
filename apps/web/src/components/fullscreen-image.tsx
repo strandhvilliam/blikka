@@ -39,6 +39,25 @@ const isFullscreenSupported =
 /** Long enough that the controls do not blink away mid-glance, short enough to leave the photo alone. */
 const CHROME_IDLE_MS = 2600
 
+/** Travel before a one-finger drag is read as a swipe rather than a tap. */
+const SWIPE_SLOP_PX = 12
+/** Share of the screen a slow drag has to cover to page; a flick pages on velocity instead. */
+const SWIPE_COMMIT_RATIO = 0.18
+const SWIPE_COMMIT_MIN_PX = 56
+const SWIPE_COMMIT_MAX_PX = 140
+const SWIPE_FLICK_VELOCITY = 0.45
+/** Drag past the first or last photo still moves, but heavily damped, so the edge is felt. */
+const SWIPE_EDGE_RESISTANCE = 0.35
+
+type SwipeGesture = {
+  startX: number
+  startY: number
+  startedAt: number
+  dx: number
+  /** `none` once a drag commits to the vertical axis — it will never become a page turn. */
+  axis: 'undecided' | 'horizontal' | 'none'
+}
+
 /**
  * The fullscreened element stays mounted for as long as the viewer is open — remounting it would
  * drop the browser out of fullscreen. Everything that belongs to *one photo* lives in the stage
@@ -292,6 +311,20 @@ function FullscreenStage({
     distance?: number
   } | null>(null)
 
+  /** Unzoomed, a one-finger drag has nothing to pan, so it pages between photos instead. */
+  const swipeRef = useRef<SwipeGesture | null>(null)
+  const [swipeOffset, setSwipeOffset] = useState(0)
+  const [isSwiping, setIsSwiping] = useState(false)
+  /** A swipe ends in a click event the stage would otherwise read as a tap on the chrome. */
+  const suppressStageClickRef = useRef(false)
+  const canSwipe = Boolean(onPrev || onNext)
+
+  const endSwipe = useCallback(() => {
+    swipeRef.current = null
+    setSwipeOffset(0)
+    setIsSwiping(false)
+  }, [])
+
   const handleTouchStart = useCallback(
     (e: TouchEvent) => {
       if (e.touches.length === 1) {
@@ -300,8 +333,18 @@ function FullscreenStage({
             x: e.touches[0]!.clientX - position.x,
             y: e.touches[0]!.clientY - position.y,
           }
+        } else if (canSwipe) {
+          swipeRef.current = {
+            startX: e.touches[0]!.clientX,
+            startY: e.touches[0]!.clientY,
+            startedAt: Date.now(),
+            dx: 0,
+            axis: 'undecided',
+          }
         }
       } else if (e.touches.length === 2) {
+        // A second finger means pinch, and a pinch is never a page turn.
+        endSwipe()
         const distance = Math.hypot(
           e.touches[0]!.clientX - e.touches[1]!.clientX,
           e.touches[0]!.clientY - e.touches[1]!.clientY,
@@ -313,7 +356,7 @@ function FullscreenStage({
         }
       }
     },
-    [scale, position],
+    [canSwipe, endSwipe, scale, position],
   )
 
   const handleTouchMove = useCallback(
@@ -325,6 +368,23 @@ function FullscreenStage({
           x: e.touches[0]!.clientX - touchStartRef.current.x,
           y: e.touches[0]!.clientY - touchStartRef.current.y,
         })
+      } else if (e.touches.length === 1 && swipeRef.current && scale === 1) {
+        const swipe = swipeRef.current
+        const dx = e.touches[0]!.clientX - swipe.startX
+        const dy = e.touches[0]!.clientY - swipe.startY
+
+        if (swipe.axis === 'undecided') {
+          if (Math.hypot(dx, dy) < SWIPE_SLOP_PX) return
+          swipe.axis = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'none'
+          suppressStageClickRef.current = true
+          setIsSwiping(swipe.axis === 'horizontal')
+        }
+
+        if (swipe.axis !== 'horizontal') return
+
+        swipe.dx = dx
+        const hasNeighbour = dx < 0 ? hasNext && Boolean(onNext) : hasPrev && Boolean(onPrev)
+        setSwipeOffset(hasNeighbour ? dx : dx * SWIPE_EDGE_RESISTANCE)
       } else if (e.touches.length === 2 && touchStartRef.current?.distance) {
         const distance = Math.hypot(
           e.touches[0]!.clientX - e.touches[1]!.clientX,
@@ -335,7 +395,7 @@ function FullscreenStage({
         touchStartRef.current.distance = distance
       }
     },
-    [scale],
+    [hasNext, hasPrev, onNext, onPrev, scale],
   )
 
   const handleTouchEnd = useCallback(() => {
@@ -343,7 +403,26 @@ function FullscreenStage({
     if (scale === 1) {
       setPosition({ x: 0, y: 0 })
     }
-  }, [scale])
+
+    const swipe = swipeRef.current
+    endSwipe()
+    if (!swipe || swipe.axis !== 'horizontal') return
+
+    const travel = Math.abs(swipe.dx)
+    const velocity = travel / Math.max(1, Date.now() - swipe.startedAt)
+    const threshold = Math.min(
+      SWIPE_COMMIT_MAX_PX,
+      Math.max(SWIPE_COMMIT_MIN_PX, window.innerWidth * SWIPE_COMMIT_RATIO),
+    )
+    if (travel < threshold && velocity < SWIPE_FLICK_VELOCITY) return
+
+    // The stage is keyed by `src`, so paging remounts it and the offset starts from zero again.
+    if (swipe.dx < 0 && hasNext) {
+      onNext?.()
+    } else if (swipe.dx > 0 && hasPrev) {
+      onPrev?.()
+    }
+  }, [endSwipe, hasNext, hasPrev, onNext, onPrev, scale])
 
   /**
    * With chrome on screen a tap belongs to it — it brings the controls back, or clears them out of
@@ -352,6 +431,11 @@ function FullscreenStage({
   const handleStageClick = useCallback(
     (e: MouseEvent) => {
       if (scale !== 1) return
+
+      if (suppressStageClickRef.current) {
+        suppressStageClickRef.current = false
+        return
+      }
 
       if (hasChrome) {
         if (isChromeVisible) {
@@ -400,12 +484,15 @@ function FullscreenStage({
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
+        onTouchCancel={endSwipe}
         onClick={handleStageClick}
       >
         <div
           className="relative flex h-full w-full items-center justify-center transition-transform duration-100"
           style={{
-            transform: `translate(${position.x}px, ${position.y}px) scale(${scale})`,
+            transform: `translate(${position.x + swipeOffset}px, ${position.y}px) scale(${scale})`,
+            // The photo has to track the finger exactly; easing it here reads as lag.
+            transitionDuration: isSwiping ? '0ms' : undefined,
           }}
         >
           {sourceKind === 'original' ? (
