@@ -2,7 +2,7 @@
 
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { motion } from 'motion/react'
-import { CheckCircle2, ImageIcon, PlayIcon, Tag, UserIcon } from 'lucide-react'
+import { CheckCircle2, ImageIcon, PlayIcon, Tag } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -42,7 +42,7 @@ export function JuryInitialClient({ domain, token }: { domain: string; token: st
 
   return (
     <div className="flex min-h-dvh flex-col pt-4">
-      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-6">
+      <main className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-6 pb-6 lg:max-w-2xl">
         <div className="flex flex-col items-center pb-10">
           {invitation.marathon.logoUrl ? (
             <div className="mb-3 flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border shadow-sm">
@@ -58,7 +58,7 @@ export function JuryInitialClient({ domain, token }: { domain: string; token: st
               <ImageIcon className="h-12 w-12 text-muted-foreground/40" />
             </div>
           )}
-          <h1 className="mt-2 text-center font-gothic text-2xl font-medium tracking-tight text-foreground">
+          <h1 className="mt-2 text-center font-gothic text-2xl font-medium tracking-tight text-foreground lg:text-3xl">
             {invitation.marathon.name}
           </h1>
         </div>
@@ -69,7 +69,7 @@ export function JuryInitialClient({ domain, token }: { domain: string; token: st
           transition={{ duration: 0.4, type: 'spring', stiffness: 200, damping: 24 }}
           className="overflow-hidden rounded-2xl border border-border bg-white shadow-[0_1px_3px_rgba(0,0,0,0.04),0_8px_24px_rgba(0,0,0,0.06)]"
         >
-          <div className="p-6">
+          <div className="p-6 lg:p-8">
             <div className="mb-6 text-center">
               <h2 className="text-lg font-semibold text-foreground">
                 Welcome, {invitation.displayName}
@@ -79,19 +79,9 @@ export function JuryInitialClient({ domain, token }: { domain: string; token: st
               </p>
             </div>
 
-            <div className="grid gap-3">
+            <div className="grid gap-3 lg:grid-cols-2">
               <div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-4 py-3">
-                <div className="rounded-full bg-blue-100 p-2 text-blue-600">
-                  <UserIcon className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm font-medium">Jury member</p>
-                  <p className="text-sm text-muted-foreground">{invitation.displayName}</p>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-4 py-3">
-                <div className="rounded-full bg-emerald-100 p-2 text-emerald-600">
+                <div className="shrink-0 rounded-full bg-emerald-100 p-2 text-emerald-600">
                   <Tag className="h-4 w-4" />
                 </div>
                 <div className="flex-1">
@@ -108,7 +98,7 @@ export function JuryInitialClient({ domain, token }: { domain: string; token: st
               </div>
 
               <div className="flex items-center gap-3 rounded-xl border bg-muted/30 px-4 py-3">
-                <div className="rounded-full bg-amber-100 p-2 text-amber-600">
+                <div className="shrink-0 rounded-full bg-amber-100 p-2 text-amber-600">
                   <CheckCircle2 className="h-4 w-4" />
                 </div>
                 <div>
@@ -124,24 +114,27 @@ export function JuryInitialClient({ domain, token }: { domain: string; token: st
               </div>
             </div>
 
+            {/* The organiser's own briefing replaces the generic one — two sets of instructions compete. */}
             {invitation.notes ? (
               <div className="mt-4 rounded-xl bg-muted/30 px-4 py-3">
                 <p className="mb-1 text-sm font-medium">Notes</p>
-                <p className="text-sm text-muted-foreground">{invitation.notes}</p>
+                <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-muted-foreground">
+                  {invitation.notes}
+                </p>
               </div>
-            ) : null}
+            ) : (
+              <div className="mt-4 rounded-xl bg-muted/30 p-4">
+                <p className="mx-auto max-w-xl text-center text-sm leading-relaxed text-muted-foreground">
+                  Stars and notes are private review aids — you do not need to rate every
+                  submission. To complete the review, shortlist your favorite submissions — in no
+                  particular order — and pick one of them as your winner.
+                </p>
+              </div>
+            )}
 
-            <div className="mt-4 rounded-xl bg-muted/30 p-4">
-              <p className="text-center text-sm leading-relaxed text-muted-foreground">
-                Stars and notes are private review aids — you do not need to rate every submission.
-                To complete the review, shortlist your favorite submissions — in no particular order
-                — and pick one of them as your winner.
-              </p>
-            </div>
-
-            <div className="mt-6">
+            <div className="mt-6 flex justify-center">
               <PrimaryButton
-                className="w-full rounded-full py-3 text-base"
+                className="w-full rounded-full py-3 text-base lg:w-auto lg:min-w-64"
                 disabled={startReviewMutation.isPending}
                 onClick={() =>
                   startReviewMutation.mutate({

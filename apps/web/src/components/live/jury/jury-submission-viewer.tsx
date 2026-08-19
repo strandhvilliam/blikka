@@ -30,6 +30,7 @@ import { useJuryNotesDebouncedSave } from '@/hooks/live/jury/use-jury-notes-debo
 import { useJuryReviewQueryState } from '@/hooks/live/jury/use-jury-review-query-state'
 import { useJuryShortlist } from '@/hooks/live/jury/use-jury-shortlist'
 import { useJurySubmissionPreload } from '@/hooks/live/jury/use-jury-submission-preload'
+import { useJuryNavThrottle, type JuryNavDirection } from '@/hooks/live/jury/use-jury-nav-throttle'
 import { JurySubmissionPhoto } from './jury-submission-photo'
 import { JuryFullscreenLabel, JuryFullscreenOverlay } from './jury-fullscreen-overlay'
 
@@ -234,13 +235,17 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     setIsWinnerDialogOpen(false)
   }, [currentParticipantId, currentReference, isWinner, pickWinner, setWinner])
 
-  const goToPrev = useCallback(() => {
-    void setCurrentParticipantIndex(Math.max(0, currentParticipantIndex - 1))
-  }, [currentParticipantIndex, setCurrentParticipantIndex])
+  /** Stepping off the previous index rather than the rendered one keeps queued steps from stacking. */
+  const stepParticipant = useCallback(
+    (direction: JuryNavDirection) => {
+      void setCurrentParticipantIndex((prev) =>
+        Math.min(participants.length - 1, Math.max(0, prev + direction)),
+      )
+    },
+    [participants.length, setCurrentParticipantIndex],
+  )
 
-  const goToNext = useCallback(() => {
-    void setCurrentParticipantIndex(Math.min(participants.length - 1, currentParticipantIndex + 1))
-  }, [currentParticipantIndex, participants.length, setCurrentParticipantIndex])
+  const { goToPrev, goToNext } = useJuryNavThrottle({ onStep: stepParticipant })
 
   /** One pick state for both surfaces, so the sidebar and the fullscreen bar cannot drift. */
   const shortlistState: JurySidebarShortlistState = useMemo(
