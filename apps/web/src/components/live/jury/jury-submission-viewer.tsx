@@ -1,15 +1,5 @@
 'use client'
 
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog'
 import { useTRPC } from '@/lib/trpc/client'
 import { useMutation, useQueryClient, useSuspenseQuery } from '@tanstack/react-query'
 import { parseAsInteger, useQueryState } from 'nuqs'
@@ -33,6 +23,7 @@ import { useJurySubmissionPreload } from '@/hooks/live/jury/use-jury-submission-
 import { useJuryNavThrottle, type JuryNavDirection } from '@/hooks/live/jury/use-jury-nav-throttle'
 import { JurySubmissionPhoto } from './jury-submission-photo'
 import { JuryFullscreenLabel, JuryFullscreenOverlay } from './jury-fullscreen-overlay'
+import { JuryWinnerDialog } from './jury-winner-dialog'
 
 export function JurySubmissionViewer({ initialIndex }: { initialIndex: number }) {
   const { selectedRatings, backToList } = useJuryReviewQueryState()
@@ -213,27 +204,16 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     void setPick(currentParticipantId, !isShortlisted, currentReference)
   }, [currentParticipantId, currentReference, isShortlisted, setPick])
 
-  /** Only changes that overwrite or drop an existing winner need confirming. */
+  /** The win is the one review action a juror cannot take back with the same key, so it confirms. */
   const [isWinnerDialogOpen, setIsWinnerDialogOpen] = useState(false)
+  /** The motivation the dialog edits: this submission's notes, seeded fresh on every opening. */
+  const [motivationDraft, setMotivationDraft] = useState('')
 
   const handleWinnerClick = useCallback(() => {
     if (currentParticipantId === null) return
-
-    if (isWinner || winnerParticipantId !== null) {
-      setIsWinnerDialogOpen(true)
-      return
-    }
-
-    void pickWinner(currentParticipantId, currentReference)
-  }, [currentParticipantId, currentReference, isWinner, pickWinner, winnerParticipantId])
-
-  const confirmWinnerChange = useCallback(() => {
-    if (currentParticipantId === null) return
-    void (isWinner
-      ? setWinner(null, currentReference)
-      : pickWinner(currentParticipantId, currentReference))
-    setIsWinnerDialogOpen(false)
-  }, [currentParticipantId, currentReference, isWinner, pickWinner, setWinner])
+    setMotivationDraft(localNotes)
+    setIsWinnerDialogOpen(true)
+  }, [currentParticipantId, localNotes])
 
   /** Stepping off the previous index rather than the rendered one keeps queued steps from stacking. */
   const stepParticipant = useCallback(
@@ -295,11 +275,50 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
     onToggleFullscreen: toggleFullscreen,
   })
 
-  const { handleNotesChange } = useJuryNotesDebouncedSave({
+  const { handleNotesChange, cancelPendingNotesSave } = useJuryNotesDebouncedSave({
     localRating,
     saveRating,
     setLocalNotes,
   })
+
+  /**
+   * The motivation is this submission's notes, so the dialog writes straight through to them —
+   * dropping any queued sidebar save first, since it would carry the pre-dialog text.
+   */
+  const confirmWinner = useCallback(async () => {
+    if (currentParticipantId === null) return
+
+    setIsWinnerDialogOpen(false)
+    cancelPendingNotesSave()
+
+    if (motivationDraft !== localNotes) {
+      setLocalNotes(motivationDraft)
+      await saveRating(localRating, motivationDraft)
+    }
+
+    if (isWinner) {
+      toast.success(`Motivation saved for #${currentReference}`)
+      return
+    }
+
+    await pickWinner(currentParticipantId, currentReference)
+  }, [
+    cancelPendingNotesSave,
+    currentParticipantId,
+    currentReference,
+    isWinner,
+    localNotes,
+    localRating,
+    motivationDraft,
+    pickWinner,
+    saveRating,
+    setLocalNotes,
+  ])
+
+  const removeWinner = useCallback(() => {
+    setIsWinnerDialogOpen(false)
+    void setWinner(null, currentReference)
+  }, [currentReference, setWinner])
 
   if (!currentParticipant) {
     return (
@@ -325,28 +344,20 @@ export function JurySubmissionViewer({ initialIndex }: { initialIndex: number })
 
   return (
     <>
-      <AlertDialog open={isWinnerDialogOpen} onOpenChange={setIsWinnerDialogOpen}>
-        <AlertDialogContent portalContainer={fullscreenContainer}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {isWinner ? 'Remove your winner?' : 'Replace your winner?'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {isWinner
-                ? `This will leave #${currentParticipant.reference} on your shortlist without the win, and your review will have no winner.`
-                : `This will make #${currentParticipant.reference} your winner${
-                    isShortlisted ? '' : ', adding it to your shortlist'
-                  }. #${winnerReference ?? ''} loses the win but stays shortlisted.`}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmWinnerChange}>
-              {isWinner ? 'Remove' : 'Make winner'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <JuryWinnerDialog
+        open={isWinnerDialogOpen}
+        onOpenChange={setIsWinnerDialogOpen}
+        portalContainer={fullscreenContainer}
+        reference={currentParticipant.reference}
+        isWinner={isWinner}
+        isShortlisted={isShortlisted}
+        currentWinnerReference={isWinner ? null : winnerReference}
+        motivation={motivationDraft}
+        onMotivationChange={setMotivationDraft}
+        isSaving={isSaving || isSavingShortlist}
+        onConfirm={() => void confirmWinner()}
+        onRemove={removeWinner}
+      />
 
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-white">
         <JurySubmissionCompactNav

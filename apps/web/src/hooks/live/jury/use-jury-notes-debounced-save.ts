@@ -23,6 +23,17 @@ export function useJuryNotesDebouncedSave({
     }
   }, [])
 
+  /**
+   * Drops a queued save. A save that lands after the notes were rewritten elsewhere — the winner
+   * dialog edits the same field — would put the stale draft back.
+   */
+  const cancelPendingNotesSave = useCallback(() => {
+    if (notesTimeoutRef.current) {
+      clearTimeout(notesTimeoutRef.current)
+      notesTimeoutRef.current = null
+    }
+  }, [])
+
   const handleNotesChange = useCallback(
     (event: ChangeEvent<HTMLTextAreaElement>) => {
       const nextNotes = event.target.value
@@ -39,5 +50,5 @@ export function useJuryNotesDebouncedSave({
     [localRating, saveRating, setLocalNotes],
   )
 
-  return { handleNotesChange }
+  return { handleNotesChange, cancelPendingNotesSave }
 }
