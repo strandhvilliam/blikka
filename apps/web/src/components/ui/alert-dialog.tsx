@@ -39,13 +39,19 @@ function AlertDialogOverlay({
 function AlertDialogContent({
   className,
   onDismiss,
+  portalContainer,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
   /** When provided, clicking the backdrop calls this to cancel (close) the dialog. */
   onDismiss?: () => void
+  /**
+   * Where to portal the dialog. Defaults to `document.body`; pass the fullscreened element when
+   * one is open, since the browser paints nothing outside that subtree.
+   */
+  portalContainer?: HTMLElement | null
 }) {
   return (
-    <AlertDialogPortal>
+    <AlertDialogPortal container={portalContainer ?? undefined}>
       <AlertDialogOverlay onClick={onDismiss} />
       <AlertDialogPrimitive.Content
         data-slot="alert-dialog-content"

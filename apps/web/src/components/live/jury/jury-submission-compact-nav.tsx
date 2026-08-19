@@ -46,7 +46,7 @@ export function JurySubmissionCompactNav({
             type="button"
             className="hidden h-8 w-8 items-center justify-center rounded-full border border-border/60 text-brand-black transition-colors hover:bg-neutral-50 md:flex"
             onClick={onOpenFullscreen}
-            title="Fullscreen"
+            title="Fullscreen (F)"
             aria-label="View image fullscreen"
           >
             <Maximize2 className="h-4 w-4" />
