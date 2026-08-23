@@ -35,6 +35,7 @@ interface ExportCardProps {
 
 function getFileExtension(exportType: string, format: string, fileFormat: string): string {
   if (exportType === 'exif') return format || 'json'
+  if (exportType.startsWith('csv_')) return 'csv'
   if (exportType.startsWith('txt_validation_results')) {
     return fileFormat === 'folder' ? 'zip' : 'txt'
   }

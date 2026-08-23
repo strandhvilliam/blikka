@@ -1,6 +1,26 @@
-import { ClipboardCheck, FileSpreadsheet } from 'lucide-react'
+import { ClipboardCheck, FileSpreadsheet, Gavel } from 'lucide-react'
 
 import { type ExportTypeConfig } from './types'
+
+const JURY_RESULTS_EXPORT: ExportTypeConfig = {
+  id: 'jury-results',
+  title: 'Jury Results',
+  description:
+    "Every juror's shortlist and winner per topic or class, with how many jurors picked each entry.",
+  icon: Gavel,
+  exportType: 'csv_jury_results',
+  downloadName: 'jury-results',
+  accentColor: '#8b5cf6', // violet
+}
+
+/**
+ * Exports that stay available while the marathon is live. The rest are held back until it ends, but
+ * these two read data that is either unrelated to the active topic or only produced after the race.
+ */
+export const ALWAYS_AVAILABLE_EXPORT_TYPES = new Set<string>([
+  'xlsx_participants_by_camera_all_topics',
+  JURY_RESULTS_EXPORT.exportType,
+])
 
 export const MARATHON_EXPORT_TYPES: ExportTypeConfig[] = [
   {
@@ -39,6 +59,7 @@ export const MARATHON_EXPORT_TYPES: ExportTypeConfig[] = [
       { value: 'folder', label: 'Per Participant (ZIP)' },
     ],
   },
+  JURY_RESULTS_EXPORT,
 ]
 
 export const BY_CAMERA_EXPORT_TYPES: ExportTypeConfig[] = [
@@ -79,4 +100,5 @@ export const BY_CAMERA_EXPORT_TYPES: ExportTypeConfig[] = [
       { value: 'folder', label: 'Per Participant (ZIP)' },
     ],
   },
+  JURY_RESULTS_EXPORT,
 ]

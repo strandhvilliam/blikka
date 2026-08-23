@@ -309,6 +309,7 @@ export function JuryInvitationDetailsContent({
               <JuryRatingsTable
                 ratings={reviewResults.ratings}
                 shortlist={reviewResults.shortlist}
+                jurorName={invitation.displayName}
               />
             </CollapsibleContent>
           </Collapsible>

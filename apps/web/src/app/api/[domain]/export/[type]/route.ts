@@ -5,6 +5,8 @@ import * as XLSX from 'xlsx'
 import { appRouter, createTRPCContext, createCallerFactory, ExportsService } from '@blikka/api/trpc'
 
 import { sanitizeFilenameSegment } from '@/app/(marathon)/admin/[domain]/dashboard/export/_lib/sanitize-filename-segment'
+import { buildCsv, CSV_BOM, type CsvCell } from '@/lib/csv'
+import { buildJuryResultsCsvRows, JURY_RESULTS_CSV_HEADERS } from '@/lib/jury/jury-results-csv'
 import { getByCameraExportAccessState } from '@/lib/by-camera/by-camera-export-access-state'
 import { serverRuntime, type RuntimeDependencies } from '@/lib/server-runtime'
 import { buildS3Url } from '@/lib/utils'
@@ -19,6 +21,7 @@ const EXPORT_KEYS = {
   XLSX_SUBMISSIONS_BY_CAMERA_ACTIVE_TOPIC: 'xlsx_submissions_by_camera_active_topic',
   TXT_VALIDATION_RESULTS_BY_CAMERA_ACTIVE_TOPIC: 'txt_validation_results_by_camera_active_topic',
   BY_CAMERA_TOPIC_IMAGES: 'by_camera_topic_images',
+  CSV_JURY_RESULTS: 'csv_jury_results',
 } as const
 
 const createCaller = createCallerFactory(appRouter)
@@ -57,6 +60,19 @@ function createWorkbookResponse(
     headers: {
       'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'Content-Disposition': `attachment; filename="${filenameBase}-${getDateStamp()}.xlsx"`,
+    },
+  })
+}
+
+function createCsvResponse<Header extends string>(
+  headers: readonly Header[],
+  rows: readonly Readonly<Record<Header, CsvCell>>[],
+  filenameBase: string,
+) {
+  return new NextResponse(`${CSV_BOM}${buildCsv(headers, rows)}`, {
+    headers: {
+      'Content-Type': 'text/csv; charset=utf-8',
+      'Content-Disposition': `attachment; filename="${filenameBase}-${getDateStamp()}.csv"`,
     },
   })
 }
@@ -420,6 +436,19 @@ const handleValidationResultsExportByCameraActiveTopic = Effect.fn(
   })
 })
 
+const handleJuryResultsExport = Effect.fn('export/csv-jury-results')(function* (
+  caller: Caller,
+  domain: string,
+) {
+  const results = yield* Effect.promise(() => caller.jury.getJuryResultsByDomain({ domain }))
+
+  return createCsvResponse(
+    JURY_RESULTS_CSV_HEADERS,
+    buildJuryResultsCsvRows(results),
+    'jury-results-export',
+  )
+})
+
 const handleByCameraTopicImagesExport = Effect.fn('export/by-camera-topic-images')(function* (
   domain: string,
 ) {
@@ -577,6 +606,11 @@ function exportGetEffect(
         }
 
         return yield* handleByCameraTopicImagesExport(domain)
+
+      // Jury review happens after the marathon has ended, so this one is not gated on the live
+      // window or on the marathon mode the way the participant and submission exports are.
+      case EXPORT_KEYS.CSV_JURY_RESULTS:
+        return yield* handleJuryResultsExport(caller, domain)
 
       default:
         return NextResponse.json({ error: 'Invalid export type' }, { status: 400 })

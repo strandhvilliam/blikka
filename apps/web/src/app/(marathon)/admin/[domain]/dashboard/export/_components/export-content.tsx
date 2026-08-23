@@ -9,12 +9,16 @@ import { useDomain } from '@/lib/domain-provider'
 import { getByCameraExportAccessState } from '@/lib/by-camera/by-camera-export-access-state'
 import { ExportHeader } from './export-header'
 import { ExportCard } from './export-card'
-import { BY_CAMERA_EXPORT_TYPES, MARATHON_EXPORT_TYPES } from '../_lib/utils'
+import {
+  ALWAYS_AVAILABLE_EXPORT_TYPES,
+  BY_CAMERA_EXPORT_TYPES,
+  MARATHON_EXPORT_TYPES,
+} from '../_lib/utils'
 import { FullMarathonZipCard } from './full-marathon-zip-card'
 import { TopicImagesZipCard } from './topic-images-zip-card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
-import { type Marathon } from '@blikka/db';
+import { type Marathon } from '@blikka/db'
 
 function checkIfLive(marathon: Marathon) {
   if (!marathon.startDate || !marathon.endDate) return false
@@ -80,8 +84,8 @@ export function ExportContent() {
             <p className="text-[13px] text-muted-foreground leading-relaxed mt-0.5">
               Photo archives are meant for post-race handoff to organizers. Every participant needs
               a packed photo folder before you can start; the export then runs on our servers for
-              several minutes and delivers one zip file per competition class (split further when
-              a class is large).
+              several minutes and delivers one zip file per competition class (split further when a
+              class is large).
             </p>
           </div>
         </div>
@@ -116,9 +120,10 @@ export function ExportContent() {
             </p>
             <p className="text-[13px] text-red-800/80 leading-relaxed mt-0.5">
               {isByCamera
-                ? `${byCameraExportAccess?.message?.description ??
-                'Exports are unavailable for the active topic right now.'
-                } The all-participants spreadsheet remains available because it is not tied to the active topic.`
+                ? `${
+                    byCameraExportAccess?.message?.description ??
+                    'Exports are unavailable for the active topic right now.'
+                  } The all-participants spreadsheet remains available because it is not tied to the active topic.`
                 : 'Exports are not available while the marathon is live. Please wait until the marathon ends to generate exports.'}
             </p>
           </div>
@@ -176,7 +181,7 @@ export function ExportContent() {
                 validationOptions={exportType.validationOptions}
                 fileFormatOptions={exportType.fileFormatOptions}
                 disabled={
-                  exportType.exportType === 'xlsx_participants_by_camera_all_topics'
+                  ALWAYS_AVAILABLE_EXPORT_TYPES.has(exportType.exportType)
                     ? false
                     : shouldDisableExports
                 }

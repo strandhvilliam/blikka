@@ -2,13 +2,20 @@
 
 import { useState } from 'react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { Gavel, Trophy } from 'lucide-react'
+import { Download, Gavel, Loader2, Trophy } from 'lucide-react'
+import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { downloadFile } from '@/app/(marathon)/admin/[domain]/dashboard/export/_lib/download-file'
 import { useTRPC } from '@/lib/trpc/client'
 import { useDomain } from '@/lib/domain-provider'
 import { groupJuryResultsByScope, type JuryScopeGroup } from '@/lib/jury/jury-results'
 import { cn } from '@/lib/utils'
-import { JuryResultPhoto, getJuryParticipantDisplayName, type JuryResultParticipant } from './jury-result-photo'
+import {
+  JuryResultPhoto,
+  getJuryParticipantDisplayName,
+  type JuryResultParticipant,
+} from './jury-result-photo'
 import { JuryResultPhotoDialog } from './jury-result-photo-dialog'
 
 function JuryEntryTile({
@@ -110,10 +117,7 @@ function JuryScopeSection({
           </p>
           <div className="divide-y divide-border/40 rounded-lg border border-border/60">
             {group.jurors.map((juror) => (
-              <div
-                key={juror.invitationId}
-                className="flex min-w-0 items-center gap-3 px-3 py-2.5"
-              >
+              <div key={juror.invitationId} className="flex min-w-0 items-center gap-3 px-3 py-2.5">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[13px] font-medium">{juror.displayName}</p>
                   <p className="truncate text-[11px] text-muted-foreground tabular-nums">
@@ -128,9 +132,7 @@ function JuryScopeSection({
                     onSelect={onSelectParticipant}
                   />
                 ) : (
-                  <span className="shrink-0 text-[12px] text-muted-foreground">
-                    No winner yet
-                  </span>
+                  <span className="shrink-0 text-[12px] text-muted-foreground">No winner yet</span>
                 )}
               </div>
             ))}
@@ -150,12 +152,33 @@ export function JuryResultsTab() {
   const domain = useDomain()
   const trpc = useTRPC()
   const [previewParticipant, setPreviewParticipant] = useState<JuryResultParticipant | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
 
   const { data: results } = useSuspenseQuery(
     trpc.jury.getJuryResultsByDomain.queryOptions({ domain }),
   )
 
   const groups = groupJuryResultsByScope(results)
+
+  // The file comes from the same endpoint the export page uses, so both routes to it produce
+  // byte-identical output rather than one of them drifting.
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const dateStamp = new Date().toISOString().split('T')[0]
+      await downloadFile(
+        `/api/${domain}/export/csv_jury_results`,
+        `jury-results-export-${dateStamp}.csv`,
+      )
+      toast.success('Jury results exported')
+    } catch (error) {
+      toast.error('Could not export jury results', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   if (groups.length === 0) {
     return (
@@ -173,6 +196,26 @@ export function JuryResultsTab() {
 
   return (
     <>
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border px-4 py-2.5 sm:px-5">
+        <p className="text-[11px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+          {groups.length} {groups.length === 1 ? 'scope' : 'scopes'}
+        </p>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 px-3 text-xs"
+          onClick={() => void handleExport()}
+          disabled={isExporting}
+        >
+          {isExporting ? (
+            <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+          ) : (
+            <Download className="h-3.5 w-3.5 mr-1.5" />
+          )}
+          Export CSV
+        </Button>
+      </div>
+
       <ScrollArea className="min-h-0 min-w-0 flex-1 [&_[data-slot=scroll-area-viewport]]:min-w-0">
         <div className="box-border w-full min-w-0 space-y-4 p-4 sm:p-5">
           {groups.map((group) => (
@@ -215,4 +258,3 @@ export function JuryResultsTabSkeleton() {
     </div>
   )
 }
-

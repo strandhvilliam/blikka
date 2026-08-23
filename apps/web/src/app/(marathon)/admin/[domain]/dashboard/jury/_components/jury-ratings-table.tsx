@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Download, Heart, Star, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
+import { buildCsv, downloadCsv } from '@/lib/csv'
+import { sanitizeFilenameSegment } from '@/app/(marathon)/admin/[domain]/dashboard/export/_lib/sanitize-filename-segment'
 
 type JuryRatingRow = {
   participantId: number
@@ -23,36 +25,32 @@ type JuryRatingTableRow = JuryRatingRow & {
   isWinner: boolean
 }
 
-function escapeCsvCell(value: string) {
-  if (value.includes('"') || value.includes(',') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`
-  }
-  return value
-}
+const JURY_RATINGS_CSV_HEADERS = [
+  'reference',
+  'firstname',
+  'lastname',
+  'rating',
+  'shortlisted',
+  'winner',
+  'notes',
+] as const
 
-function downloadJuryRatingsCsv(ratings: JuryRatingTableRow[]) {
-  const header = ['reference', 'firstname', 'lastname', 'rating', 'shortlisted', 'winner', 'notes']
-  const rows = ratings.map((row) => [
-    row.participant.reference,
-    row.participant.firstname,
-    row.participant.lastname,
-    String(row.rating),
-    row.isShortlisted ? 'yes' : 'no',
-    row.isWinner ? 'yes' : 'no',
-    row.notes ?? '',
-  ])
+function downloadJuryRatingsCsv(ratings: JuryRatingTableRow[], jurorName: string) {
+  const csv = buildCsv(
+    JURY_RATINGS_CSV_HEADERS,
+    ratings.map((row) => ({
+      reference: row.participant.reference,
+      firstname: row.participant.firstname,
+      lastname: row.participant.lastname,
+      rating: row.rating,
+      shortlisted: row.isShortlisted ? 'yes' : 'no',
+      winner: row.isWinner ? 'yes' : 'no',
+      notes: row.notes ?? '',
+    })),
+  )
 
-  const csv = [header, ...rows]
-    .map((line) => line.map((cell) => escapeCsvCell(cell)).join(','))
-    .join('\n')
-
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-  anchor.href = url
-  anchor.download = 'jury-ratings.csv'
-  anchor.click()
-  URL.revokeObjectURL(url)
+  // One file per juror ends up in the same downloads folder, so the name has to say whose it is.
+  downloadCsv(`jury-ratings-${sanitizeFilenameSegment(jurorName) || 'juror'}.csv`, csv)
 }
 
 /** Winner first, then the rest of the shortlist, then everything else by star rating. */
@@ -69,9 +67,11 @@ function sortRatings(ratings: JuryRatingTableRow[]) {
 export function JuryRatingsTable({
   ratings,
   shortlist,
+  jurorName,
 }: {
   ratings: JuryRatingRow[]
   shortlist: { participantId: number; isWinner: boolean }[]
+  jurorName: string
 }) {
   const shortlistByParticipantId = new Map(
     shortlist.map((pick) => [pick.participantId, pick] as const),
@@ -92,7 +92,7 @@ export function JuryRatingsTable({
       toast.error('No ratings to export yet')
       return
     }
-    downloadJuryRatingsCsv(sorted)
+    downloadJuryRatingsCsv(sorted, jurorName)
     toast.success('Ratings exported')
   }
 
@@ -129,7 +129,9 @@ export function JuryRatingsTable({
             <tbody>
               {sorted.map((row) => (
                 <tr key={row.participantId} className="border-b border-border/40 last:border-0">
-                  <td className="px-3 py-2 font-medium tabular-nums">#{row.participant.reference}</td>
+                  <td className="px-3 py-2 font-medium tabular-nums">
+                    #{row.participant.reference}
+                  </td>
                   <td className="px-3 py-2">
                     {row.rating > 0 ? (
                       <span className="inline-flex items-center gap-0.5">
@@ -155,7 +157,10 @@ export function JuryRatingsTable({
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="max-w-[200px] truncate px-3 py-2 text-muted-foreground" title={row.notes ?? undefined}>
+                  <td
+                    className="max-w-[200px] truncate px-3 py-2 text-muted-foreground"
+                    title={row.notes ?? undefined}
+                  >
                     {row.notes?.trim() ? row.notes : '—'}
                   </td>
                 </tr>
