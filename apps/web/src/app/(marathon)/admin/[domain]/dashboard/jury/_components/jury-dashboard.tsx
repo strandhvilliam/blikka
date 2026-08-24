@@ -1,20 +1,18 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { parseAsInteger, parseAsStringLiteral, useQueryState } from 'nuqs'
+import { parseAsInteger, useQueryState } from 'nuqs'
+import { toast } from 'sonner'
 import { PrimaryButton } from '@/components/ui/primary-button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Gavel, Plus, Mail } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Download, Gavel, Loader2, Plus, Mail } from 'lucide-react'
+import { downloadFile } from '@/app/(marathon)/admin/[domain]/dashboard/export/_lib/download-file'
+import { useDomain } from '@/lib/domain-provider'
 import { JuryInvitationCreateDialog } from './jury-invitation-create-dialog'
 import { JuryList } from './jury-list'
 import { JuryListSkeleton } from './jury-list-skeleton'
 import { JuryInvitationDetailsContent } from './jury-invitation-details-content'
 import { JuryInvitationDetailsSkeleton } from './jury-invitation-details-skeleton'
-import { JuryResultsTab, JuryResultsTabSkeleton } from './jury-results-tab'
-import { juryTabs, resolveJuryTab } from '../_lib/search-params'
-
-const tabTriggerClassName =
-  "relative min-h-10 min-w-0 flex-1 justify-center rounded-none border-none bg-transparent px-0 py-2.5 text-[13px] font-semibold text-muted-foreground shadow-none transition-colors hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-brand-primary data-[state=active]:shadow-none data-[state=active]:after:absolute data-[state=active]:after:bottom-0 data-[state=active]:after:left-0 data-[state=active]:after:right-0 data-[state=active]:after:h-0.5 data-[state=active]:after:bg-brand-primary data-[state=active]:after:content-['']"
 
 function JuryEmptySelection() {
   return (
@@ -31,15 +29,33 @@ function JuryEmptySelection() {
 }
 
 export function JuryDashboard() {
+  const domain = useDomain()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [invitationId, setInvitationId] = useQueryState('invitation', parseAsInteger)
-  const [tab, setTab] = useQueryState('tab', parseAsStringLiteral(juryTabs))
+  const [isExporting, setIsExporting] = useState(false)
 
-  const activeTab = resolveJuryTab({ tab, invitation: invitationId })
+  // The file comes from the same endpoint the export page uses, so both routes to it produce
+  // byte-identical output rather than one of them drifting.
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const dateStamp = new Date().toISOString().split('T')[0]
+      await downloadFile(
+        `/api/${domain}/export/csv_jury_results`,
+        `jury-results-export-${dateStamp}.csv`,
+      )
+      toast.success('Jury results exported')
+    } catch (error) {
+      toast.error('Could not export jury results', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      })
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const selectInvitation = (id: number | null) => {
     void setInvitationId(id)
-    if (id !== null) void setTab('jurors')
   }
 
   return (
@@ -63,6 +79,19 @@ export function JuryDashboard() {
             </p>
           </div>
           <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
+            <Button
+              variant="outline"
+              className="text-xs min-h-9 flex-1 items-center justify-center gap-1.5 sm:flex-initial"
+              onClick={() => void handleExport()}
+              disabled={isExporting}
+            >
+              {isExporting ? (
+                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+              ) : (
+                <Download className="h-3.5 w-3.5 shrink-0" />
+              )}
+              <span>Export CSV</span>
+            </Button>
             <PrimaryButton
               onClick={() => setCreateDialogOpen(true)}
               className="text-xs min-h-9 flex-1 items-center justify-center gap-1.5 sm:flex-initial"
@@ -74,59 +103,28 @@ export function JuryDashboard() {
         </div>
       </div>
 
-      <Tabs
-        value={activeTab}
-        onValueChange={(value) => void setTab(value as (typeof juryTabs)[number])}
-        className="flex min-h-0 min-w-0 flex-1 flex-col gap-0"
-      >
-        <div className="min-w-0 shrink-0 border-b border-border">
-          <div className="w-full min-w-0 sm:max-w-[320px]">
-            <TabsList className="-mb-px flex h-auto w-full min-w-0 gap-0 rounded-none bg-transparent p-0">
-              <TabsTrigger value="results" className={tabTriggerClassName}>
-                Results
-              </TabsTrigger>
-              <TabsTrigger value="jurors" className={tabTriggerClassName}>
-                Jurors
-              </TabsTrigger>
-            </TabsList>
-          </div>
-        </div>
-
-        <TabsContent
-          value="results"
-          className="mt-4 min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-white data-[state=active]:flex"
-        >
-          <Suspense fallback={<JuryResultsTabSkeleton />}>
-            <JuryResultsTab />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-white md:flex-row">
+        <div className="flex h-[min(42vh,300px)] shrink-0 flex-col border-b border-border md:h-auto md:w-80 md:shrink-0 md:border-r md:border-b-0 overflow-hidden">
+          <Suspense fallback={<JuryListSkeleton />}>
+            <JuryList
+              selectedInvitationId={invitationId ?? undefined}
+              onSelectInvitation={selectInvitation}
+            />
           </Suspense>
-        </TabsContent>
-
-        <TabsContent
-          value="jurors"
-          className="mt-4 min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-white data-[state=active]:flex md:flex-row"
-        >
-          <div className="flex h-[min(42vh,300px)] shrink-0 flex-col border-b border-border md:h-auto md:w-80 md:shrink-0 md:border-r md:border-b-0 overflow-hidden">
-            <Suspense fallback={<JuryListSkeleton />}>
-              <JuryList
-                selectedInvitationId={invitationId ?? undefined}
-                onSelectInvitation={selectInvitation}
+        </div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+          {invitationId == null ? (
+            <JuryEmptySelection />
+          ) : (
+            <Suspense key={invitationId} fallback={<JuryInvitationDetailsSkeleton />}>
+              <JuryInvitationDetailsContent
+                invitationId={invitationId}
+                onDeleted={() => selectInvitation(null)}
               />
             </Suspense>
-          </div>
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-            {invitationId == null ? (
-              <JuryEmptySelection />
-            ) : (
-              <Suspense key={invitationId} fallback={<JuryInvitationDetailsSkeleton />}>
-                <JuryInvitationDetailsContent
-                  invitationId={invitationId}
-                  onDeleted={() => selectInvitation(null)}
-                />
-              </Suspense>
-            )}
-          </div>
-        </TabsContent>
-      </Tabs>
+          )}
+        </div>
+      </div>
 
       <JuryInvitationCreateDialog
         open={createDialogOpen}

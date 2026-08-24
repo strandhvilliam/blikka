@@ -449,7 +449,7 @@ export const marathons = pgTable(
     index('marathons_domain_idx').using('btree', table.domain.asc().nullsLast().op('text_ops')),
     check(
       'marathons_contact_sheet_format_check',
-      sql`${table.contactSheetFormat} in ('classic', 'a3')`,
+      sql`${table.contactSheetFormat} in ('classic', 'a3', '305x425')`,
     ),
     check(
       'marathons_verification_mode_check',

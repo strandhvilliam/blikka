@@ -1,6 +1,6 @@
 import { Schema } from 'effect'
 
-export const ContactSheetFormatSchema = Schema.Literals(['classic', 'a3'])
+export const ContactSheetFormatSchema = Schema.Literals(['classic', 'a3', '305x425'])
 export const VerificationModeSchema = Schema.Literals(['all', 'flagged', 'none'])
 
 export const GetByDomainInputSchema = Schema.Struct({ domain: Schema.String })

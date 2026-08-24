@@ -10,6 +10,7 @@ export type ContactSheetPhotoCount = (typeof CONTACT_SHEET_PHOTO_COUNTS)[number]
 export const CONTACT_SHEET_FORMATS = {
   classic: { label: 'Classic', width: 3986, height: 2657 },
   a3: { label: 'A3', width: 4961, height: 3508 },
+  '305x425': { label: '305 × 425 mm', width: 5020, height: 3602 },
 } as const
 
 export type ContactSheetFormatKey = keyof typeof CONTACT_SHEET_FORMATS

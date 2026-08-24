@@ -113,7 +113,7 @@ interface TestState {
     sponsorImage?: Buffer | Uint8Array
     sponsorPosition: 'bottom-right'
     topics: ReadonlyArray<{ name: string; orderIndex: number }>
-    format?: 'classic' | 'a3'
+    format?: 'classic' | 'a3' | '305x425'
   }>
   readonly files: ReadonlyMap<string, Uint8Array>
   readonly filePuts: ReadonlyArray<{
@@ -255,7 +255,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
       sponsorImage?: Buffer | Uint8Array
       sponsorPosition: 'bottom-right'
       topics: ReadonlyArray<{ name: string; orderIndex: number }>
-      format?: 'classic' | 'a3'
+      format?: 'classic' | 'a3' | '305x425'
     }) =>
       Effect.gen(function* () {
         const state = yield* Ref.get(stateRef)

@@ -39,7 +39,7 @@ export function parseCustomContactSheetConfig(
     return { ok: false, message: 'Reference is required' }
   }
 
-  if (value.format !== 'classic' && value.format !== 'a3') {
+  if (value.format !== 'classic' && value.format !== 'a3' && value.format !== '305x425') {
     return { ok: false, message: 'Invalid format' }
   }
 

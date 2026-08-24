@@ -52,7 +52,6 @@ describe('jury results csv rows', () => {
       ['10', 'no'],
     ])
     expect(rows[0]).toMatchObject({
-      scope_type: 'topic',
       scope: 'Topic 1: Reflections',
       topic_order: 1,
       juror_name: 'Ada',
@@ -86,20 +85,12 @@ describe('jury results csv rows', () => {
     expect(onlyShortlisted[0]).toMatchObject({ shortlisted_by_jurors: 2, won_by_jurors: 0 })
   })
 
-  it('keeps a juror who has picked nothing, with the entry columns blank', () => {
+  it('drops a juror who has picked nothing, since the row would name no participant', () => {
     const rows = buildJuryResultsCsvRows([
       makeResult({ invitationId: 1, displayName: 'Ada', status: 'pending' }),
     ])
 
-    expect(rows).toHaveLength(1)
-    expect(rows[0]).toMatchObject({
-      juror_name: 'Ada',
-      juror_status: 'pending',
-      participant_reference: '',
-      is_winner: '',
-      shortlisted_by_jurors: '',
-      won_by_jurors: '',
-    })
+    expect(rows).toEqual([])
   })
 
   it('orders topics by competition order, then classes, jurors alphabetically', () => {
@@ -111,16 +102,19 @@ describe('jury results csv rows', () => {
         topic: null,
         competitionClass: { id: 9, name: 'Open' },
         deviceGroup: { id: 3, name: 'Camera' },
+        shortlist: [pick(10, '10')],
       }),
       makeResult({
         invitationId: 2,
         displayName: 'Zoe',
         topic: { id: 5, name: 'Motion', orderIndex: 2 },
+        shortlist: [pick(11, '11')],
       }),
       makeResult({
         invitationId: 3,
         displayName: 'Ada',
         topic: { id: 5, name: 'Motion', orderIndex: 2 },
+        shortlist: [pick(12, '12')],
       }),
     ])
 
@@ -140,10 +134,11 @@ describe('jury results csv rows', () => {
         displayName: 'Ada',
         inviteType: 'all',
         topic: null,
+        shortlist: [pick(10, '10')],
       }),
     ])
 
-    expect(rows[0]).toMatchObject({ scope_type: 'all', scope: 'all · Ada' })
+    expect(rows[0]).toMatchObject({ scope: 'all · Ada' })
   })
 
   it('covers every declared header', () => {

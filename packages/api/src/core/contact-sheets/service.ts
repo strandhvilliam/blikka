@@ -27,7 +27,7 @@ import { BadRequestError, NotFoundError, failNotFoundIfNone } from '../errors'
 import type { GenerateContactSheet, SendContactSheetConfirmationEmail } from './contracts'
 
 const VALID_PHOTO_COUNTS = [8, 24]
-const VALID_CONTACT_SHEET_FORMATS = ['classic', 'a3'] as const
+const VALID_CONTACT_SHEET_FORMATS = ['classic', 'a3', '305x425'] as const
 
 /**
  * The submission shape the sheet needs. `submissions` rows carry no order column of their own —

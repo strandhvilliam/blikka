@@ -96,7 +96,7 @@ export class ContactSheetGenerator extends Context.Service<
 >()('@blikka/uploads/ContactSheetGenerator') {}
 
 const VALID_PHOTO_COUNTS = [8, 24]
-const VALID_CONTACT_SHEET_FORMATS = ['classic', 'a3'] as const
+const VALID_CONTACT_SHEET_FORMATS = ['classic', 'a3', '305x425'] as const
 
 function toContactSheetFormat(value: string): ContactSheetFormat {
   if (VALID_CONTACT_SHEET_FORMATS.includes(value as (typeof VALID_CONTACT_SHEET_FORMATS)[number])) {

@@ -35,7 +35,7 @@ interface TestState {
     | undefined
   readonly marathon: { readonly contactSheetFormat: string; readonly name: string; readonly logoUrl: string | null } | undefined
   readonly savedContactSheets: ReadonlyArray<Record<string, unknown>>
-  readonly sheetInputs: ReadonlyArray<{ format?: 'classic' | 'a3' }>
+  readonly sheetInputs: ReadonlyArray<{ format?: 'classic' | 'a3' | '305x425' }>
   readonly sentEmails: ReadonlyArray<{ to: string; subject: string }>
   readonly emailSendShouldFail: boolean
 }
@@ -121,7 +121,7 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
   } as unknown as S3Service['Service'])
 
   const contactSheetBuilder = ContactSheetBuilder.of({
-    createSheet: (params: { format?: 'classic' | 'a3' }) =>
+    createSheet: (params: { format?: 'classic' | 'a3' | '305x425' }) =>
       updateTestState(stateRef, (state) => ({
         ...state,
         sheetInputs: [...state.sheetInputs, { format: params.format }],

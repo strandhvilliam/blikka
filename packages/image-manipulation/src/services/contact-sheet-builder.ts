@@ -22,9 +22,28 @@ const RIGHT_COL_LARGE = 4
 
 const LABEL_INDEX_OFFSET = 1
 
+/** Multiplied by `labelFontSize` — footnotes share the caption's type size and scale with it. */
+const FOOTNOTE_LINE_HEIGHT_FACTOR = 1.35
+
+const FOOTNOTE_MARKER = '*'
+
+/** Glosses are short and the margin is wide; two columns halve the height the block needs. */
+const FOOTNOTE_COLUMNS = 2
+
+/** Gutter between footnote columns, in multiples of the footnote's own type size. */
+const FOOTNOTE_COLUMN_GUTTER_EM = 2
+
+/**
+ * A trailing "(...)" on a topic name, e.g. "Bite the apple (bite the bullet)".
+ *
+ * Anchored to the end because these are glosses on the whole name. A parenthetical in the middle
+ * of a name is part of the name and is left alone.
+ */
+const TRAILING_PARENTHETICAL = /^(.*\S)\s*\(([^()]+)\)$/
+
 const WHITE_BACKGROUND = '#ffffff'
 
-export type ContactSheetFormat = 'classic' | 'a3'
+export type ContactSheetFormat = 'classic' | 'a3' | '305x425'
 
 export interface ContactSheetLayoutConfig {
   readonly canvasWidth: number
@@ -83,6 +102,30 @@ export const CONTACT_SHEET_LAYOUTS = {
     sequenceFontSizeRatio: 0.05,
     sequenceWidthRatio: 0.12,
     sequenceBottomMargin: 42,
+    textVerticalPosition: 0.45,
+  },
+  /**
+   * 305 x 425 mm at 300 DPI, printed landscape (425 wide x 305 tall). Slightly wider and
+   * marginally shorter than `a3`, so the absolute pixel values below are the `a3` ones scaled
+   * by the ~1.02 mean linear factor; every ratio is shared verbatim.
+   */
+  '305x425': {
+    canvasWidth: 5020,
+    canvasHeight: 3602,
+    landscapeAspectRatio: 3 / 2,
+    padding: 41,
+    rowSpacing: 13,
+    extraSpacingAdjustment: 16,
+    textSpacingReduction: 43,
+    textTopGap: 5,
+    imageSizeFactor: 0.99,
+    textHeightRatio: 0.025,
+    sequenceSpaceRatio: 0.04,
+    labelFontSize: 38,
+    sequenceFontSizeMin: 43,
+    sequenceFontSizeRatio: 0.05,
+    sequenceWidthRatio: 0.12,
+    sequenceBottomMargin: 43,
     textVerticalPosition: 0.45,
   },
 } satisfies Record<ContactSheetFormat, ContactSheetLayoutConfig>
@@ -182,6 +225,7 @@ function calculateSheetVariables(
   cols: number,
   rows: number,
   layout: ContactSheetLayoutConfig,
+  footnoteSpace: number,
 ): SheetVariables {
   const textHeight = Math.round(layout.canvasHeight * layout.textHeightRatio)
   const sequenceSpace = reference ? Math.round(layout.canvasHeight * layout.sequenceSpaceRatio) : 0
@@ -190,7 +234,8 @@ function calculateSheetVariables(
   const availableHeight =
     layout.canvasHeight -
     layout.padding * (rows + 1) -
-    sequenceSpace +
+    sequenceSpace -
+    footnoteSpace +
     layout.extraSpacingAdjustment
 
   const cellWidth = Math.floor(availableWidth / cols)
@@ -215,9 +260,104 @@ function calculateSheetVariables(
     imageHeight,
     textHeight,
     sequenceSpace,
+    footnoteSpace,
     availableWidth,
     availableHeight,
   }
+}
+
+/**
+ * Split a topic name into the part that fits under a photo and the part that does not.
+ *
+ * Captions are clipped to the cell width by their SVG viewport, and the bilingual names carrying
+ * an idiomatic gloss — "Bita i det sura äpplet / Bite the apple (bite the bullet)" — ran past that
+ * edge and lost the gloss mid-word. The gloss moves to a footnote in the bottom margin and the
+ * caption keeps a marker pointing at it.
+ */
+function splitTopicNote(name: string): { caption: string; note?: string } {
+  const match = TRAILING_PARENTHETICAL.exec(name.trim())
+  const caption = match?.[1]
+  const note = match?.[2]?.trim()
+  if (!caption || !note) return { caption: name }
+  return { caption, note }
+}
+
+interface TopicFootnote {
+  readonly orderIndex: number
+  readonly note: string
+}
+
+/**
+ * The footnotes this sheet needs, keyed by the same number its caption shows.
+ *
+ * Driven by the images rather than by `topics`: a marathon's topic list is the full 24 even when
+ * the sheet is an 8-photo one, and a footnote for a topic that is not on the sheet is noise.
+ */
+function getTopicFootnotes(
+  images: ReadonlyArray<ContactSheetImageFile>,
+  topics: ReadonlyArray<{ name: string; orderIndex: number }>,
+): ReadonlyArray<TopicFootnote> {
+  return images
+    .map(({ orderIndex }) => {
+      const topic = topics.find((t) => t.orderIndex === orderIndex)
+      const note = topic ? splitTopicNote(topic.name).note : undefined
+      return note ? { orderIndex, note } : undefined
+    })
+    .filter((footnote): footnote is TopicFootnote => footnote !== undefined)
+    .sort((a, b) => a.orderIndex - b.orderIndex)
+}
+
+function getFootnoteLineHeight(layout: ContactSheetLayoutConfig) {
+  return Math.round(layout.labelFontSize * FOOTNOTE_LINE_HEIGHT_FACTOR)
+}
+
+function getFootnoteRowCount(footnoteCount: number) {
+  return Math.ceil(footnoteCount / FOOTNOTE_COLUMNS)
+}
+
+function formatFootnote(footnote: TopicFootnote) {
+  return `${FOOTNOTE_MARKER} ${footnote.orderIndex + LABEL_INDEX_OFFSET} - ${footnote.note}`
+}
+
+/**
+ * How much of the footnote block the grid has to pay for.
+ *
+ * The strip between the bottom row's captions and the participant reference's baseline is already
+ * empty white — two or three glosses' worth on most sheets — so charging the grid for every
+ * footnote line shrinks the photos to make room that was there all along. Only the overflow is
+ * taken off the grid; a sheet whose footnotes fit the existing margin lays out untouched.
+ *
+ * The free run is measured against a footnote-free layout. Reserving space only ever moves that
+ * last row of captions up, so this is a floor on the space that will actually be free, never an
+ * overestimate — the block cannot end up overlapping the grid.
+ */
+function getFootnoteSpace({
+  reference,
+  cols,
+  rows,
+  layout,
+  footnoteCount,
+}: {
+  reference: string
+  cols: number
+  rows: number
+  layout: ContactSheetLayoutConfig
+  footnoteCount: number
+}) {
+  if (footnoteCount === 0) return 0
+
+  const unreserved = calculateSheetVariables(reference, cols, rows, layout, 0)
+  const lastCaptionBottom =
+    layout.padding * 2 +
+    (rows - 1) * (unreserved.cellHeight + layout.rowSpacing) +
+    unreserved.availableImageHeight +
+    layout.textTopGap +
+    unreserved.textHeight
+
+  const free = layout.canvasHeight - layout.sequenceBottomMargin - lastCaptionBottom
+  const needed = getFootnoteRowCount(footnoteCount) * getFootnoteLineHeight(layout)
+
+  return Math.max(0, needed - Math.max(0, free))
 }
 
 function getImageLabel(
@@ -225,39 +365,61 @@ function getImageLabel(
   topics: ReadonlyArray<{ name: string; orderIndex: number }>,
 ) {
   const topic = topics.find((t) => t.orderIndex === orderIndex)
-  return topic ? `${topic.orderIndex + LABEL_INDEX_OFFSET} - ${topic.name}` : undefined
+  if (!topic) return undefined
+
+  const { caption, note } = splitTopicNote(topic.name)
+  const number = topic.orderIndex + LABEL_INDEX_OFFSET
+  return `${number} - ${caption}${note ? ` ${FOOTNOTE_MARKER}` : ''}`
 }
 
 /**
- * Place a prepared image in its cell: left-aligned horizontally, centred vertically.
+/**
+ * The gutter every photo and every caption in a cell starts at.
  *
- * The left edge is the nominal 3:2 gutter — the same offset {@link generateTextLabelSvg} starts
- * its caption at — so a portrait frame, a square crop and a landscape frame all share one left
- * edge with their captions, instead of each floating to its own centre.
+ * Half the slack a nominal 3:2 frame leaves in the cell, so a 3:2 photo looks optically centred
+ * while everything else lines up with it rather than finding its own centre.
+ */
+function getCellGutter(sheetVariables: SheetVariables) {
+  return Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)
+}
+
+/**
+ * The box a photo is fitted into: the cell minus the gutter it starts at.
  *
- * The gutter is clamped against the image's real width rather than the nominal `imageWidth`:
- * anything wider than 3:2 (a panoramic frame, most sponsor logos) comes back from `fit: 'inside'`
- * at the full box width, and offsetting it by the gutter pushed it past its cell — and, in the
- * right-hand column, past the canvas edge, where libvips clips it.
+ * Capping the width here is what lets {@link getImagePosition} apply the gutter unconditionally.
+ * Fitting into the full `cellWidth` instead meant a frame wider than 3:2 came back at the full
+ * width and had nowhere to put the gutter — it was dropped at the cell's left edge, sitting a
+ * gutter's width left of its own caption while its 3:2 neighbours lined up.
+ */
+function getPhotoBoxWidth(sheetVariables: SheetVariables) {
+  return sheetVariables.cellWidth - getCellGutter(sheetVariables)
+}
+
+/**
+ * Place a prepared image in its cell, anchored to its top-left corner.
+ *
+ * The left edge is the cell gutter — the same offset {@link generateTextLabelSvg} starts its
+ * caption at — so a portrait frame, a square crop, a panorama and a sponsor logo all share one
+ * left edge with their captions instead of each finding its own.
+ *
+ * The top edge is the cell's own origin. The photo box is roughly 1.6:1, so a 3:2 frame and
+ * anything taller fills its height exactly while a 16:9 or panoramic frame cannot; centring that
+ * leftover left those frames hovering mid-cell while their neighbours sat flush.
+ *
+ * Between the two, an unusual aspect ratio only ever makes a photo smaller — it never moves it.
  */
 function getImagePosition({
   x,
   y,
-  width,
-  height,
   sheetVariables,
 }: {
   x: number
   y: number
-  width: number
-  height: number
   sheetVariables: SheetVariables
 }) {
-  const gutter = Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)
-
   return {
-    top: y + Math.max(0, Math.floor((sheetVariables.availableImageHeight - height) / 2)),
-    left: x + Math.max(0, Math.min(gutter, sheetVariables.cellWidth - width)),
+    top: y,
+    left: x + getCellGutter(sheetVariables),
   }
 }
 
@@ -325,6 +487,110 @@ function generateParticipantReferenceSvg({
   return Buffer.from(seqSvg)
 }
 
+/**
+ * The footnote block for the bottom margin, bottom-aligned on the participant reference's baseline.
+ *
+ * It occupies the width left of the reference's column, so the two never overlap however long a
+ * gloss runs.
+ *
+ * Filled column-major — the numbers run down the first column and continue down the second — so
+ * the list stays in topic order the way a numbered reference list does, rather than zig-zagging
+ * across the page.
+ */
+function generateFootnotesSvg({
+  footnotes,
+  layout,
+}: {
+  footnotes: ReadonlyArray<TopicFootnote>
+  layout: ContactSheetLayoutConfig
+}) {
+  const lineHeight = getFootnoteLineHeight(layout)
+  const rows = getFootnoteRowCount(footnotes.length)
+  const width = getFootnotesWidth(layout)
+  const columnWidth = getFootnoteColumnWidth(footnotes, layout)
+  const gutter = getFootnoteColumnGutter(layout)
+  const height = rows * lineHeight
+
+  const lines = footnotes
+    .map((footnote, index) => {
+      const label = formatFootnote(footnote)
+      const column = Math.floor(index / rows)
+      const row = index % rows
+      return `<text x="${column * (columnWidth + gutter)}" y="${row * lineHeight + layout.labelFontSize}"
+                font-family="Liberation Sans, Arial, sans-serif"
+                font-size="${layout.labelFontSize}"
+                font-weight="500"
+                fill="black"
+                text-anchor="start">${escapeXml(label)}</text>`
+    })
+    .join('')
+
+  return Buffer.from(`<svg width="${width}" height="${height}">${lines}</svg>`)
+}
+
+function getFootnotesWidth(layout: ContactSheetLayoutConfig) {
+  const seqWidth = Math.floor(layout.canvasWidth * layout.sequenceWidthRatio)
+  return layout.canvasWidth - seqWidth - layout.padding * 2
+}
+
+function getFootnoteColumnGutter(layout: ContactSheetLayoutConfig) {
+  return layout.labelFontSize * FOOTNOTE_COLUMN_GUTTER_EM
+}
+
+/**
+ * Rough advance width of a string, in multiples of the font size.
+ *
+ * There is no font metrics engine on this side — the text goes to libvips as SVG and is measured
+ * by fontconfig at render time — so column width is estimated from character classes calibrated
+ * against Liberation Sans. Deliberately biased high: overestimating only widens the gutter, while
+ * underestimating runs one column into the next.
+ */
+function estimateEmWidth(text: string) {
+  let em = 0
+  for (const character of text) {
+    if (/[\p{Lu}\d]/u.test(character)) em += 0.62
+    else if (/\p{Ll}/u.test(character)) em += 0.5
+    else em += 0.3
+  }
+  return em
+}
+
+/**
+ * Columns as wide as the longest gloss needs, not half the margin each.
+ *
+ * These lists are a handful of short phrases, and splitting the full margin evenly stranded the
+ * second column out by the reference. Capped at the even split so a long gloss still cannot push
+ * the second column off the end of the block.
+ */
+function getFootnoteColumnWidth(
+  footnotes: ReadonlyArray<TopicFootnote>,
+  layout: ContactSheetLayoutConfig,
+) {
+  const gutters = getFootnoteColumnGutter(layout) * (FOOTNOTE_COLUMNS - 1)
+  const evenSplit = Math.floor((getFootnotesWidth(layout) - gutters) / FOOTNOTE_COLUMNS)
+
+  const widest = footnotes.reduce(
+    (max, footnote) => Math.max(max, estimateEmWidth(formatFootnote(footnote))),
+    0,
+  )
+
+  return Math.min(evenSplit, Math.ceil(widest * layout.labelFontSize))
+}
+
+function getFootnotesCompositePart(
+  footnotesSvg: Buffer,
+  footnoteCount: number,
+  layout: ContactSheetLayoutConfig,
+): CompositeImage {
+  const height = getFootnoteRowCount(footnoteCount) * getFootnoteLineHeight(layout)
+
+  return {
+    input: footnotesSvg,
+    top: layout.canvasHeight - layout.sequenceBottomMargin - height,
+    left: layout.padding,
+  }
+}
+
 function generateTextLabelSvg({
   label,
   sheetVariables,
@@ -336,7 +602,7 @@ function generateTextLabelSvg({
 }) {
   const textSvg = `
         <svg width="${sheetVariables.cellWidth}" height="${sheetVariables.textHeight}">
-          <text x="${Math.floor((sheetVariables.cellWidth - sheetVariables.imageWidth) / 2)}" y="${sheetVariables.textHeight * layout.textVerticalPosition}"
+          <text x="${getCellGutter(sheetVariables)}" y="${sheetVariables.textHeight * layout.textVerticalPosition}"
                 font-family="Liberation Sans, Arial, sans-serif"
                 font-size="${layout.labelFontSize}"
                 font-weight="500"
@@ -391,7 +657,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
     // the label strip below its cell while still being positioned as if it were a photo.
     return yield* sharp.prepareForCanvas(
       Buffer.from(sponsorFile),
-      sheetVariables.cellWidth,
+      getPhotoBoxWidth(sheetVariables),
       sheetVariables.availableImageHeight,
       'inside',
       WHITE_BACKGROUND,
@@ -407,7 +673,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
   ) {
     const image = yield* sharp.prepareForCanvas(
       Buffer.from(imageFile),
-      sheetVariables.cellWidth,
+      getPhotoBoxWidth(sheetVariables),
       sheetVariables.availableImageHeight,
       'inside',
       WHITE_BACKGROUND,
@@ -449,7 +715,14 @@ const makeContactSheetBuilder = Effect.gen(function* () {
         sponsorPosition,
         imageFiles.length,
       )
-      const sheetVariables = calculateSheetVariables(reference, cols, rows, layout)
+      const footnotes = getTopicFootnotes(imageFiles, topics)
+      const sheetVariables = calculateSheetVariables(
+        reference,
+        cols,
+        rows,
+        layout,
+        getFootnoteSpace({ reference, cols, rows, layout, footnoteCount: footnotes.length }),
+      )
 
       const cellPositions = getCellPositions(rows, cols)
       let nextImageIndex = 0
@@ -486,13 +759,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
               return [
                 {
                   input: preparedSponsorImage.buffer,
-                  ...getImagePosition({
-                    x,
-                    y,
-                    width: preparedSponsorImage.width,
-                    height: preparedSponsorImage.height,
-                    sheetVariables,
-                  }),
+                  ...getImagePosition({ x, y, sheetVariables }),
                 },
               ]
             }
@@ -515,13 +782,7 @@ const makeContactSheetBuilder = Effect.gen(function* () {
               )
               const imagePart = {
                 input: image.buffer,
-                ...getImagePosition({
-                  x,
-                  y,
-                  width: image.width,
-                  height: image.height,
-                  sheetVariables,
-                }),
+                ...getImagePosition({ x, y, sheetVariables }),
               }
 
               if (!textBuffer) {
@@ -552,11 +813,21 @@ const makeContactSheetBuilder = Effect.gen(function* () {
         layout,
       )
 
+      const footnoteParts = footnotes.length
+        ? [
+            getFootnotesCompositePart(
+              generateFootnotesSvg({ footnotes, layout }),
+              footnotes.length,
+              layout,
+            ),
+          ]
+        : []
+
       const finalSheet = yield* sharp.createCanvasSheet({
         width: layout.canvasWidth,
         height: layout.canvasHeight,
         background: WHITE_BACKGROUND,
-        items: [...compositeImages, participantReferenceCompositePart],
+        items: [...compositeImages, ...footnoteParts, participantReferenceCompositePart],
       })
 
       return finalSheet

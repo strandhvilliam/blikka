@@ -9,15 +9,14 @@ import { compareParticipantReferences } from './jury-utils'
  * shape when a juror is added.
  */
 export const JURY_RESULTS_CSV_HEADERS = [
-  'scope_type',
+  'participant_firstname',
+  'participant_lastname',
+  'participant_reference',
   'scope',
   'topic_order',
   'juror_name',
   'juror_email',
   'juror_status',
-  'participant_reference',
-  'participant_firstname',
-  'participant_lastname',
   'is_winner',
   'shortlisted_by_jurors',
   'won_by_jurors',
@@ -63,7 +62,6 @@ export function buildJuryResultsCsvRows(results: readonly JuryDomainResult[]): J
 
     for (const juror of group.jurors) {
       const jurorColumns = {
-        scope_type: juror.inviteType,
         scope: formatScope(group, juror),
         topic_order: juror.topic ? juror.topic.orderIndex + 1 : '',
         juror_name: juror.displayName,
@@ -72,21 +70,8 @@ export function buildJuryResultsCsvRows(results: readonly JuryDomainResult[]): J
         jurors_in_scope: group.jurors.length,
       }
 
-      // A juror who has picked nothing still belongs in the file: a missing row reads as "no such
-      // juror", a blank one as "invited, nothing decided".
-      if (juror.shortlist.length === 0) {
-        rows.push({
-          ...jurorColumns,
-          participant_reference: '',
-          participant_firstname: '',
-          participant_lastname: '',
-          is_winner: '',
-          shortlisted_by_jurors: '',
-          won_by_jurors: '',
-        })
-        continue
-      }
-
+      // Every row is a pick, so a juror who has decided nothing contributes none: a blank
+      // participant row carries nothing an organizer can act on.
       for (const pick of sortPicksForExport(juror.shortlist)) {
         const consensus = consensusByParticipantId.get(pick.participant.id)
 
