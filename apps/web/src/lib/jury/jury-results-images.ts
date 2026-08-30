@@ -1,9 +1,6 @@
 import { groupJuryResultsByScope, type JuryDomainResult, type JuryScopeGroup } from './jury-results'
 import { compareParticipantReferences } from './jury-utils'
 
-/** Which rendition of a pick goes into the archive. */
-export type JuryImageSize = 'original' | 'preview'
-
 export type JuryImageBucket = 'submissions' | 'thumbnails' | 'contact-sheets'
 
 export interface JuryImageArchiveFile {
@@ -30,7 +27,6 @@ export interface JuryImageArchivePlan {
 export interface JuryImageArchiveOptions {
   domain: string
   dateStamp: string
-  size: JuryImageSize
   /** Restricts the archive to one juror or one scope without renumbering the rest. */
   filter?: { invitationId?: number; scopeKey?: string }
   /** Written into the archive as `jury-results.csv` when given. */
@@ -106,24 +102,12 @@ interface ResolvedImage {
   isContactSheet: boolean
 }
 
-/**
- * Class invites judge a contact sheet, which has no thumbnail rendition, so preview mode falls back
- * to the sheet itself the same way the admin result views do.
- */
+/** Class invites judge a contact sheet, which is the file that goes into the archive for them. */
 function resolveImage(
   participant: JuryDomainResult['shortlist'][number]['participant'],
-  size: JuryImageSize,
 ): ResolvedImage | null {
   if (participant.contactSheetKey) {
     return { bucket: 'contact-sheets', key: participant.contactSheetKey, isContactSheet: true }
-  }
-
-  if (size === 'preview' && participant.submissionThumbnailKey) {
-    return {
-      bucket: 'thumbnails',
-      key: participant.submissionThumbnailKey,
-      isContactSheet: false,
-    }
   }
 
   if (participant.submissionKey) {
@@ -166,7 +150,6 @@ function buildReadme(
     `  Scopes: ${notes.scopes}`,
     `  Jurors: ${notes.jurors}`,
     `  Images: ${plan.entryCount} (${plan.distinctObjectCount} distinct photos)`,
-    `  Size: ${options.size === 'preview' ? 'preview renditions' : 'original files'}`,
   ]
 
   if (notes.jurorsWithNoPicks.length > 0) {
@@ -191,7 +174,8 @@ function buildReadme(
 
   lines.push(
     '',
-    'If any photo could not be read at export time, the archive also holds missing-files.txt.',
+    'Any photo that could not be saved (removed from storage since the pick) is listed in the browser',
+    'when the download finishes, and is left out of this folder.',
     '',
   )
 
@@ -199,9 +183,9 @@ function buildReadme(
 }
 
 /**
- * Lays out the jury verdict as an archive: one folder per scope, one per juror inside it, and the
+ * Lays out the jury verdict as a folder tree: one folder per scope, one per juror inside it, and the
  * juror's shortlist as files with the winner first. The plan is pure — it names every entry and the
- * object behind it, and the export service does the fetching.
+ * object behind it. The export route serves it as a manifest and the browser writes it to disk.
  */
 export function buildJuryImageArchivePlan(
   results: readonly JuryDomainResult[],
@@ -248,7 +232,7 @@ export function buildJuryImageArchivePlan(
       }
 
       for (const [pickIndex, pick] of picks.entries()) {
-        const image = resolveImage(pick.participant, options.size)
+        const image = resolveImage(pick.participant)
         const reference = pick.participant.reference.padStart(4, '0')
 
         if (!image) {

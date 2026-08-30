@@ -253,7 +253,7 @@ describe('ExportsService', () => {
     }),
   )
 
-  it.effect('fetches an object once however many archive paths point at it', () =>
+  it.effect('resolves the bucket alias and returns the object bytes', () =>
     Effect.gen(function* () {
       const stateRef = yield* Ref.make(makeInitialState())
 
@@ -261,26 +261,18 @@ describe('ExportsService', () => {
         stateRef,
         Effect.gen(function* () {
           const service = yield* ExportsService
-          return yield* service.buildImageArchive({
-            files: [
-              { bucket: 'submissions', key: 'a.jpg', path: 'root/ada/01-winner-0001.jpg' },
-              { bucket: 'submissions', key: 'a.jpg', path: 'root/bo/01-winner-0001.jpg' },
-              { bucket: 'contact-sheets', key: 'b.png', path: 'root/bo/02-shortlist-0002.png' },
-            ],
-            textFiles: [{ path: 'root/README.txt', content: 'readme' }],
-          })
+          return yield* service.getImageArchiveObject({ bucket: 'contact-sheets', key: 'b.png' })
         }),
       )
 
       const state = yield* Ref.get(stateRef)
 
-      assert.deepEqual(state.s3Reads, ['submissions-bucket:a.jpg', 'contact-sheets-bucket:b.png'])
-      assert.deepEqual(result.missingPaths, [])
-      assert.isTrue(result.zipBuffer.length > 0)
+      assert.deepEqual(state.s3Reads, ['contact-sheets-bucket:b.png'])
+      assert.isTrue(Option.isSome(result))
     }),
   )
 
-  it.effect('keeps the archive when an object is gone and lists what it could not read', () =>
+  it.effect('returns none when the object is gone from storage', () =>
     Effect.gen(function* () {
       const stateRef = yield* Ref.make(makeInitialState({ missingKeys: ['gone.jpg'] }))
 
@@ -288,18 +280,11 @@ describe('ExportsService', () => {
         stateRef,
         Effect.gen(function* () {
           const service = yield* ExportsService
-          return yield* service.buildImageArchive({
-            files: [
-              { bucket: 'submissions', key: 'a.jpg', path: 'root/ada/01-winner-0001.jpg' },
-              { bucket: 'submissions', key: 'gone.jpg', path: 'root/ada/02-shortlist-0002.jpg' },
-            ],
-            missingManifestPath: 'root/missing-files.txt',
-          })
+          return yield* service.getImageArchiveObject({ bucket: 'submissions', key: 'gone.jpg' })
         }),
       )
 
-      assert.deepEqual(result.missingPaths, ['root/ada/02-shortlist-0002.jpg'])
-      assert.isTrue(result.zipBuffer.length > 0)
+      assert.isTrue(Option.isNone(result))
     }),
   )
 })

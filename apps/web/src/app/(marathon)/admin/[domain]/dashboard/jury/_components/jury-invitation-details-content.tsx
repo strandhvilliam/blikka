@@ -47,7 +47,8 @@ import { JuryResultOutcome } from './jury-result-outcome'
 import { JuryInvitationStatusBadge } from './jury-invitation-status-badge'
 import { JuryInvitationExtendDialog } from './jury-invitation-extend-dialog'
 import { JuryInvitationRegenerateDialog } from './jury-invitation-regenerate-dialog'
-import { useJuryExport } from '../_lib/use-jury-export'
+import { useJuryImageDownload } from '../_lib/use-jury-image-download'
+import { JuryImageDownloadDialog } from './jury-image-download-dialog'
 
 interface JuryInvitationDetailsContentProps {
   invitationId: number
@@ -64,7 +65,7 @@ export function JuryInvitationDetailsContent({
   const trpc = useTRPC()
   const domain = useDomain()
   const queryClient = useQueryClient()
-  const { pendingExport, runExport } = useJuryExport()
+  const imageDownload = useJuryImageDownload()
 
   const { data: invitation } = useSuspenseQuery(
     trpc.jury.getJuryInvitationById.queryOptions({
@@ -171,11 +172,13 @@ export function JuryInvitationDetailsContent({
                 {isResending ? 'Sending…' : 'Resend email'}
               </DropdownMenuItem>
               <DropdownMenuItem
-                disabled={pendingExport !== null}
-                onSelect={() => void runExport('images', { invitationId })}
+                disabled={imageDownload.state.status !== 'idle'}
+                onSelect={() =>
+                  void imageDownload.start({ invitationId, label: invitation.displayName })
+                }
               >
                 <Images className="h-3.5 w-3.5" />
-                {pendingExport === 'images' ? 'Preparing…' : 'Download picks'}
+                Download picks to a folder
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setIsExtendDialogOpen(true)}>
@@ -358,6 +361,12 @@ export function JuryInvitationDetailsContent({
         invitationId={invitationId}
         open={isRegenerateDialogOpen}
         onOpenChange={setIsRegenerateDialogOpen}
+      />
+
+      <JuryImageDownloadDialog
+        state={imageDownload.state}
+        onCancel={imageDownload.cancel}
+        onClose={imageDownload.reset}
       />
 
       <AlertDialog open={isRemoveDialogOpen} onOpenChange={setIsRemoveDialogOpen}>

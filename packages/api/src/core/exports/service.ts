@@ -85,19 +85,6 @@ const IMAGE_ARCHIVE_BUCKET_CONFIG: Record<ImageArchiveBucket, string> = {
   'contact-sheets': 'CONTACT_SHEETS_BUCKET_NAME',
 }
 
-export interface BuildImageArchiveInput {
-  /** One entry per zip path. The same object may appear under several paths; it is fetched once. */
-  readonly files: ReadonlyArray<{
-    readonly bucket: ImageArchiveBucket
-    readonly key: string
-    readonly path: string
-  }>
-  /** Manifests, readmes and the like, written verbatim as UTF-8. */
-  readonly textFiles?: ReadonlyArray<{ readonly path: string; readonly content: string }>
-  /** Where to record objects that could not be read. Omitted from the zip when nothing is missing. */
-  readonly missingManifestPath?: string
-}
-
 export class ExportsService extends Context.Service<
   ExportsService,
   {
@@ -150,17 +137,14 @@ export class ExportsService extends Context.Service<
     >
 
     /**
-     * Zips a caller-supplied set of image objects under caller-supplied paths. The layout is the
-     * caller's business; this only resolves buckets, fetches each distinct object once, and reports
-     * what it could not read instead of failing the whole archive over one absent file.
+     * Fetches the bytes for a single jury-result image, resolving the bucket alias to its configured
+     * name. `None` when the object is no longer in storage, which the caller surfaces as a 404 so one
+     * missing photo does not fail the whole download.
      */
-    readonly buildImageArchive: (
-      input: BuildImageArchiveInput,
-    ) => Effect.Effect<
-      { zipBuffer: Buffer; missingPaths: string[] },
-      S3ClientError | Config.ConfigError | BadRequestError,
-      never
-    >
+    readonly getImageArchiveObject: (input: {
+      bucket: ImageArchiveBucket
+      key: string
+    }) => Effect.Effect<Option.Option<Uint8Array>, S3ClientError | Config.ConfigError, never>
   }
 >()('@blikka/api/ExportsService') {}
 
@@ -480,74 +464,14 @@ const makeExportsService = Effect.gen(function* () {
       }
     })
 
-  const buildImageArchive: ExportsService['Service']['buildImageArchive'] = Effect.fn(
-    'ExportsService.buildImageArchive',
-  )(function* ({ files, textFiles = [], missingManifestPath }) {
-    const bucketNames = new Map<ImageArchiveBucket, string>()
-
-    const resolveBucketName = Effect.fn('ExportsService.resolveImageArchiveBucket')(function* (
-      bucket: ImageArchiveBucket,
-    ) {
-      const cached = bucketNames.get(bucket)
-      if (cached !== undefined) {
-        return cached
-      }
-
-      const name = yield* Config.string(IMAGE_ARCHIVE_BUCKET_CONFIG[bucket])
-      bucketNames.set(bucket, name)
-      return name
-    })
-
-    // An entry three jurors shortlisted is one GET and three zip entries.
-    const distinctObjects = new Map(files.map((file) => [`${file.bucket}:${file.key}`, file]))
-
-    const fetched = yield* Effect.forEach(
-      Array.from(distinctObjects.values()),
-      (object) =>
-        Effect.gen(function* () {
-          const bucketName = yield* resolveBucketName(object.bucket)
-          const fileOption = yield* s3.getFile(bucketName, object.key)
-
-          return [
-            `${object.bucket}:${object.key}`,
-            Option.isSome(fileOption) ? Buffer.from(fileOption.value) : null,
-          ] as const
-        }),
-      { concurrency: 5 },
-    )
-
-    const bytesByObject = new Map(fetched)
-    const archiveFiles: Array<{ data: Buffer; name: string }> = textFiles.map((textFile) => ({
-      data: Buffer.from(textFile.content, 'utf8'),
-      name: textFile.path,
-    }))
-    const missingPaths: string[] = []
-
-    for (const file of files) {
-      const data = bytesByObject.get(`${file.bucket}:${file.key}`)
-
-      // One photo the storage no longer has should cost the organizer that photo, not the archive.
-      if (!data) {
-        missingPaths.push(file.path)
-        continue
-      }
-
-      archiveFiles.push({ data, name: file.path })
-    }
-
-    if (missingPaths.length > 0 && missingManifestPath !== undefined) {
-      archiveFiles.push({
-        data: Buffer.from(
-          `These files could not be read from storage and are missing from this archive:\n\n${missingPaths.join('\n')}\n`,
-          'utf8',
-        ),
-        name: missingManifestPath,
-      })
-    }
-
-    const zipBuffer = yield* buildArchiveBuffer(archiveFiles)
-
-    return { zipBuffer, missingPaths }
+  // The jury result images are streamed to the browser one at a time (the client writes them straight
+  // to a folder via the File System Access API), so this resolves a bucket alias and hands back the
+  // bytes for a single object rather than packing an archive.
+  const getImageArchiveObject: ExportsService['Service']['getImageArchiveObject'] = Effect.fn(
+    'ExportsService.getImageArchiveObject',
+  )(function* ({ bucket, key }) {
+    const bucketName = yield* Config.string(IMAGE_ARCHIVE_BUCKET_CONFIG[bucket])
+    return yield* s3.getFile(bucketName, key)
   })
 
   return ExportsService.of({
@@ -559,7 +483,7 @@ const makeExportsService = Effect.gen(function* () {
     getValidationResultsExportData,
     getValidationResultsExportDataByCameraActiveTopic,
     buildByCameraActiveTopicImagesZip,
-    buildImageArchive,
+    getImageArchiveObject,
   })
 })
 

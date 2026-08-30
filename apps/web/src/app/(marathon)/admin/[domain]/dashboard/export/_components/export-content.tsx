@@ -16,6 +16,7 @@ import {
 } from '../_lib/utils'
 import { FullMarathonZipCard } from './full-marathon-zip-card'
 import { TopicImagesZipCard } from './topic-images-zip-card'
+import { JuryImagesFolderCard } from './jury-images-folder-card'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { type Marathon } from '@blikka/db'
@@ -53,7 +54,7 @@ export function ExportContent() {
       <ExportHeader
         domain={domain}
         marathonName={marathon.name}
-        exportCount={exportTypes.length + 1}
+        exportCount={exportTypes.length + 2}
       />
 
       {isByCamera && (
@@ -187,6 +188,8 @@ export function ExportContent() {
                 }
               />
             ))}
+            {/* Jury runs after the marathon, so this stays available regardless of the live lock. */}
+            <JuryImagesFolderCard />
           </div>
         </section>
       </div>

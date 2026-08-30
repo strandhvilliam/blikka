@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { Effect } from 'effect'
+import { Effect, Option } from 'effect'
 import * as XLSX from 'xlsx'
 
 import { appRouter, createTRPCContext, createCallerFactory, ExportsService } from '@blikka/api/trpc'
@@ -7,7 +7,7 @@ import { appRouter, createTRPCContext, createCallerFactory, ExportsService } fro
 import { sanitizeFilenameSegment } from '@/app/(marathon)/admin/[domain]/dashboard/export/_lib/sanitize-filename-segment'
 import { buildCsv, CSV_BOM, type CsvCell } from '@/lib/csv'
 import { buildJuryResultsCsvRows, JURY_RESULTS_CSV_HEADERS } from '@/lib/jury/jury-results-csv'
-import { buildJuryImageArchivePlan, type JuryImageSize } from '@/lib/jury/jury-results-images'
+import { buildJuryImageArchivePlan, type JuryImageBucket } from '@/lib/jury/jury-results-images'
 import { getByCameraExportAccessState } from '@/lib/by-camera/by-camera-export-access-state'
 import { serverRuntime, type RuntimeDependencies } from '@/lib/server-runtime'
 import { buildS3Url } from '@/lib/utils'
@@ -23,15 +23,15 @@ const EXPORT_KEYS = {
   TXT_VALIDATION_RESULTS_BY_CAMERA_ACTIVE_TOPIC: 'txt_validation_results_by_camera_active_topic',
   BY_CAMERA_TOPIC_IMAGES: 'by_camera_topic_images',
   CSV_JURY_RESULTS: 'csv_jury_results',
-  ZIP_JURY_RESULT_IMAGES: 'zip_jury_result_images',
+  // The result images are no longer zipped: the client writes them straight to a folder the organizer
+  // picks (File System Access API). The manifest lists every file and a per-image URL; the browser
+  // fetches those one at a time and this route streams each object from S3.
+  JURY_RESULT_IMAGES_MANIFEST: 'jury_result_images_manifest',
+  JURY_RESULT_IMAGE: 'jury_result_image',
 } as const
 
-/**
- * A whole jury's originals is jurors x 10 photos, and originals run 10-25 MB, so the archive is
- * built in memory only while it stays small. Past this the organizer takes it a scope or a juror at
- * a time, or in preview size, rather than the request dying on its memory limit.
- */
-const MAX_JURY_ARCHIVE_OBJECTS = 400
+/** Bucket aliases the single-image proxy will serve — the same three the archive plan emits. */
+const JURY_IMAGE_BUCKETS: readonly JuryImageBucket[] = ['submissions', 'thumbnails', 'contact-sheets']
 
 const createCaller = createCallerFactory(appRouter)
 type Caller = ReturnType<typeof createCaller>
@@ -466,21 +466,25 @@ const handleJuryResultsExport = Effect.fn('export/csv-jury-results')(function* (
   )
 })
 
-const handleJuryResultImagesExport = Effect.fn('export/zip-jury-result-images')(function* (
+/**
+ * The plan of what to write, as JSON. It carries every folder path, a same-origin URL per image, and
+ * the text files (README, CSV, per-juror markers) inline. The browser walks this, recreating the tree
+ * under a folder the organizer picks and fetching each image from `JURY_RESULT_IMAGE`.
+ */
+const handleJuryResultImagesManifest = Effect.fn('export/jury-result-images-manifest')(function* (
   caller: Caller,
   domain: string,
-  options: { size: JuryImageSize; invitationId?: number; scopeKey?: string },
+  options: { invitationId?: number; scopeKey?: string },
 ) {
   const results = yield* Effect.promise(() => caller.jury.getJuryResultsByDomain({ domain }))
 
-  // The same rows the CSV export is built from, so the copy inside the archive cannot drift from
-  // the folders around it.
+  // Built from the same rows as the CSV export, so the copy written next to the photos cannot drift
+  // from the folders around it.
   const csv = buildCsvContent(JURY_RESULTS_CSV_HEADERS, buildJuryResultsCsvRows(results))
 
   const plan = buildJuryImageArchivePlan(results, {
     domain,
     dateStamp: getDateStamp(),
-    size: options.size,
     filter: { invitationId: options.invitationId, scopeKey: options.scopeKey },
     csv,
   })
@@ -495,31 +499,52 @@ const handleJuryResultImagesExport = Effect.fn('export/zip-jury-result-images')(
     )
   }
 
-  if (plan.distinctObjectCount > MAX_JURY_ARCHIVE_OBJECTS) {
-    return NextResponse.json(
-      {
-        error: 'Jury image archive too large',
-        details: `This export would pack ${plan.distinctObjectCount} photos. Download one topic, class or juror at a time, or choose the preview size.`,
-      },
-      { status: 413 },
-    )
-  }
+  const files = plan.files.map((file) => ({
+    path: file.path,
+    url: `/api/${domain}/export/${EXPORT_KEYS.JURY_RESULT_IMAGE}?bucket=${
+      file.bucket
+    }&key=${encodeURIComponent(file.key)}`,
+  }))
 
-  const { zipBuffer } = yield* ExportsService.use((service) =>
-    service.buildImageArchive({
-      files: plan.files,
-      textFiles: plan.textFiles,
-      missingManifestPath: `${plan.rootFolder}/missing-files.txt`,
-    }),
+  return NextResponse.json({
+    rootFolder: plan.rootFolder,
+    files,
+    textFiles: plan.textFiles,
+    entryCount: plan.entryCount,
+    distinctObjectCount: plan.distinctObjectCount,
+  })
+})
+
+/** Streams one jury-result image so the browser can write its bytes to disk without hitting S3 CORS. */
+const handleJuryResultImage = Effect.fn('export/jury-result-image')(function* (
+  bucket: JuryImageBucket,
+  key: string,
+) {
+  const object = yield* ExportsService.use((service) =>
+    service.getImageArchiveObject({ bucket, key }),
   )
 
-  return new NextResponse(new Uint8Array(zipBuffer), {
+  // A photo storage no longer has is one missing file for the client to note, not a failed download.
+  if (Option.isNone(object)) {
+    return NextResponse.json({ error: 'Image not found' }, { status: 404 })
+  }
+
+  return new NextResponse(new Uint8Array(object.value), {
     headers: {
-      'Content-Type': 'application/zip',
-      'Content-Disposition': `attachment; filename="jury-result-images-export-${getDateStamp()}.zip"`,
+      'Content-Type': contentTypeForKey(key),
+      'Content-Length': String(object.value.byteLength),
+      'Cache-Control': 'private, no-store',
     },
   })
 })
+
+function contentTypeForKey(key: string): string {
+  const lower = key.toLowerCase()
+  if (lower.endsWith('.png')) return 'image/png'
+  if (lower.endsWith('.webp')) return 'image/webp'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
+  return 'application/octet-stream'
+}
 
 const handleByCameraTopicImagesExport = Effect.fn('export/by-camera-topic-images')(function* (
   domain: string,
@@ -548,14 +573,14 @@ function exportGetEffect(
     const { searchParams } = new URL(request.url)
     const onlyFailed = searchParams.get('onlyFailed') === 'true'
     const fileFormat = searchParams.get('fileFormat') || 'single'
-    const juryImageSize: JuryImageSize =
-      searchParams.get('format') === 'preview' ? 'preview' : 'original'
     const juryInvitationParam = Number(searchParams.get('invitation'))
     const juryInvitationId =
       Number.isInteger(juryInvitationParam) && juryInvitationParam > 0
         ? juryInvitationParam
         : undefined
     const juryScopeKey = searchParams.get('scope') ?? undefined
+    const juryImageBucketParam = searchParams.get('bucket')
+    const juryImageKey = searchParams.get('key')
     const headers = new Headers(request.headers)
 
     headers.set('x-marathon-domain', domain)
@@ -692,12 +717,33 @@ function exportGetEffect(
       case EXPORT_KEYS.CSV_JURY_RESULTS:
         return yield* handleJuryResultsExport(caller, domain)
 
-      case EXPORT_KEYS.ZIP_JURY_RESULT_IMAGES:
-        return yield* handleJuryResultImagesExport(caller, domain, {
-          size: juryImageSize,
+      case EXPORT_KEYS.JURY_RESULT_IMAGES_MANIFEST:
+        return yield* handleJuryResultImagesManifest(caller, domain, {
           invitationId: juryInvitationId,
           scopeKey: juryScopeKey,
         })
+
+      case EXPORT_KEYS.JURY_RESULT_IMAGE: {
+        // The manifest is served by a protected tRPC procedure; this per-image route does its own
+        // auth so an image URL cannot be replayed without a session and access to the domain.
+        if (!ctx.session) {
+          return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+        }
+
+        if (!ctx.permissions.some((permission) => permission.domain === domain)) {
+          return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+        }
+
+        if (
+          !juryImageBucketParam ||
+          !JURY_IMAGE_BUCKETS.includes(juryImageBucketParam as JuryImageBucket) ||
+          !juryImageKey
+        ) {
+          return NextResponse.json({ error: 'Invalid image request' }, { status: 400 })
+        }
+
+        return yield* handleJuryResultImage(juryImageBucketParam as JuryImageBucket, juryImageKey)
+      }
 
       default:
         return NextResponse.json({ error: 'Invalid export type' }, { status: 400 })

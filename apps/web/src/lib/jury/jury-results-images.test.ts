@@ -46,7 +46,7 @@ function makeResult(overrides: Partial<JuryDomainResult> & { invitationId: numbe
   } as JuryDomainResult
 }
 
-const options = { domain: 'demo', dateStamp: '2026-08-30', size: 'original' } as const
+const options = { domain: 'demo', dateStamp: '2026-08-30' } as const
 
 describe('jury image archive plan', () => {
   it('files a juror shortlist winner-first under its scope, then by reference', () => {
@@ -130,7 +130,7 @@ describe('jury image archive plan', () => {
     ])
   })
 
-  it('takes thumbnails in preview size, and the original when a pick has none', () => {
+  it('takes the original submission for a pick that is not a contact sheet', () => {
     const plan = buildJuryImageArchivePlan(
       [
         makeResult({
@@ -138,11 +138,11 @@ describe('jury image archive plan', () => {
           shortlist: [pick(1, '1', true), pick(2, '2', false, { submissionThumbnailKey: null })],
         }),
       ],
-      { ...options, size: 'preview' },
+      options,
     )
 
     expect(plan.files.map((file) => [file.bucket, file.key])).toEqual([
-      ['thumbnails', 'demo/1/thumb.webp'],
+      ['submissions', 'demo/1/original.jpg'],
       ['submissions', 'demo/2/original.jpg'],
     ])
   })

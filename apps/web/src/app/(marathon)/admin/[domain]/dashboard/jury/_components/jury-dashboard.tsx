@@ -20,7 +20,9 @@ import {
   Plus,
   Mail,
 } from 'lucide-react'
-import { useJuryExport } from '../_lib/use-jury-export'
+import { useJuryCsvExport } from '../_lib/use-jury-export'
+import { useJuryImageDownload } from '../_lib/use-jury-image-download'
+import { JuryImageDownloadDialog } from './jury-image-download-dialog'
 import { JuryInvitationCreateDialog } from './jury-invitation-create-dialog'
 import { JuryList } from './jury-list'
 import { JuryListSkeleton } from './jury-list-skeleton'
@@ -44,8 +46,9 @@ function JuryEmptySelection() {
 export function JuryDashboard() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [invitationId, setInvitationId] = useQueryState('invitation', parseAsInteger)
-  const { pendingExport, runExport } = useJuryExport()
-  const isExporting = pendingExport !== null
+  const { pending: csvPending, exportCsv } = useJuryCsvExport()
+  const imageDownload = useJuryImageDownload()
+  const isExporting = csvPending || imageDownload.state.status !== 'idle'
 
   const selectInvitation = (id: number | null) => {
     void setInvitationId(id)
@@ -89,17 +92,13 @@ export function JuryDashboard() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuItem onSelect={() => void runExport('csv')}>
+                <DropdownMenuItem onSelect={() => void exportCsv()}>
                   <FileSpreadsheet className="h-3.5 w-3.5" />
                   Results (CSV)
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => void runExport('images')}>
+                <DropdownMenuItem onSelect={() => void imageDownload.start()}>
                   <Images className="h-3.5 w-3.5" />
-                  Result images (ZIP)
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => void runExport('images-preview')}>
-                  <Images className="h-3.5 w-3.5" />
-                  Result images, preview size
+                  Result images to a folder
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -141,6 +140,12 @@ export function JuryDashboard() {
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         onInvitationCreated={(id) => selectInvitation(id)}
+      />
+
+      <JuryImageDownloadDialog
+        state={imageDownload.state}
+        onCancel={imageDownload.cancel}
+        onClose={imageDownload.reset}
       />
     </div>
   )

@@ -1,4 +1,4 @@
-import { ClipboardCheck, FileSpreadsheet, Gavel, Images } from 'lucide-react'
+import { ClipboardCheck, FileSpreadsheet, Gavel } from 'lucide-react'
 
 import { type ExportTypeConfig } from './types'
 
@@ -13,29 +13,14 @@ const JURY_RESULTS_EXPORT: ExportTypeConfig = {
   accentColor: '#8b5cf6', // violet
 }
 
-const JURY_RESULT_IMAGES_EXPORT: ExportTypeConfig = {
-  id: 'jury-result-images',
-  title: 'Jury Result Images',
-  description:
-    'The photos behind the verdict, in one folder per juror: their shortlist with the winner first.',
-  icon: Images,
-  exportType: 'zip_jury_result_images',
-  downloadName: 'jury-result-images',
-  accentColor: '#8b5cf6', // violet
-  formatOptions: [
-    { value: 'original', label: 'Original Files' },
-    { value: 'preview', label: 'Preview Size' },
-  ],
-}
-
 /**
  * Exports that stay available while the marathon is live. The rest are held back until it ends, but
- * these two read data that is either unrelated to the active topic or only produced after the race.
+ * these read data that is either unrelated to the active topic or only produced after the race. (The
+ * jury result images are their own card — {@link JuryImagesFolderCard} — not a generic export type.)
  */
 export const ALWAYS_AVAILABLE_EXPORT_TYPES = new Set<string>([
   'xlsx_participants_by_camera_all_topics',
   JURY_RESULTS_EXPORT.exportType,
-  JURY_RESULT_IMAGES_EXPORT.exportType,
 ])
 
 export const MARATHON_EXPORT_TYPES: ExportTypeConfig[] = [
@@ -76,7 +61,6 @@ export const MARATHON_EXPORT_TYPES: ExportTypeConfig[] = [
     ],
   },
   JURY_RESULTS_EXPORT,
-  JURY_RESULT_IMAGES_EXPORT,
 ]
 
 export const BY_CAMERA_EXPORT_TYPES: ExportTypeConfig[] = [
@@ -118,5 +102,4 @@ export const BY_CAMERA_EXPORT_TYPES: ExportTypeConfig[] = [
     ],
   },
   JURY_RESULTS_EXPORT,
-  JURY_RESULT_IMAGES_EXPORT,
 ]
