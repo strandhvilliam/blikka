@@ -2,12 +2,25 @@
 
 import { useState, Suspense } from 'react'
 import { parseAsInteger, useQueryState } from 'nuqs'
-import { toast } from 'sonner'
 import { PrimaryButton } from '@/components/ui/primary-button'
 import { Button } from '@/components/ui/button'
-import { Download, Gavel, Loader2, Plus, Mail } from 'lucide-react'
-import { downloadFile } from '@/app/(marathon)/admin/[domain]/dashboard/export/_lib/download-file'
-import { useDomain } from '@/lib/domain-provider'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+  ChevronDown,
+  Download,
+  FileSpreadsheet,
+  Gavel,
+  Images,
+  Loader2,
+  Plus,
+  Mail,
+} from 'lucide-react'
+import { useJuryExport } from '../_lib/use-jury-export'
 import { JuryInvitationCreateDialog } from './jury-invitation-create-dialog'
 import { JuryList } from './jury-list'
 import { JuryListSkeleton } from './jury-list-skeleton'
@@ -29,30 +42,10 @@ function JuryEmptySelection() {
 }
 
 export function JuryDashboard() {
-  const domain = useDomain()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [invitationId, setInvitationId] = useQueryState('invitation', parseAsInteger)
-  const [isExporting, setIsExporting] = useState(false)
-
-  // The file comes from the same endpoint the export page uses, so both routes to it produce
-  // byte-identical output rather than one of them drifting.
-  const handleExport = async () => {
-    setIsExporting(true)
-    try {
-      const dateStamp = new Date().toISOString().split('T')[0]
-      await downloadFile(
-        `/api/${domain}/export/csv_jury_results`,
-        `jury-results-export-${dateStamp}.csv`,
-      )
-      toast.success('Jury results exported')
-    } catch (error) {
-      toast.error('Could not export jury results', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
-      })
-    } finally {
-      setIsExporting(false)
-    }
-  }
+  const { pendingExport, runExport } = useJuryExport()
+  const isExporting = pendingExport !== null
 
   const selectInvitation = (id: number | null) => {
     void setInvitationId(id)
@@ -79,19 +72,37 @@ export function JuryDashboard() {
             </p>
           </div>
           <div className="flex w-full items-center gap-2 sm:w-auto sm:shrink-0">
-            <Button
-              variant="outline"
-              className="text-xs min-h-9 flex-1 items-center justify-center gap-1.5 sm:flex-initial"
-              onClick={() => void handleExport()}
-              disabled={isExporting}
-            >
-              {isExporting ? (
-                <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
-              ) : (
-                <Download className="h-3.5 w-3.5 shrink-0" />
-              )}
-              <span>Export CSV</span>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="text-xs min-h-9 flex-1 items-center justify-center gap-1.5 sm:flex-initial"
+                  disabled={isExporting}
+                >
+                  {isExporting ? (
+                    <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                  ) : (
+                    <Download className="h-3.5 w-3.5 shrink-0" />
+                  )}
+                  <span>Export</span>
+                  <ChevronDown className="h-3.5 w-3.5 shrink-0" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuItem onSelect={() => void runExport('csv')}>
+                  <FileSpreadsheet className="h-3.5 w-3.5" />
+                  Results (CSV)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => void runExport('images')}>
+                  <Images className="h-3.5 w-3.5" />
+                  Result images (ZIP)
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => void runExport('images-preview')}>
+                  <Images className="h-3.5 w-3.5" />
+                  Result images, preview size
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <PrimaryButton
               onClick={() => setCreateDialogOpen(true)}
               className="text-xs min-h-9 flex-1 items-center justify-center gap-1.5 sm:flex-initial"

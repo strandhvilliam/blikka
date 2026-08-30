@@ -14,6 +14,7 @@ import {
   CalendarPlus,
   MoreHorizontal,
   ChevronDown,
+  Images,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -46,6 +47,7 @@ import { JuryResultOutcome } from './jury-result-outcome'
 import { JuryInvitationStatusBadge } from './jury-invitation-status-badge'
 import { JuryInvitationExtendDialog } from './jury-invitation-extend-dialog'
 import { JuryInvitationRegenerateDialog } from './jury-invitation-regenerate-dialog'
+import { useJuryExport } from '../_lib/use-jury-export'
 
 interface JuryInvitationDetailsContentProps {
   invitationId: number
@@ -62,6 +64,7 @@ export function JuryInvitationDetailsContent({
   const trpc = useTRPC()
   const domain = useDomain()
   const queryClient = useQueryClient()
+  const { pendingExport, runExport } = useJuryExport()
 
   const { data: invitation } = useSuspenseQuery(
     trpc.jury.getJuryInvitationById.queryOptions({
@@ -167,6 +170,14 @@ export function JuryInvitationDetailsContent({
                 <Mail className="h-3.5 w-3.5" />
                 {isResending ? 'Sending…' : 'Resend email'}
               </DropdownMenuItem>
+              <DropdownMenuItem
+                disabled={pendingExport !== null}
+                onSelect={() => void runExport('images', { invitationId })}
+              >
+                <Images className="h-3.5 w-3.5" />
+                {pendingExport === 'images' ? 'Preparing…' : 'Download picks'}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem onSelect={() => setIsExtendDialogOpen(true)}>
                 <CalendarPlus className="h-3.5 w-3.5" />
                 Extend expiry

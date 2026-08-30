@@ -7,6 +7,7 @@ import { appRouter, createTRPCContext, createCallerFactory, ExportsService } fro
 import { sanitizeFilenameSegment } from '@/app/(marathon)/admin/[domain]/dashboard/export/_lib/sanitize-filename-segment'
 import { buildCsv, CSV_BOM, type CsvCell } from '@/lib/csv'
 import { buildJuryResultsCsvRows, JURY_RESULTS_CSV_HEADERS } from '@/lib/jury/jury-results-csv'
+import { buildJuryImageArchivePlan, type JuryImageSize } from '@/lib/jury/jury-results-images'
 import { getByCameraExportAccessState } from '@/lib/by-camera/by-camera-export-access-state'
 import { serverRuntime, type RuntimeDependencies } from '@/lib/server-runtime'
 import { buildS3Url } from '@/lib/utils'
@@ -22,7 +23,15 @@ const EXPORT_KEYS = {
   TXT_VALIDATION_RESULTS_BY_CAMERA_ACTIVE_TOPIC: 'txt_validation_results_by_camera_active_topic',
   BY_CAMERA_TOPIC_IMAGES: 'by_camera_topic_images',
   CSV_JURY_RESULTS: 'csv_jury_results',
+  ZIP_JURY_RESULT_IMAGES: 'zip_jury_result_images',
 } as const
+
+/**
+ * A whole jury's originals is jurors x 10 photos, and originals run 10-25 MB, so the archive is
+ * built in memory only while it stays small. Past this the organizer takes it a scope or a juror at
+ * a time, or in preview size, rather than the request dying on its memory limit.
+ */
+const MAX_JURY_ARCHIVE_OBJECTS = 400
 
 const createCaller = createCallerFactory(appRouter)
 type Caller = ReturnType<typeof createCaller>
@@ -64,12 +73,20 @@ function createWorkbookResponse(
   })
 }
 
+/** BOM-prefixed so Excel detects UTF-8; see `buildCsv` for the quoting and line-ending rules. */
+function buildCsvContent<Header extends string>(
+  headers: readonly Header[],
+  rows: readonly Readonly<Record<Header, CsvCell>>[],
+) {
+  return `${CSV_BOM}${buildCsv(headers, rows)}`
+}
+
 function createCsvResponse<Header extends string>(
   headers: readonly Header[],
   rows: readonly Readonly<Record<Header, CsvCell>>[],
   filenameBase: string,
 ) {
-  return new NextResponse(`${CSV_BOM}${buildCsv(headers, rows)}`, {
+  return new NextResponse(buildCsvContent(headers, rows), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="${filenameBase}-${getDateStamp()}.csv"`,
@@ -449,6 +466,61 @@ const handleJuryResultsExport = Effect.fn('export/csv-jury-results')(function* (
   )
 })
 
+const handleJuryResultImagesExport = Effect.fn('export/zip-jury-result-images')(function* (
+  caller: Caller,
+  domain: string,
+  options: { size: JuryImageSize; invitationId?: number; scopeKey?: string },
+) {
+  const results = yield* Effect.promise(() => caller.jury.getJuryResultsByDomain({ domain }))
+
+  // The same rows the CSV export is built from, so the copy inside the archive cannot drift from
+  // the folders around it.
+  const csv = buildCsvContent(JURY_RESULTS_CSV_HEADERS, buildJuryResultsCsvRows(results))
+
+  const plan = buildJuryImageArchivePlan(results, {
+    domain,
+    dateStamp: getDateStamp(),
+    size: options.size,
+    filter: { invitationId: options.invitationId, scopeKey: options.scopeKey },
+    csv,
+  })
+
+  if (plan.entryCount === 0) {
+    return NextResponse.json(
+      {
+        error: 'Nothing to export',
+        details: 'No juror has picked an entry with an image on record yet.',
+      },
+      { status: 404 },
+    )
+  }
+
+  if (plan.distinctObjectCount > MAX_JURY_ARCHIVE_OBJECTS) {
+    return NextResponse.json(
+      {
+        error: 'Jury image archive too large',
+        details: `This export would pack ${plan.distinctObjectCount} photos. Download one topic, class or juror at a time, or choose the preview size.`,
+      },
+      { status: 413 },
+    )
+  }
+
+  const { zipBuffer } = yield* ExportsService.use((service) =>
+    service.buildImageArchive({
+      files: plan.files,
+      textFiles: plan.textFiles,
+      missingManifestPath: `${plan.rootFolder}/missing-files.txt`,
+    }),
+  )
+
+  return new NextResponse(new Uint8Array(zipBuffer), {
+    headers: {
+      'Content-Type': 'application/zip',
+      'Content-Disposition': `attachment; filename="jury-result-images-export-${getDateStamp()}.zip"`,
+    },
+  })
+})
+
 const handleByCameraTopicImagesExport = Effect.fn('export/by-camera-topic-images')(function* (
   domain: string,
 ) {
@@ -476,6 +548,14 @@ function exportGetEffect(
     const { searchParams } = new URL(request.url)
     const onlyFailed = searchParams.get('onlyFailed') === 'true'
     const fileFormat = searchParams.get('fileFormat') || 'single'
+    const juryImageSize: JuryImageSize =
+      searchParams.get('format') === 'preview' ? 'preview' : 'original'
+    const juryInvitationParam = Number(searchParams.get('invitation'))
+    const juryInvitationId =
+      Number.isInteger(juryInvitationParam) && juryInvitationParam > 0
+        ? juryInvitationParam
+        : undefined
+    const juryScopeKey = searchParams.get('scope') ?? undefined
     const headers = new Headers(request.headers)
 
     headers.set('x-marathon-domain', domain)
@@ -611,6 +691,13 @@ function exportGetEffect(
       // window or on the marathon mode the way the participant and submission exports are.
       case EXPORT_KEYS.CSV_JURY_RESULTS:
         return yield* handleJuryResultsExport(caller, domain)
+
+      case EXPORT_KEYS.ZIP_JURY_RESULT_IMAGES:
+        return yield* handleJuryResultImagesExport(caller, domain, {
+          size: juryImageSize,
+          invitationId: juryInvitationId,
+          scopeKey: juryScopeKey,
+        })
 
       default:
         return NextResponse.json({ error: 'Invalid export type' }, { status: 400 })

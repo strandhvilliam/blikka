@@ -1,4 +1,3 @@
-
 import { extname } from 'node:path'
 import archiver from 'archiver'
 import { Config, Effect, Layer, Option, Context } from 'effect'
@@ -11,10 +10,7 @@ import {
   PhoneNumberEncryptionService,
   PhoneNumberEncryptionServiceLayer,
 } from '../utils/phone-number-encryption'
-import {
-  getActiveByCameraTopicOrNotFound,
-  requireByCameraMode,
-} from '../shared'
+import { getActiveByCameraTopicOrNotFound, requireByCameraMode } from '../shared'
 import { BadRequestError, NotFoundError, failNotFoundIfNone } from '../errors'
 import type { DomainScopedExportInput, GetValidationResultsExportDataInput } from './contracts'
 
@@ -80,6 +76,28 @@ interface ValidationResultExportRow {
   overruled: boolean
 }
 
+/** Buckets an image archive can pull from, mapped to their runtime config keys below. */
+export type ImageArchiveBucket = 'submissions' | 'thumbnails' | 'contact-sheets'
+
+const IMAGE_ARCHIVE_BUCKET_CONFIG: Record<ImageArchiveBucket, string> = {
+  submissions: 'SUBMISSIONS_BUCKET_NAME',
+  thumbnails: 'THUMBNAILS_BUCKET_NAME',
+  'contact-sheets': 'CONTACT_SHEETS_BUCKET_NAME',
+}
+
+export interface BuildImageArchiveInput {
+  /** One entry per zip path. The same object may appear under several paths; it is fetched once. */
+  readonly files: ReadonlyArray<{
+    readonly bucket: ImageArchiveBucket
+    readonly key: string
+    readonly path: string
+  }>
+  /** Manifests, readmes and the like, written verbatim as UTF-8. */
+  readonly textFiles?: ReadonlyArray<{ readonly path: string; readonly content: string }>
+  /** Where to record objects that could not be read. Omitted from the zip when nothing is missing. */
+  readonly missingManifestPath?: string
+}
+
 export class ExportsService extends Context.Service<
   ExportsService,
   {
@@ -128,6 +146,19 @@ export class ExportsService extends Context.Service<
     ) => Effect.Effect<
       { topicName: string; zipBuffer: Buffer },
       DbError | S3ClientError | Config.ConfigError | BadRequestError | NotFoundError,
+      never
+    >
+
+    /**
+     * Zips a caller-supplied set of image objects under caller-supplied paths. The layout is the
+     * caller's business; this only resolves buckets, fetches each distinct object once, and reports
+     * what it could not read instead of failing the whole archive over one absent file.
+     */
+    readonly buildImageArchive: (
+      input: BuildImageArchiveInput,
+    ) => Effect.Effect<
+      { zipBuffer: Buffer; missingPaths: string[] },
+      S3ClientError | Config.ConfigError | BadRequestError,
       never
     >
   }
@@ -449,6 +480,76 @@ const makeExportsService = Effect.gen(function* () {
       }
     })
 
+  const buildImageArchive: ExportsService['Service']['buildImageArchive'] = Effect.fn(
+    'ExportsService.buildImageArchive',
+  )(function* ({ files, textFiles = [], missingManifestPath }) {
+    const bucketNames = new Map<ImageArchiveBucket, string>()
+
+    const resolveBucketName = Effect.fn('ExportsService.resolveImageArchiveBucket')(function* (
+      bucket: ImageArchiveBucket,
+    ) {
+      const cached = bucketNames.get(bucket)
+      if (cached !== undefined) {
+        return cached
+      }
+
+      const name = yield* Config.string(IMAGE_ARCHIVE_BUCKET_CONFIG[bucket])
+      bucketNames.set(bucket, name)
+      return name
+    })
+
+    // An entry three jurors shortlisted is one GET and three zip entries.
+    const distinctObjects = new Map(files.map((file) => [`${file.bucket}:${file.key}`, file]))
+
+    const fetched = yield* Effect.forEach(
+      Array.from(distinctObjects.values()),
+      (object) =>
+        Effect.gen(function* () {
+          const bucketName = yield* resolveBucketName(object.bucket)
+          const fileOption = yield* s3.getFile(bucketName, object.key)
+
+          return [
+            `${object.bucket}:${object.key}`,
+            Option.isSome(fileOption) ? Buffer.from(fileOption.value) : null,
+          ] as const
+        }),
+      { concurrency: 5 },
+    )
+
+    const bytesByObject = new Map(fetched)
+    const archiveFiles: Array<{ data: Buffer; name: string }> = textFiles.map((textFile) => ({
+      data: Buffer.from(textFile.content, 'utf8'),
+      name: textFile.path,
+    }))
+    const missingPaths: string[] = []
+
+    for (const file of files) {
+      const data = bytesByObject.get(`${file.bucket}:${file.key}`)
+
+      // One photo the storage no longer has should cost the organizer that photo, not the archive.
+      if (!data) {
+        missingPaths.push(file.path)
+        continue
+      }
+
+      archiveFiles.push({ data, name: file.path })
+    }
+
+    if (missingPaths.length > 0 && missingManifestPath !== undefined) {
+      archiveFiles.push({
+        data: Buffer.from(
+          `These files could not be read from storage and are missing from this archive:\n\n${missingPaths.join('\n')}\n`,
+          'utf8',
+        ),
+        name: missingManifestPath,
+      })
+    }
+
+    const zipBuffer = yield* buildArchiveBuffer(archiveFiles)
+
+    return { zipBuffer, missingPaths }
+  })
+
   return ExportsService.of({
     getParticipantsExportData,
     getParticipantsExportDataByCameraActiveTopic,
@@ -458,13 +559,12 @@ const makeExportsService = Effect.gen(function* () {
     getValidationResultsExportData,
     getValidationResultsExportDataByCameraActiveTopic,
     buildByCameraActiveTopicImagesZip,
+    buildImageArchive,
   })
 })
 
 export const ExportsServiceLayerNoDeps = Layer.effect(ExportsService, makeExportsService)
 
 export const ExportsServiceLayer = ExportsServiceLayerNoDeps.pipe(
-  Layer.provide(
-    Layer.mergeAll(DbLayer, S3ServiceLayer, PhoneNumberEncryptionServiceLayer),
-  ),
+  Layer.provide(Layer.mergeAll(DbLayer, S3ServiceLayer, PhoneNumberEncryptionServiceLayer)),
 )

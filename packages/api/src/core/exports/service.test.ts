@@ -5,7 +5,10 @@ import { Effect, Layer, Option, Ref } from 'effect'
 
 import { configLayerFromEnv } from '../test/config-layer'
 import { BadRequestError, NotFoundError } from '../errors'
-import { EncryptedPhoneNumber, PhoneNumberEncryptionService } from '../utils/phone-number-encryption'
+import {
+  EncryptedPhoneNumber,
+  PhoneNumberEncryptionService,
+} from '../utils/phone-number-encryption'
 import { makeMarathon } from '../test/fixtures/marathon'
 import { makeTopic } from '../test/fixtures/topic'
 import { ExportsService, ExportsServiceLayerNoDeps } from './service'
@@ -16,7 +19,15 @@ interface TestState {
   readonly marathon: ReturnType<typeof makeMarathon> | undefined
   readonly participants: ReadonlyArray<Record<string, unknown>>
   readonly byCameraParticipants: ReadonlyArray<Record<string, unknown>>
-  readonly submissionFiles: ReadonlyArray<{ key: string; mimeType: string | null; participant: { reference: string }; id: number }>
+  readonly submissionFiles: ReadonlyArray<{
+    key: string
+    mimeType: string | null
+    participant: { reference: string }
+    id: number
+  }>
+  /** Keys the fake S3 has no object for, so the archive has something to report as missing. */
+  readonly missingKeys: ReadonlyArray<string>
+  readonly s3Reads: ReadonlyArray<string>
 }
 
 const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
@@ -62,6 +73,8 @@ const makeInitialState = (overrides: Partial<TestState> = {}): TestState => ({
       participant: { reference: '1001' },
     },
   ],
+  missingKeys: [],
+  s3Reads: [],
   ...overrides,
 })
 
@@ -102,7 +115,17 @@ const makeTestLayer = (stateRef: Ref.Ref<TestState>) => {
   } as unknown as ExportsRepository['Service'])
 
   const s3Service = S3Service.of({
-    getFile: () => Effect.succeed(Option.some(Buffer.from('image-bytes'))),
+    getFile: (bucket: string, key: string) =>
+      Effect.gen(function* () {
+        yield* Ref.update(stateRef, (state) => ({
+          ...state,
+          s3Reads: [...state.s3Reads, `${bucket}:${key}`],
+        }))
+        const state = yield* Ref.get(stateRef)
+        return state.missingKeys.includes(key)
+          ? Option.none<Uint8Array>()
+          : Option.some(Buffer.from('image-bytes'))
+      }),
   } as unknown as S3Service['Service'])
 
   const phoneEncryption = PhoneNumberEncryptionService.of({
@@ -129,7 +152,13 @@ const runWithState = <A, E>(
 ) =>
   effect.pipe(
     Effect.provide(makeTestLayer(stateRef)),
-    Effect.provide(configLayerFromEnv({ SUBMISSIONS_BUCKET_NAME: 'submissions-bucket' })),
+    Effect.provide(
+      configLayerFromEnv({
+        SUBMISSIONS_BUCKET_NAME: 'submissions-bucket',
+        THUMBNAILS_BUCKET_NAME: 'thumbnails-bucket',
+        CONTACT_SHEETS_BUCKET_NAME: 'contact-sheets-bucket',
+      }),
+    ),
   )
 
 describe('ExportsService', () => {
@@ -221,6 +250,56 @@ describe('ExportsService', () => {
       )
 
       assert.instanceOf(error, NotFoundError)
+    }),
+  )
+
+  it.effect('fetches an object once however many archive paths point at it', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState())
+
+      const result = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* ExportsService
+          return yield* service.buildImageArchive({
+            files: [
+              { bucket: 'submissions', key: 'a.jpg', path: 'root/ada/01-winner-0001.jpg' },
+              { bucket: 'submissions', key: 'a.jpg', path: 'root/bo/01-winner-0001.jpg' },
+              { bucket: 'contact-sheets', key: 'b.png', path: 'root/bo/02-shortlist-0002.png' },
+            ],
+            textFiles: [{ path: 'root/README.txt', content: 'readme' }],
+          })
+        }),
+      )
+
+      const state = yield* Ref.get(stateRef)
+
+      assert.deepEqual(state.s3Reads, ['submissions-bucket:a.jpg', 'contact-sheets-bucket:b.png'])
+      assert.deepEqual(result.missingPaths, [])
+      assert.isTrue(result.zipBuffer.length > 0)
+    }),
+  )
+
+  it.effect('keeps the archive when an object is gone and lists what it could not read', () =>
+    Effect.gen(function* () {
+      const stateRef = yield* Ref.make(makeInitialState({ missingKeys: ['gone.jpg'] }))
+
+      const result = yield* runWithState(
+        stateRef,
+        Effect.gen(function* () {
+          const service = yield* ExportsService
+          return yield* service.buildImageArchive({
+            files: [
+              { bucket: 'submissions', key: 'a.jpg', path: 'root/ada/01-winner-0001.jpg' },
+              { bucket: 'submissions', key: 'gone.jpg', path: 'root/ada/02-shortlist-0002.jpg' },
+            ],
+            missingManifestPath: 'root/missing-files.txt',
+          })
+        }),
+      )
+
+      assert.deepEqual(result.missingPaths, ['root/ada/02-shortlist-0002.jpg'])
+      assert.isTrue(result.zipBuffer.length > 0)
     }),
   )
 })

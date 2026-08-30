@@ -35,6 +35,7 @@ interface ExportCardProps {
 
 function getFileExtension(exportType: string, format: string, fileFormat: string): string {
   if (exportType === 'exif') return format || 'json'
+  if (exportType.startsWith('zip_')) return 'zip'
   if (exportType.startsWith('csv_')) return 'csv'
   if (exportType.startsWith('txt_validation_results')) {
     return fileFormat === 'folder' ? 'zip' : 'txt'
@@ -145,9 +146,12 @@ export function ExportCard({
       toast.success('Export successful', {
         description: `Your ${title} data has been downloaded.`,
       })
-    } catch {
+    } catch (error) {
       toast.error('Export failed', {
-        description: 'There was an error exporting the data. Please try again.',
+        description:
+          error instanceof Error
+            ? error.message
+            : 'There was an error exporting the data. Please try again.',
       })
     } finally {
       setIsLoading(false)
