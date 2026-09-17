@@ -1,5 +1,7 @@
 'use client'
 
+import { uploadFileToPresignedUrl } from '@/lib/upload-client'
+
 import { useRef, useState } from 'react'
 import { Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -108,13 +110,12 @@ function TermsEditor({ domain, currentTerms }: TermsEditorProps) {
       const result = await getTermsUploadUrlMutation.mutateAsync({ domain })
       const { key, url } = result
 
-      await fetch(url as string, {
-        method: 'PUT',
-        body: file,
-        headers: {
-          'Content-Type': file.type || 'text/markdown',
-        },
+      const uploaded = await uploadFileToPresignedUrl({
+        file,
+        presignedUrl: url,
+        contentType: 'text/plain',
       })
+      if (!uploaded.ok) throw new Error(uploaded.error.message)
 
       return key
     } catch {

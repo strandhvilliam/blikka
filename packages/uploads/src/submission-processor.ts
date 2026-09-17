@@ -1,3 +1,4 @@
+import { isVercelByCamera } from '@blikka/aws/deployment'
 import { Cause, Effect, Layer, Option, Context, Schema } from 'effect'
 import { BusService, BusServiceLayer, EventBusError, S3Service, S3ServiceLayer } from '@blikka/aws'
 import {
@@ -321,6 +322,9 @@ const makeSubmissionProcessor = Effect.gen(function* () {
       })
       return
     }
+
+    // The Vercel consumer runs finalization and validation explicitly on every retry.
+    if (isVercelByCamera()) return
 
     const claimed = yield* uploadKv.claimFinalizeEventEmission(domain, reference, uploadSessionId)
 

@@ -149,7 +149,11 @@ export function classifyUploadError({
     return 'NETWORK_OFFLINE'
   }
 
-  if (error.name === 'AbortError') {
+  if (message.includes('client token has expired')) return 'UPLOAD_URL_EXPIRED'
+  if (message.includes('content type mismatch') || message.includes('pathname mismatch'))
+    return 'INVALID_FILE'
+
+  if (error.name === 'AbortError' || message.includes('request was aborted')) {
     return 'TIMEOUT'
   }
 
@@ -303,6 +307,32 @@ export async function uploadFileToPresignedUrl({
   const resolvedContentType = contentType ?? (file.type || 'image/jpeg')
 
   try {
+    if (presignedUrl.startsWith('blob-upload:')) {
+      const descriptor: unknown = JSON.parse(
+        decodeURIComponent(presignedUrl.slice('blob-upload:'.length)),
+      )
+      if (
+        !descriptor ||
+        typeof descriptor !== 'object' ||
+        !('pathname' in descriptor) ||
+        typeof descriptor.pathname !== 'string' ||
+        !('token' in descriptor) ||
+        typeof descriptor.token !== 'string'
+      ) {
+        throw new Error('Invalid Blob upload descriptor')
+      }
+      const { put } = await import('@vercel/blob/client')
+      await put(descriptor.pathname, file, {
+        token: descriptor.token,
+        access: 'public',
+        multipart: true,
+        contentType: resolvedContentType,
+        abortSignal: controller.signal,
+      })
+      clearTimeout(timeoutId)
+      return { ok: true }
+    }
+
     const response = await fetch(presignedUrl, {
       method: 'PUT',
       body: file,

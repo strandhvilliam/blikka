@@ -11,7 +11,9 @@
     "./s3": "./src/s3/index.ts",
     "./sqs": "./src/sqs/index.ts",
     "./bus": "./src/bus/index.ts",
-    "./sms": "./src/sms/index.ts"
+    "./sms": "./src/sms/index.ts",
+    "./deployment": "./src/deployment.ts",
+    "./storage-url": "./src/storage-url.ts"
   },
   "devDependencies": {
     "@effect/vitest": "catalog:",
@@ -30,6 +32,8 @@
     "@aws-sdk/client-sqs": "^3.1003.0",
     "@aws-sdk/lib-storage": "^3.932.0",
     "@aws-sdk/s3-request-presigner": "^3.932.0",
+    "@vercel/blob": "^2.8.0",
+    "@vercel/queue": "^0.5.1",
     "effect": "catalog:",
     "sst": "^4.3.9"
   }

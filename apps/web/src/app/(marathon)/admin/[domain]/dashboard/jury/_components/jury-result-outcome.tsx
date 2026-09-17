@@ -5,6 +5,7 @@ import { Heart, Trophy } from 'lucide-react'
 import { compareParticipantReferences } from '@/lib/jury/jury-utils'
 import { JuryResultPhoto, getJuryParticipantDisplayName, type JuryResultParticipant } from './jury-result-photo'
 import { JuryResultPhotoDialog } from './jury-result-photo-dialog'
+import { JuryImageDownloadButton } from './jury-image-download-button'
 
 export interface JuryResultShortlistRow {
   participantId: number
@@ -34,31 +35,38 @@ export function JuryResultOutcome({
   return (
     <div className="space-y-4">
       {winner ? (
-        <button
-          type="button"
-          onClick={() => setPreviewParticipant(winner.participant)}
-          className="group block w-full overflow-hidden rounded-xl border border-amber-200 bg-amber-50 text-left transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 dark:border-amber-900/60 dark:bg-amber-950/30"
-        >
-          <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted/40 sm:aspect-[16/9]">
-            <JuryResultPhoto
-              participant={winner.participant}
-              priority
-              className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-            />
-            <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-950 shadow-sm">
-              <Trophy className="h-3 w-3" />
-              Winner
-            </span>
-          </div>
-          <div className="flex min-w-0 items-baseline gap-2 px-4 py-3">
-            <span className="text-base font-semibold tabular-nums">
-              #{winner.participant.reference}
-            </span>
-            <span className="min-w-0 truncate text-[13px] text-muted-foreground">
-              {getJuryParticipantDisplayName(winner.participant)}
-            </span>
-          </div>
-        </button>
+        <div className="group relative">
+          <button
+            type="button"
+            onClick={() => setPreviewParticipant(winner.participant)}
+            className="block w-full overflow-hidden rounded-xl border border-amber-200 bg-amber-50 text-left transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35 dark:border-amber-900/60 dark:bg-amber-950/30"
+          >
+            <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted/40 sm:aspect-[16/9]">
+              <JuryResultPhoto
+                participant={winner.participant}
+                priority
+                className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+              />
+              <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-950 shadow-sm">
+                <Trophy className="h-3 w-3" />
+                Winner
+              </span>
+            </div>
+            <div className="flex min-w-0 items-baseline gap-2 px-4 py-3">
+              <span className="text-base font-semibold tabular-nums">
+                #{winner.participant.reference}
+              </span>
+              <span className="min-w-0 truncate text-[13px] text-muted-foreground">
+                {getJuryParticipantDisplayName(winner.participant)}
+              </span>
+            </div>
+          </button>
+          <JuryImageDownloadButton
+            participant={winner.participant}
+            label={`Download #${winner.participant.reference}`}
+            className="absolute right-3 top-3 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+          />
+        </div>
       ) : (
         <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 px-4 py-10 text-center">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-muted text-muted-foreground">
@@ -90,26 +98,32 @@ export function JuryResultOutcome({
         ) : (
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 lg:grid-cols-5">
             {runnersUp.map((pick) => (
-              <button
-                key={pick.participantId}
-                type="button"
-                onClick={() => setPreviewParticipant(pick.participant)}
-                className="group overflow-hidden rounded-lg border border-border/60 bg-background text-left transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35"
-                title={getJuryParticipantDisplayName(pick.participant)}
-              >
-                <div className="relative aspect-square w-full overflow-hidden bg-muted/40">
-                  <JuryResultPhoto
-                    participant={pick.participant}
-                    className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
-                  />
-                </div>
-                <div className="flex min-w-0 items-center gap-1 px-2 py-1.5">
-                  <Heart className="h-3 w-3 shrink-0 fill-brand-primary text-brand-primary" />
-                  <span className="min-w-0 truncate text-[12px] font-medium tabular-nums">
-                    #{pick.participant.reference}
-                  </span>
-                </div>
-              </button>
+              <div key={pick.participantId} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => setPreviewParticipant(pick.participant)}
+                  className="block w-full overflow-hidden rounded-lg border border-border/60 bg-background text-left transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/35"
+                  title={getJuryParticipantDisplayName(pick.participant)}
+                >
+                  <div className="relative aspect-square w-full overflow-hidden bg-muted/40">
+                    <JuryResultPhoto
+                      participant={pick.participant}
+                      className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                    />
+                  </div>
+                  <div className="flex min-w-0 items-center gap-1 px-2 py-1.5">
+                    <Heart className="h-3 w-3 shrink-0 fill-brand-primary text-brand-primary" />
+                    <span className="min-w-0 truncate text-[12px] font-medium tabular-nums">
+                      #{pick.participant.reference}
+                    </span>
+                  </div>
+                </button>
+                <JuryImageDownloadButton
+                  participant={pick.participant}
+                  label={`Download #${pick.participant.reference}`}
+                  className="absolute right-1.5 top-1.5 opacity-0 transition-opacity focus-visible:opacity-100 group-hover:opacity-100"
+                />
+              </div>
             ))}
           </div>
         )}

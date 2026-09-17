@@ -1,5 +1,7 @@
 'use client'
 
+import { uploadFileToPresignedUrl } from '@/lib/upload-client'
+
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { Upload, Replace, ImageIcon, Clock, Loader2 } from 'lucide-react'
@@ -67,10 +69,10 @@ export function SponsorCard({
         position: 'bottom-right',
       })
 
-      const response = await fetch(url, {
-        method: 'PUT',
-        body: file,
-        headers: { 'Content-Type': file.type },
+      const response = await uploadFileToPresignedUrl({
+        file,
+        presignedUrl: url,
+        contentType: 'image/jpeg',
       })
 
       if (!response.ok) {

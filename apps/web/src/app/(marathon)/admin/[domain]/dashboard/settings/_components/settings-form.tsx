@@ -1,5 +1,7 @@
 'use client'
 
+import { uploadFileToPresignedUrl } from '@/lib/upload-client'
+
 import React, { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -247,10 +249,8 @@ export function SettingsForm() {
 
       const { publicUrl, url } = result
 
-      await fetch(url as string, {
-        method: 'PUT',
-        body: file,
-      })
+      const uploaded = await uploadFileToPresignedUrl({ file, presignedUrl: url })
+      if (!uploaded.ok) throw new Error(uploaded.error.message)
 
       const logoUrl = publicUrl
       form.setFieldValue('logoUrl', logoUrl)

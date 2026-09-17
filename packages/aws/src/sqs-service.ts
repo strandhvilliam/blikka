@@ -1,3 +1,5 @@
+import { send } from '@vercel/queue'
+import { isVercelByCamera } from './deployment'
 import { Effect, Layer, Schema, Context } from 'effect'
 import { SQSEffectClient, SQSEffectClientLayer } from './clients/sqs-effect-client'
 import { SendMessageCommand, type SendMessageCommandOutput } from '@aws-sdk/client-sqs'
@@ -44,6 +46,29 @@ const makeSQSService = Effect.gen(function* () {
   })
 })
 
-export const SQSServiceLayer = Layer.effect(SQSService, makeSQSService).pipe(
+const AwsSQSServiceLayer = Layer.effect(SQSService, makeSQSService).pipe(
   Layer.provide(SQSEffectClientLayer),
 )
+
+export const SQSServiceLayer = isVercelByCamera()
+  ? Layer.succeed(
+      SQSService,
+      SQSService.of({
+        sendMessage: (topic, message) =>
+          Effect.tryPromise({
+            try: async () => {
+              if (topic !== 'by-camera-uploads' && topic !== 'by-camera-sms') {
+                throw new Error(`Queue is unavailable in the temporary profile: ${topic}`)
+              }
+              const result = await send(topic, {
+                ...JSON.parse(message),
+                requestedAt: new Date().toISOString(),
+              })
+              return { $metadata: {}, MessageId: result.messageId ?? undefined }
+            },
+            catch: (cause) =>
+              new SQSServiceError({ message: 'Failed to publish Vercel queue message', cause }),
+          }),
+      }),
+    )
+  : AwsSQSServiceLayer

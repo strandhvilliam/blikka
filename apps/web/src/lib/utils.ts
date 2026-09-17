@@ -1,3 +1,4 @@
+import { buildBlobUrl } from '@blikka/aws/storage-url'
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { DEFAULT_LOCALE, protocol, rootDomain } from '@/config'
@@ -8,7 +9,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function buildS3Url(bucketName?: string, key?: string | null) {
   if (!bucketName || !key) return undefined
-  return `https://${bucketName}.s3.eu-north-1.amazonaws.com/${key}`
+  return buildBlobUrl(bucketName, key) ?? `https://${bucketName}.s3.eu-north-1.amazonaws.com/${key}`
 }
 
 export function truncate(str: string, options: { length?: number } = {}) {

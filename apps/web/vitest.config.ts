@@ -8,6 +8,7 @@ export default defineProject({
   resolve: {
     alias: {
       '@': path.join(root, 'src'),
+      '@blikka/api': path.join(root, '../../packages/api/src'),
     },
   },
 })

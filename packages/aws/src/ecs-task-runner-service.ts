@@ -1,3 +1,4 @@
+import { isVercelByCamera } from './deployment'
 import {
   RunTaskCommand,
   type RunTaskCommandOutput,
@@ -87,6 +88,10 @@ export const EcsTaskRunnerServiceLayerNoDeps = Layer.effect(
   makeEcsTaskRunnerService,
 )
 
-export const EcsTaskRunnerServiceLayer = EcsTaskRunnerServiceLayerNoDeps.pipe(
-  Layer.provide(ECSEffectClientLayer),
-)
+export const EcsTaskRunnerServiceLayer = isVercelByCamera()
+  ? Layer.succeed(EcsTaskRunnerService, EcsTaskRunnerService.of({
+      runFargateTask: () => Effect.fail(new EcsTaskRunnerError({
+        message: 'Bulk ZIP exports are disabled in the temporary Vercel profile',
+      })),
+    }))
+  : EcsTaskRunnerServiceLayerNoDeps.pipe(Layer.provide(ECSEffectClientLayer))

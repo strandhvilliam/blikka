@@ -6,12 +6,14 @@ import { Download, Heart, Star, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 import { buildCsv, downloadCsv } from '@/lib/csv'
 import { sanitizeFilenameSegment } from '@/app/(marathon)/admin/[domain]/dashboard/export/_lib/sanitize-filename-segment'
+import type { JuryResultParticipantAssets } from '@/lib/jury/jury-utils'
+import { JuryImageDownloadButton } from './jury-image-download-button'
 
 type JuryRatingRow = {
   participantId: number
   rating: number
   notes: string | null
-  participant: {
+  participant: JuryResultParticipantAssets & {
     id: number
     reference: string
     firstname: string
@@ -124,6 +126,9 @@ export function JuryRatingsTable({
                 <th className="px-3 py-2 font-semibold text-muted-foreground">Rating</th>
                 <th className="px-3 py-2 font-semibold text-muted-foreground">Pick</th>
                 <th className="px-3 py-2 font-semibold text-muted-foreground">Notes</th>
+                <th className="px-2 py-2">
+                  <span className="sr-only">Download image</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -162,6 +167,12 @@ export function JuryRatingsTable({
                     title={row.notes ?? undefined}
                   >
                     {row.notes?.trim() ? row.notes : '—'}
+                  </td>
+                  <td className="px-2 py-2 text-right">
+                    <JuryImageDownloadButton
+                      participant={row.participant}
+                      label={`Download #${row.participant.reference}`}
+                    />
                   </td>
                 </tr>
               ))}

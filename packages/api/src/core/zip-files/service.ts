@@ -1,3 +1,4 @@
+import { isVercelByCamera } from '@blikka/aws/deployment'
 import { S3Service, S3ServiceLayer, S3ClientError } from '@blikka/aws'
 import {
   DbLayer,
@@ -209,6 +210,10 @@ const makeZipFilesService = Effect.gen(function* () {
   const initializeZipDownloads: ZipFilesService['Service']['initializeZipDownloads'] = Effect.fn(
     'ZipFilesService.initializeZipDownloads',
   )(function* ({ domain }) {
+    if (isVercelByCamera())
+      return yield* new BadRequestError({
+        message: 'Bulk ZIP exports are unavailable during the temporary migration',
+      })
     // Source the participant set from the participants table, not zipped_submissions: zips are
     // now generated lazily at download time, so no zip rows exist until the downloader runs.
     const completedParticipants =
@@ -491,6 +496,10 @@ const makeZipFilesService = Effect.gen(function* () {
   const retryExportChunk: ZipFilesService['Service']['retryExportChunk'] = Effect.fn(
     'ZipFilesService.retryExportChunk',
   )(function* ({ domain, exportJobId, jobId }) {
+    if (isVercelByCamera())
+      return yield* new BadRequestError({
+        message: 'Bulk ZIP exports are unavailable during the temporary migration',
+      })
     const marathonIdOption = yield* resolveMarathonId(domain)
     if (Option.isNone(marathonIdOption)) {
       return yield* Effect.fail(

@@ -3,134 +3,22 @@ import {
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
-  type DeleteObjectCommandOutput,
-  type HeadObjectCommandOutput,
-  type PutObjectCommandOutput,
 } from '@aws-sdk/client-s3'
-import { Duration, Effect, Option, Schedule, Schema, Context, Layer } from 'effect'
+import { Duration, Effect, Option, Schedule, Layer } from 'effect'
 import type { Readable } from 'node:stream'
 import { Upload } from '@aws-sdk/lib-storage'
 import { S3EffectClient, S3EffectClientLayer } from './clients/s3-effect-client'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 
-export class S3ClientError extends Schema.TaggedErrorClass<S3ClientError>()('S3ClientError', {
-  message: Schema.String,
-  cause: Schema.optional(Schema.Unknown),
-}) {}
-
-const DEFAULT_SUBMISSION_CONTENT_TYPE = 'image/jpeg'
-
-const SUBMISSION_CONTENT_TYPE_EXTENSION_MAP = {
-  'image/gif': 'gif',
-  'image/heic': 'heic',
-  'image/heif': 'heif',
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-} as const
-
-type SupportedSubmissionContentType = keyof typeof SUBMISSION_CONTENT_TYPE_EXTENSION_MAP
-
-export function resolveSubmissionContentType(contentType?: string): SupportedSubmissionContentType {
-  if (!contentType) {
-    return DEFAULT_SUBMISSION_CONTENT_TYPE
-  }
-
-  if (contentType in SUBMISSION_CONTENT_TYPE_EXTENSION_MAP) {
-    return contentType as SupportedSubmissionContentType
-  }
-
-  return DEFAULT_SUBMISSION_CONTENT_TYPE
-}
-
-export function resolveSubmissionExtension(contentType?: string): string {
-  const normalizedContentType = resolveSubmissionContentType(contentType)
-  return SUBMISSION_CONTENT_TYPE_EXTENSION_MAP[normalizedContentType]
-}
-
-export function createSubmissionObjectKey({
-  domain,
-  reference,
-  orderIndex,
-  filenamePrefix,
-  contentType,
-}: {
-  domain: string
-  reference: string
-  orderIndex: number
-  filenamePrefix?: string
-  contentType?: string
-}): string {
-  const dateTime = new Date().toISOString().replace(/[:.]/g, '-')
-  const formattedOrderIndex = (orderIndex + 1).toString().padStart(2, '0')
-  const prefix = filenamePrefix ? `${filenamePrefix}_` : ''
-  const extension = resolveSubmissionExtension(contentType)
-
-  return `${domain}/${reference}/${formattedOrderIndex}/${prefix}${reference}_${formattedOrderIndex}_${dateTime}.${extension}`
-}
-
-export class S3Service extends Context.Service<
+export * from './s3-contract'
+import {
+  S3ClientError,
   S3Service,
-  {
-    /**
-     * Get a file from S3.
-     */
-    readonly getFile: (
-      bucket: string,
-      key: string,
-    ) => Effect.Effect<Option.Option<Uint8Array>, S3ClientError, never>
-    /**
-     * Get the head of a file from S3.
-     */
-    readonly getHead: (
-      bucket: string,
-      key: string,
-    ) => Effect.Effect<HeadObjectCommandOutput, S3ClientError, never>
-    /**
-     * Get a presigned URL for a file from S3.
-     */
-    readonly getPresignedUrl: (
-      bucket: string,
-      key: string,
-      method: 'GET' | 'PUT',
-      options?: { expiresIn?: number; contentType?: string },
-    ) => Effect.Effect<string, S3ClientError, never>
-    /**
-     * Put a file to S3.
-     */
-    readonly putFile: (
-      bucket: string,
-      key: string,
-      file: Buffer,
-    ) => Effect.Effect<PutObjectCommandOutput, S3ClientError, never>
-    /**
-     * Stream a body to S3 via multipart upload (lib-storage), so large objects never need to be
-     * fully buffered in memory. The body is consumed as it is produced, with backpressure.
-     */
-    readonly uploadStream: (
-      bucket: string,
-      key: string,
-      body: Readable,
-      options?: { contentType?: string },
-    ) => Effect.Effect<void, S3ClientError, never>
-    /**
-     * Delete a file from S3.
-     */
-    readonly deleteFile: (
-      bucket: string,
-      key: string,
-    ) => Effect.Effect<DeleteObjectCommandOutput, S3ClientError, never>
-    /**
-     * Generate a submission key for a file.
-     */
-    readonly generateSubmissionKey: (
-      domain: string,
-      reference: string,
-      orderIndex: number,
-      options?: { filenamePrefix?: string; contentType?: string },
-    ) => Effect.Effect<string, S3ClientError, never>
-  }
->()('@blikka/aws/s3-service') {}
+  createSubmissionObjectKey,
+  resolveSubmissionContentType,
+} from './s3-contract'
+import { BlobServiceLayer } from './blob-service'
+import { isVercelByCamera } from './deployment'
 
 const makeS3Service = Effect.gen(function* () {
   const s3Client = yield* S3EffectClient
@@ -231,12 +119,7 @@ const makeS3Service = Effect.gen(function* () {
   )
 
   const uploadStream = Effect.fn('S3Service.uploadStream')(
-    function* (
-      bucket: string,
-      key: string,
-      body: Readable,
-      options?: { contentType?: string },
-    ) {
+    function* (bucket: string, key: string, body: Readable, options?: { contentType?: string }) {
       yield* s3Client.use((client) =>
         new Upload({
           client,
@@ -305,4 +188,6 @@ const makeS3Service = Effect.gen(function* () {
 
 export const S3ServiceLayerNoDeps = Layer.effect(S3Service, makeS3Service)
 
-export const S3ServiceLayer = S3ServiceLayerNoDeps.pipe(Layer.provide(S3EffectClientLayer))
+export const S3ServiceLayer = isVercelByCamera()
+  ? BlobServiceLayer
+  : S3ServiceLayerNoDeps.pipe(Layer.provide(S3EffectClientLayer))

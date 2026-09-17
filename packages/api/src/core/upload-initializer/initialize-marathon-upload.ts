@@ -1,3 +1,4 @@
+import { isVercelByCamera } from '@blikka/aws/deployment'
 import { Array, Config, Context, Effect, Layer, Option, Order, pipe } from 'effect'
 import {
   DbError,
@@ -87,6 +88,9 @@ const makeMarathonUploadInitializerService = Effect.gen(function* () {
       termsAcceptanceSource,
       replaceCompletedParticipantUpload,
     }: InitializeUploadFlow) {
+      if (isVercelByCamera()) {
+        return yield* new BadRequestError({ message: 'Marathon uploads are unavailable during the temporary migration' })
+      }
       const allowReplaceCompleted = replaceCompletedParticipantUpload === true
       const marathon = yield* marathonsRepository
         .getMarathonByDomainWithOptions({ domain })

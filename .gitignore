@@ -13,6 +13,7 @@ node_modules
 .env.development.local
 .env.test.local
 .env.production.local
+.env.vercel
 
 # Testing
 coverage
@@ -64,3 +65,8 @@ scripts/*
 
 .local/
 repos/
+
+out**
+sthlm2026*
+sthlmbycamera*
+

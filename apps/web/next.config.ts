@@ -13,6 +13,15 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ['exifr', 'sharp'],
   images: {
     remotePatterns: [
+      ...(process.env.NEXT_PUBLIC_BLOB_BASE_URL
+        ? [
+            {
+              protocol: 'https' as const,
+              hostname: new URL(process.env.NEXT_PUBLIC_BLOB_BASE_URL).hostname,
+              pathname: '/**',
+            },
+          ]
+        : []),
       {
         protocol: 'https',
         hostname: 'picsum.photos',

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "regions": ["arn1"],
+  "functions": {
+    "src/app/api/queues/by-camera/route.ts": {
+      "memory": 4096,
+      "maxDuration": 300,
+      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "by-camera-uploads", "maxConcurrency": 2 }]
+    },
+    "src/app/api/queues/voting-sms/route.ts": {
+      "maxDuration": 300,
+      "experimentalTriggers": [{ "type": "queue/v2beta", "topic": "by-camera-sms", "maxConcurrency": 1 }]
+    }
+  }
+}

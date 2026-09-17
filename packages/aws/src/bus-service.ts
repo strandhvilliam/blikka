@@ -1,3 +1,4 @@
+import { isVercelByCamera } from './deployment'
 import { PutEventsCommand, type PutEventsCommandOutput } from '@aws-sdk/client-eventbridge'
 import { Schema, Effect, Context, Layer } from 'effect'
 import { Resource as SSTResource } from 'sst'
@@ -73,6 +74,16 @@ const makeBusService = Effect.gen(function* () {
 
 export const BusServiceLayerNoDeps = Layer.effect(BusService, makeBusService)
 
-export const BusServiceLayer = BusServiceLayerNoDeps.pipe(
-  Layer.provide(EventBridgeEffectClientLayer),
-)
+export const BusServiceLayer = isVercelByCamera()
+  ? Layer.succeed(
+      BusService,
+      BusService.of({
+        sendFinalizedEvent: () =>
+          Effect.fail(
+            new EventBusError({
+              message: 'This AWS workflow is disabled in the temporary Vercel profile',
+            }),
+          ),
+      }),
+    )
+  : BusServiceLayerNoDeps.pipe(Layer.provide(EventBridgeEffectClientLayer))
