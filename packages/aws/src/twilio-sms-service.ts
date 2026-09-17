@@ -13,10 +13,18 @@ export const TwilioSMSServiceLayer = Layer.effect(
         const apiKey = yield* Config.string('TWILIO_API_KEY_SID')
         const apiSecret = yield* Config.string('TWILIO_API_KEY_SECRET')
         const messagingService = yield* Config.string('TWILIO_MESSAGING_SERVICE_SID')
+        const region = yield* Config.string('TWILIO_REGION').pipe(Config.withDefault('ie1'))
+        if (region !== 'ie1' && region !== 'us1') {
+          return yield* new SMSServiceError({
+            message: 'TWILIO_REGION must be ie1 or us1 and match the API key region',
+          })
+        }
+        const origin =
+          region === 'ie1' ? 'https://api.dublin.ie1.twilio.com' : 'https://api.twilio.com'
         const result = yield* Effect.tryPromise({
           try: async () => {
             const response = await fetch(
-              `https://api.twilio.com/2010-04-01/Accounts/${encodeURIComponent(account)}/Messages.json`,
+              `${origin}/2010-04-01/Accounts/${encodeURIComponent(account)}/Messages.json`,
               {
                 method: 'POST',
                 headers: {

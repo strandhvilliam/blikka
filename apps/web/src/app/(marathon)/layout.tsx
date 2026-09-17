@@ -6,6 +6,7 @@ import { headers } from 'next/headers'
 import { Toaster } from 'sonner'
 import { DotPattern } from '@/components/dot-pattern'
 import { Splash } from '@/components/splash'
+import { requestOriginFromHeaders } from '@/lib/trpc/base-url'
 
 export default function MarathonLayout(props: LayoutProps<'/'>) {
   return (
@@ -23,6 +24,7 @@ async function MarathonLayoutContent({ children }: LayoutProps<'/'>) {
   ])
 
   const domain = requestHeaders.get('x-marathon-domain')
+  const requestOrigin = requestOriginFromHeaders(requestHeaders)
   const requestCookieHeader = requestHeaders.get('cookie')
 
   return (
@@ -31,6 +33,7 @@ async function MarathonLayoutContent({ children }: LayoutProps<'/'>) {
         locale={locale}
         messages={messages}
         domain={domain}
+        requestOrigin={requestOrigin}
         requestCookieHeader={requestCookieHeader}
       >
         <DotPattern />

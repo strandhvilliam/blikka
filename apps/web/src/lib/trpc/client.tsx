@@ -8,6 +8,7 @@ import { createTRPCContext } from '@trpc/tanstack-react-query'
 
 import type { AppRouter } from '@blikka/api/trpc'
 
+import { resolveTrpcBaseUrl } from './base-url'
 import { createQueryClient } from './query-client'
 import { marathonDomainFromLocation } from '@/lib/marathon-domain'
 
@@ -65,6 +66,7 @@ export const { useTRPC, TRPCProvider } = createTRPCContext<AppRouter>()
 export function TRPCReactProvider(props: {
   children: React.ReactNode
   domain: string | null
+  requestOrigin: string | null
   /** Set from server layout via `headers().get("cookie")` so RSC/SSR fetches to `/api/trpc` stay authenticated. */
   requestCookieHeader?: string | null
 }) {
@@ -84,7 +86,7 @@ export function TRPCReactProvider(props: {
             (op.direction === 'down' && op.result instanceof Error),
         }),
         httpBatchStreamLink({
-          url: getBaseUrl() + '/api/trpc',
+          url: getBaseUrl(props.requestOrigin) + '/api/trpc',
           headers() {
             return marathonTrpcFetchHeaders(latestLinkProps.current)
           },
@@ -102,8 +104,10 @@ export function TRPCReactProvider(props: {
   )
 }
 
-const getBaseUrl = () => {
-  if (typeof window !== 'undefined') return window.location.origin
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`
-  return `http://localhost:${process.env.PORT ?? 3000}`
+const getBaseUrl = (requestOrigin: string | null) => {
+  return resolveTrpcBaseUrl({
+    browserOrigin: typeof window === 'undefined' ? null : window.location.origin,
+    requestOrigin,
+    port: process.env.PORT,
+  })
 }

@@ -12,18 +12,24 @@ export function Providers({
   locale,
   messages,
   domain,
+  requestOrigin,
   requestCookieHeader,
 }: {
   children: React.ReactNode
   locale: string
   messages: Record<string, unknown>
   domain: string | null
+  requestOrigin: string | null
   requestCookieHeader?: string | null
 }) {
   return (
     <NuqsAdapter>
       <NextIntlClientProvider locale={locale} messages={messages} timeZone={APP_TIME_ZONE}>
-        <TRPCReactProvider domain={domain} requestCookieHeader={requestCookieHeader}>
+        <TRPCReactProvider
+          domain={domain}
+          requestOrigin={requestOrigin}
+          requestCookieHeader={requestCookieHeader}
+        >
           {/* <ReactQueryDevtools initialIsOpen={false} /> */}
           <RealtimeProvider>{children}</RealtimeProvider>
         </TRPCReactProvider>
