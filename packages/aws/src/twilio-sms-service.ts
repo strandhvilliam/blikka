@@ -39,11 +39,31 @@ export const TwilioSMSServiceLayer = Layer.effect(
                 signal: AbortSignal.timeout(15000),
               },
             )
-            if (!response.ok) throw new Error(`Twilio rejected the message (${response.status})`)
+            if (!response.ok) {
+              const body: unknown = await response.json().catch(() => null)
+              // Provider messages can include recipient data. Retain only the numeric code.
+              const twilioCode =
+                body !== null &&
+                typeof body === 'object' &&
+                'code' in body &&
+                typeof body.code === 'number' &&
+                Number.isSafeInteger(body.code)
+                  ? body.code
+                  : undefined
+              throw new SMSServiceError({
+                message: `Twilio rejected the message (HTTP ${response.status}, region ${region}${twilioCode === undefined ? '' : `, code ${twilioCode}`})`,
+                cause: { httpStatus: response.status, region, twilioCode },
+              })
+            }
             return Schema.decodeUnknownSync(MessageResponse)(await response.json())
           },
           catch: (cause) =>
-            new SMSServiceError({ message: 'Failed to send SMS through Twilio', cause }),
+            cause instanceof SMSServiceError
+              ? cause
+              : new SMSServiceError({
+                  message: `Failed to send SMS through Twilio (region ${region})`,
+                  cause,
+                }),
         })
         return {
           messageId: result.sid,
@@ -51,8 +71,10 @@ export const TwilioSMSServiceLayer = Layer.effect(
           status: 'success' as const,
         }
       },
-      Effect.mapError(
-        (cause) => new SMSServiceError({ message: 'Failed to send SMS through Twilio', cause }),
+      Effect.mapError((cause) =>
+        cause instanceof SMSServiceError
+          ? cause
+          : new SMSServiceError({ message: 'Failed to send SMS through Twilio', cause }),
       ),
     )
 

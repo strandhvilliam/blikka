@@ -53,4 +53,30 @@ describe('Twilio regional authentication', () => {
     await expect(send()).rejects.toThrow()
     expect(fetchMock).not.toHaveBeenCalled()
   })
+  it('reports the Twilio code and region without logging the response body or wrapping it twice', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json(
+        { code: 20003, message: 'Rejected test-secret for +46700000000' },
+        { status: 401 },
+      ),
+    )
+    const error = await Effect.runPromise(
+      SMSService.use((sms) =>
+        sms.send({ phoneNumber: '+46700000000', message: 'Voting invite' }),
+      ).pipe(
+        Effect.provide(TwilioSMSServiceLayer),
+        Effect.provide(ConfigProvider.layer(ConfigProvider.fromUnknown({ ...process.env }))),
+        Effect.flip,
+      ),
+    )
+    expect(error.message).toBe('Twilio rejected the message (HTTP 401, region ie1, code 20003)')
+    expect(error.cause).toEqual({ httpStatus: 401, region: 'ie1', twilioCode: 20003 })
+    expect(JSON.stringify(error)).not.toContain('test-secret')
+    expect(JSON.stringify(error)).not.toContain('+46700000000')
+  })
+
+  it('preserves HTTP diagnostics when Twilio returns a non-JSON error', async () => {
+    fetchMock.mockResolvedValue(new Response('upstream unavailable', { status: 502 }))
+    await expect(send()).rejects.toThrow('Twilio rejected the message (HTTP 502, region ie1)')
+  })
 })
