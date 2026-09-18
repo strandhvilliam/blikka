@@ -3,11 +3,11 @@ import { handleCallback, type MessageMetadata } from '@vercel/queue'
 import { isVercelByCamera } from '@blikka/aws/deployment'
 
 /** Queues have no dead-letter queue. Retain exhausted jobs for manual inspection/replay. */
-export function queueConsumer(run: (payload: unknown) => Promise<void>) {
+export function queueConsumer(run: (payload: unknown, metadata: MessageMetadata) => Promise<void>) {
   const consume = handleCallback(
     async (payload: unknown, metadata: MessageMetadata) => {
       try {
-        await run(payload)
+        await run(payload, metadata)
       } catch (error) {
         if (metadata.deliveryCount < 5) throw error
         const redis = Redis.fromEnv()

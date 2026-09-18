@@ -65,7 +65,7 @@ Keep the existing Sentry/Axiom settings if using those services. Do not place cr
 
 Set `TWILIO_REGION=ie1` for Ireland credentials, which is the default. This uses `api.dublin.ie1.twilio.com`. Set `TWILIO_REGION=us1` only for US1 credentials. The API key and Messaging Service must match the selected region and account. Redeploy after changing environment variables.
 
-Twilio uses a Messaging Service with a configured sender and opt-out handling. Existing SNS account-management operations are unavailable through the Twilio adapter; manage those settings in Twilio. If retaining SNS, set `SMS_PROVIDER=sns`, `AWS_REGION` and appropriate AWS credentials with SNS access. The queued SMS worker suppresses sends in Vercel previews. Production queue retries skip sessions already notified, including force-resend jobs using their request timestamp. Delivery is still at least once: a crash between the provider accepting an SMS and recording its timestamp can send a duplicate.
+Twilio uses a Messaging Service with a configured sender and opt-out handling. Existing SNS account-management operations are unavailable through the Twilio adapter; manage those settings in Twilio. If retaining SNS, set `SMS_PROVIDER=sns`, `AWS_REGION` and appropriate AWS credentials with SNS access. The queued SMS worker suppresses sends in Vercel previews. Production queue retries use a Redis SMS receipt per queue job and voter. Email notification timestamps do not suppress SMS; a new job can send another notification. Delivery is still at least once: a crash between the provider accepting an SMS and recording its Redis receipt can send a duplicate.
 
 ## Existing files and switching back
 

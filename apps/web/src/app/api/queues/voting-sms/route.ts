@@ -10,4 +10,6 @@ export const maxDuration = 300
 const jobRuntime = ManagedRuntime.make(
   Layer.mergeAll(VotingRepositoryLayer, SMSServiceLayer, PhoneNumberEncryptionServiceLayer),
 )
-export const POST = queueConsumer((payload) => jobRuntime.runPromise(processVotingSmsJob(payload)))
+export const POST = queueConsumer((payload, metadata) =>
+  jobRuntime.runPromise(processVotingSmsJob(payload, metadata.messageId)),
+)
