@@ -58,6 +58,7 @@
     },
     "packages": [
       "apps/*",
+      "apps/blikka/*",
       "packages/*",
       "tasks/*",
       "!apps/api",
