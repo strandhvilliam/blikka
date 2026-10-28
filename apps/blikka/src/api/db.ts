@@ -35,6 +35,6 @@ export const DbLive = (hyperdrive: Cloudflare.Hyperdrive.ConnectClient) =>
         Effect.sync(() => new Pool({ connectionString: Redacted.value(url), max: 1 })),
         (pool) => Effect.promise(() => pool.end()),
       );
-      return drizzle(pool, { schema });
+      return drizzle(pool, { schema, casing: "snake_case" });
     }),
   );
