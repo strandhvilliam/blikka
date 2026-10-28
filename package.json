@@ -58,12 +58,12 @@
     },
     "packages": [
       "apps/*",
-      "apps/blikka/*",
       "packages/*",
       "tasks/*",
       "!apps/api",
       "!apps/observer",
-      "!apps/cli"
+      "!apps/cli",
+      "!apps/blikka"
     ]
   },
   "dependencies": {
