@@ -28,4 +28,17 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...                         # redirect URI: $BETTER_AUTH_URL/api/auth/callback/google
 ```
 
+## Errors (Sentry)
+
+Errors from the `Api` worker, the website server and the browser go to the Sentry project in `src/sentry-project.ts`, tagged with the stage as `environment`. Reporting is off under `alchemy dev` and whenever `SENTRY_DSN` is unset. Source maps are uploaded on deploy when `SENTRY_AUTH_TOKEN` is set.
+
+```bash
+SENTRY_DSN=https://...@....ingest.sentry.io/...  # project DSN
+SENTRY_AUTH_TOKEN=sntrys_...                      # org token with project:releases, for source maps
+```
+
+- `Api`: `withSentry` (`src/api/sentry.ts`) wraps the HTTP handler. Failures that are respondable (e.g. `Unauthorized` → 401) are expected and not reported; any other failure or defect is logged, reported with the request and its Axiom `trace_id`, and answered with a 500. Report a handled error yourself with `yield* captureException(error)`; don't call `Sentry.*` directly inside Effect code, since the scope it reads may belong to another request.
+- Website server: `src/web/server.ts` wraps TanStack Start's handler with `Sentry.withSentry`.
+- Browser: `src/web/client.tsx` initialises `@sentry/react` from the meta tags the root route renders, and reports React render and route errors.
+
 Create the tables with `bunx drizzle-kit generate` followed by `bunx drizzle-kit migrate` (both run manually). Until real email sending is wired up, OTP codes are logged by the worker.

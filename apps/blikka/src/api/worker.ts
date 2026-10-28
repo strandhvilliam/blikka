@@ -1,14 +1,16 @@
 import * as Axiom from "@alchemy.run/axiom";
 import * as Cloudflare from "@alchemy.run/cloudflare";
+import { Stage } from "alchemy/Stage";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import * as HttpEffect from "effect/http/HttpEffect";
 import * as HttpRouter from "effect/http/HttpRouter";
-import * as HttpServerRespondable from "effect/http/HttpServerRespondable";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { Auth, AuthConfig, AuthLive, requireUser } from "./auth.ts";
 import { Database, DbLive } from "./db.ts";
-import { Ingest, Logs, Traces } from "./observability.ts";
+import { Ingest, Logs, SentryDsn, SentrySourceMaps, Traces } from "./observability.ts";
+import { withSentry } from "./sentry.ts";
 
 const Routes = Layer.mergeAll(
   HttpRouter.add(
@@ -31,18 +33,19 @@ const Routes = Layer.mergeAll(
 
 export default class Api extends Cloudflare.Worker<Api>()(
   "Api",
-  { main: import.meta.url },
+  Effect.gen(function* () {
+    return { main: import.meta.url, build: yield* SentrySourceMaps };
+  }),
   Effect.gen(function* () {
     const hyperdrive = yield* Cloudflare.Hyperdrive.Connect(yield* Database);
     const authConfig = yield* AuthConfig;
+    const sentry = { dsn: Option.getOrUndefined(yield* SentryDsn), environment: yield* Stage };
     const handler = yield* HttpRouter.toHttpEffect(Routes);
     return {
       fetch: handler.pipe(
-        // Typed errors that know their response (Unauthorized → 401) use it; anything else is a 500.
-        Effect.catch((error) =>
-          HttpServerRespondable.toResponseOrElse(error, HttpServerResponse.empty({ status: 500 })),
-        ),
         Effect.provide(AuthLive(authConfig).pipe(Layer.provideMerge(DbLive(hyperdrive)))),
+        // Reports unexpected errors and turns every error into a response (Unauthorized → 401, else 500).
+        withSentry(sentry),
         Effect.withSpan("Api.fetch"),
       ),
     };
