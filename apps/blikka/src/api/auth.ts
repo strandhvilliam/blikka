@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { emailOTP } from "better-auth/plugins";
+import { bearer, emailOTP } from "better-auth/plugins";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -57,6 +57,9 @@ const makeAuth = (
     },
     session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
     plugins: [
+      // Browsers use the session cookie; other clients (SDKs, apps, scripts) send the same session
+      // as `Authorization: Bearer <token>`, taken from the `set-auth-token` header on sign-in.
+      bearer({ requireSignature: true }),
       emailOTP({
         // shortcut: logs the code instead of emailing it, replace with the email service before launch.
         sendVerificationOTP: async ({ email, otp, type }) => {

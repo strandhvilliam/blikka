@@ -23,7 +23,9 @@ On the domain, the Api sets its session cookie for `<domain>` and every subdomai
 
 ## Auth
 
-Better Auth runs in the `Api` worker (`src/api/auth.ts`) under `/auth/*`. The browser calls it directly with credentials; the Api allows CORS from `WEBSITE_URL` only. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`src/api/db.ts`).
+Better Auth runs in the `Api` worker (`src/api/auth.ts`) under `/auth/*`. The browser calls it directly with credentials; the Api allows CORS from `WEBSITE_URL` only.
+
+Browsers authenticate with the session cookie. Every other client (SDKs, apps, scripts) signs in through the same endpoints, takes the token from the `set-auth-token` response header, and sends it as `Authorization: Bearer <token>`. It is the same session either way, so `requireUser` works for both and signing out revokes both. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`src/api/db.ts`).
 
 Add these to `.env` (values for `alchemy dev`; for `prod`, `https://api.<domain>` and `https://<domain>`):
 
