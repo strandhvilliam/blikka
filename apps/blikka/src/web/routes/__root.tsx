@@ -1,6 +1,7 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { env } from "../env.ts";
+import { getSession } from "../session.ts";
 
 // The browser's config comes from the server at runtime (read from these meta tags by
 // src/web/meta.ts), so one build serves every stage.
@@ -11,6 +12,8 @@ const getPublicConfig = createServerFn().handler(() => ({
 }));
 
 export const Route = createRootRoute({
+  // Every navigation, so pages see sign-in and sign-out. Routes read it from their context.
+  beforeLoad: async () => ({ session: await getSession() }),
   loader: () => getPublicConfig(),
   // Loaded once with the document; client-side navigations reuse it.
   staleTime: Infinity,

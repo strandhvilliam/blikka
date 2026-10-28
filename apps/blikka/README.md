@@ -19,7 +19,7 @@ This app is excluded from the root workspace (`!apps/blikka` in the root `packag
 
 `prod` is served on the domain in `src/domain.ts`: the website at `<domain>` and the Api at `api.<domain>`. Its DNS must be on Cloudflare, and Alchemy manages the records and certificates. Other stages run on `workers.dev`, and `alchemy dev` on localhost (website on 5173, Api on 1337). The website gets the Api's URL as `API_URL` from the stack.
 
-The Api's session cookie is only sent when the website and the Api are on the same site: subdomains of one domain, or localhost in dev. On `workers.dev` they are different sites, so sign-in doesn't work on deployed stages until they have a domain.
+On the domain, the Api sets its session cookie for `<domain>` and every subdomain, so the website's server receives it too and renders signed-in pages: the root route asks the Api for the session with that cookie (`src/web/session.ts`) and passes it to every route as `context.session`. In dev both run on localhost, which shares cookies across ports. On `workers.dev` the two are different sites, so sign-in doesn't work on deployed stages until they have a domain.
 
 ## Auth
 

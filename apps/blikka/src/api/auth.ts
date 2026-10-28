@@ -23,13 +23,25 @@ export const AuthConfig = Config.all({
   googleClientSecret: Config.Redacted("GOOGLE_CLIENT_SECRET"),
 });
 
-const makeAuth = (db: Db["Service"], config: Config.Success<typeof AuthConfig>) =>
+// Set on a custom domain: the session cookie goes to <domain> and all its subdomains, so the
+// website's server gets it too and can render signed-in pages. Unset, it stays on the Api's host
+// (in dev both run on localhost, which already shares it).
+type CookieDomain = string | undefined;
+
+const makeAuth = (
+  db: Db["Service"],
+  config: Config.Success<typeof AuthConfig>,
+  cookieDomain: CookieDomain,
+) =>
   betterAuth({
     database: drizzleAdapter(db, { provider: "pg", schema }),
     secret: Redacted.value(config.secret),
     baseURL: config.baseURL,
     basePath: "/auth",
     trustedOrigins: [config.websiteURL],
+    advanced: {
+      crossSubDomainCookies: { enabled: cookieDomain !== undefined, domain: cookieDomain },
+    },
     // Account linking is on by default: Google and email OTP with the same verified email are one user.
     socialProviders: {
       google: {
@@ -56,11 +68,11 @@ const makeAuth = (db: Db["Service"], config: Config.Success<typeof AuthConfig>) 
 
 export class Auth extends Context.Service<Auth, ReturnType<typeof makeAuth>>()("blikka/auth/Auth") {}
 
-export const AuthLive = (config: Config.Success<typeof AuthConfig>) =>
+export const AuthLive = (config: Config.Success<typeof AuthConfig>, cookieDomain: CookieDomain) =>
   Layer.effect(
     Auth,
     Effect.gen(function* () {
-      return makeAuth(yield* Db, config);
+      return makeAuth(yield* Db, config, cookieDomain);
     }),
   );
 

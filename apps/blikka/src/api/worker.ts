@@ -44,6 +44,7 @@ export default class Api extends Cloudflare.Worker<Api>()(
   Effect.gen(function* () {
     const hyperdrive = yield* Cloudflare.Hyperdrive.Connect(yield* Database);
     const authConfig = yield* AuthConfig;
+    const cookieDomain = (yield* Hostnames)?.website;
     const sentry = { dsn: Option.getOrUndefined(yield* SentryDsn), environment: yield* Stage };
     const handler = yield* HttpRouter.toHttpEffect(
       Layer.mergeAll(
@@ -53,7 +54,9 @@ export default class Api extends Cloudflare.Worker<Api>()(
     );
     return {
       fetch: handler.pipe(
-        Effect.provide(AuthLive(authConfig).pipe(Layer.provideMerge(DbLive(hyperdrive)))),
+        Effect.provide(
+          AuthLive(authConfig, cookieDomain).pipe(Layer.provideMerge(DbLive(hyperdrive))),
+        ),
         // Reports unexpected errors and turns every error into a response (Unauthorized → 401, else 500).
         withSentry(sentry),
         Effect.withSpan("Api.fetch"),
