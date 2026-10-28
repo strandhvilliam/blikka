@@ -6,16 +6,19 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import { SentryDsn } from "./src/api/observability.ts";
+import { Hostnames } from "./src/domain.ts";
 import Api from "./src/api/worker.ts";
 
 export const Website = Cloudflare.Website.Vite(
   "Website",
   Effect.gen(function* () {
+    const api = yield* Api;
     return {
+      domain: (yield* Hostnames)?.website,
       env: {
-        API: Api,
         // Read at runtime by the server and handed to the browser (src/web/routes/__root.tsx), so one
-        // build serves every stage. An empty DSN turns Sentry off.
+        // build serves every stage. The browser calls the Api directly; an empty DSN turns Sentry off.
+        API_URL: api.url.as<string>(),
         SENTRY_DSN: Option.getOrElse(yield* SentryDsn, () => ""),
         SENTRY_ENVIRONMENT: yield* Stage,
       },

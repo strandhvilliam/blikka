@@ -26,7 +26,7 @@ function Login() {
   return (
     <main>
       <h1>Sign in</h1>
-      <button type="button" onClick={() => authClient.signIn.social({ provider: "google", callbackURL: "/" })}>
+      <button type="button" onClick={() => authClient.signIn.social({ provider: "google", callbackURL: window.location.origin })}>
         Continue with Google
       </button>
       <form

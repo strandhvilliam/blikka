@@ -2,15 +2,16 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-r
 import { createServerFn } from "@tanstack/react-start";
 import { env } from "../env.ts";
 
-// The browser's Sentry config comes from the server at runtime (read by src/web/client.tsx from
-// these meta tags), so one build serves every stage.
-const getSentryConfig = createServerFn().handler(() => ({
-  dsn: env.SENTRY_DSN,
-  environment: env.SENTRY_ENVIRONMENT,
+// The browser's config comes from the server at runtime (read from these meta tags by
+// src/web/meta.ts), so one build serves every stage.
+const getPublicConfig = createServerFn().handler(() => ({
+  apiUrl: env.API_URL,
+  sentryDsn: env.SENTRY_DSN,
+  sentryEnvironment: env.SENTRY_ENVIRONMENT,
 }));
 
 export const Route = createRootRoute({
-  loader: () => getSentryConfig(),
+  loader: () => getPublicConfig(),
   // Loaded once with the document; client-side navigations reuse it.
   staleTime: Infinity,
   head: ({ loaderData }) => ({
@@ -18,8 +19,9 @@ export const Route = createRootRoute({
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Blikka" },
-      { name: "sentry-dsn", content: loaderData?.dsn },
-      { name: "sentry-environment", content: loaderData?.environment },
+      { name: "api-url", content: loaderData?.apiUrl },
+      { name: "sentry-dsn", content: loaderData?.sentryDsn },
+      { name: "sentry-environment", content: loaderData?.sentryEnvironment },
     ],
   }),
   component: RootComponent,

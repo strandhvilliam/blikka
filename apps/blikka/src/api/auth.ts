@@ -15,8 +15,10 @@ import * as schema from "./schema.ts";
 
 export const AuthConfig = Config.all({
   secret: Config.Redacted("BETTER_AUTH_SECRET"),
-  // The website origin: auth is proxied through it so cookies are first-party.
+  // The Api's own origin; Google redirects back to it.
   baseURL: Config.String("BETTER_AUTH_URL"),
+  // The website's origin: the only one allowed to call the Api with cookies, and to be redirected to.
+  websiteURL: Config.String("WEBSITE_URL"),
   googleClientId: Config.String("GOOGLE_CLIENT_ID"),
   googleClientSecret: Config.Redacted("GOOGLE_CLIENT_SECRET"),
 });
@@ -26,6 +28,8 @@ const makeAuth = (db: Db["Service"], config: Config.Success<typeof AuthConfig>) 
     database: drizzleAdapter(db, { provider: "pg", schema }),
     secret: Redacted.value(config.secret),
     baseURL: config.baseURL,
+    basePath: "/auth",
+    trustedOrigins: [config.websiteURL],
     // Account linking is on by default: Google and email OTP with the same verified email are one user.
     socialProviders: {
       google: {

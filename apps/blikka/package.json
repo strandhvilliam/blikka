@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "env -u npm_execpath alchemy dev",
     "deploy": "alchemy deploy",
+    "deploy:prod": "alchemy deploy --stage prod",
     "destroy": "alchemy destroy"
   },
   "devDependencies": {

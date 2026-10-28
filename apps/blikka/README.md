@@ -1,12 +1,13 @@
 # blikka
 
-Effect + [Alchemy](https://alchemy.run) stack on Cloudflare. `alchemy.run.ts` defines the stack: the `Api` Worker (`src/api`) and a TanStack Start site (`src/web`, built by `Cloudflare.Website.Vite` via `vite.config.ts`) bound to it as `env.API`.
+Effect + [Alchemy](https://alchemy.run) stack on Cloudflare. `alchemy.run.ts` defines the stack: the `Api` Worker (`src/api`) and a TanStack Start site (`src/web`, built by `Cloudflare.Website.Vite` via `vite.config.ts`). The two are separate: the browser calls the Api on its own origin, and nothing in the Api depends on the website, so the frontend can be swapped out.
 
 Log in once with `bunx alchemy profile edit --add Cloudflare`; credentials go to the `default` profile in `~/.alchemy`. CI uses `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` instead.
 
 ```bash
 bun run dev      # local workerd, stage dev_$USER; state is still stored in your Cloudflare account
-bun run deploy   # deploy to Cloudflare
+bun run deploy   # deploy to Cloudflare, stage live_$USER
+bun run deploy:prod  # deploy the prod stage, the only one served on the custom domain
 bun run destroy  # tear down
 ```
 
@@ -14,18 +15,25 @@ bun run destroy  # tear down
 
 This app is excluded from the root workspace (`!apps/blikka` in the root `package.json`) so it can run Effect 4.0 stable and the latest `alchemy` while the rest of the repo stays on the catalog's `4.0.0-beta.101` (the root `overrides.effect` would otherwise force it). It has its own `bun.lock`; run `bun install` inside `apps/blikka`.
 
+## Domains
+
+`prod` is served on the domain in `src/domain.ts`: the website at `<domain>` and the Api at `api.<domain>`. Its DNS must be on Cloudflare, and Alchemy manages the records and certificates. Other stages run on `workers.dev`, and `alchemy dev` on localhost (website on 5173, Api on 1337). The website gets the Api's URL as `API_URL` from the stack.
+
+The Api's session cookie is only sent when the website and the Api are on the same site: subdomains of one domain, or localhost in dev. On `workers.dev` they are different sites, so sign-in doesn't work on deployed stages until they have a domain.
+
 ## Auth
 
-Better Auth runs in the `Api` worker (`src/api/auth.ts`), and the website proxies `/api/*` to it (`src/web/routes/api/$.ts`) so cookies are first-party. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`src/api/db.ts`).
+Better Auth runs in the `Api` worker (`src/api/auth.ts`) under `/auth/*`. The browser calls it directly with credentials; the Api allows CORS from `WEBSITE_URL` only. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`src/api/db.ts`).
 
-Add these to `.env`:
+Add these to `.env` (values for `alchemy dev`; for `prod`, `https://api.<domain>` and `https://<domain>`):
 
 ```bash
 DATABASE_URL=postgres://user:pass@host:5432/db  # Hyperdrive origin; also read by drizzle-kit
 BETTER_AUTH_SECRET=...                           # openssl rand -base64 32
-BETTER_AUTH_URL=http://localhost:5173            # the website origin, not the worker's
+BETTER_AUTH_URL=http://localhost:1337            # the Api's origin
+WEBSITE_URL=http://localhost:5173                # the website's origin, allowed by CORS
 GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...                         # redirect URI: $BETTER_AUTH_URL/api/auth/callback/google
+GOOGLE_CLIENT_SECRET=...                         # redirect URI: $BETTER_AUTH_URL/auth/callback/google
 ```
 
 ## Errors (Sentry)
