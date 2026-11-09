@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "env -u npm_execpath alchemy dev",
-    "deploy": "alchemy deploy",
-    "deploy:prod": "alchemy deploy --stage prod --env-file .env.prod",
+    "deploy": "drizzle-kit check && drizzle-kit migrate && alchemy deploy",
+    "deploy:prod": "drizzle-kit check && bun --env-file=.env.prod run drizzle-kit migrate && alchemy deploy --stage prod --env-file .env.prod",
     "destroy": "alchemy destroy",
     "api:generate": "bun scripts/openapi.ts > openapi.json && openapi-typescript openapi.json -o src/web/api.gen.ts"
   },

@@ -6,8 +6,8 @@ Log in once with `bunx alchemy profile edit --add Cloudflare`; credentials go to
 
 ```bash
 bun run dev      # local workerd, stage dev_$USER; state is still stored in your Cloudflare account
-bun run deploy   # deploy to Cloudflare, stage live_$USER
-bun run deploy:prod  # deploy the prod stage, the only one served on the custom domain
+bun run deploy   # migrate the .env database, then deploy to Cloudflare, stage live_$USER
+bun run deploy:prod  # migrate the .env.prod database, then deploy the prod stage, the only one served on the custom domain
 bun run destroy  # tear down
 ```
 
@@ -55,4 +55,4 @@ SENTRY_AUTH_TOKEN=sntrys_...                      # org token with project:relea
 - Website server: `src/web/server.ts` wraps TanStack Start's handler with `Sentry.withSentry`.
 - Browser: `src/web/client.tsx` initialises `@sentry/react` from the meta tags the root route renders, and reports React render and route errors.
 
-Create the tables with `bunx drizzle-kit generate` followed by `bunx drizzle-kit migrate` (both run manually). Until real email sending is wired up, OTP codes are logged by the worker.
+Create the tables with `bunx drizzle-kit migrate` (run manually). Schema changes follow [ADR-0003](../../adr/0003-database-migrations.md). Until real email sending is wired up, OTP codes are logged by the worker.
