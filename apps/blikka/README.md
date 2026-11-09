@@ -27,7 +27,7 @@ Better Auth runs in the `Api` worker (`src/api/auth.ts`) under `/auth/*`. The br
 
 Browsers authenticate with the session cookie. Every other client (SDKs, apps, scripts) signs in through the same endpoints, takes the token from the `set-auth-token` response header, and sends it as `Authorization: Bearer <token>`. It is the same session either way, so `requireUser` works for both and signing out revokes both. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`src/api/db.ts`).
 
-Add these to `.env` (values for `alchemy dev`; for `prod`, `https://api.<domain>` and `https://<domain>`):
+Add these to `.env` for `alchemy dev`. `bun run deploy:prod` reads `.env.prod` instead (not on top of `.env`, so it needs every variable), with the URLs set to `https://api.<domain>` and `https://<domain>`:
 
 ```bash
 DATABASE_URL=postgres://user:pass@host:5432/db  # Hyperdrive origin; also read by drizzle-kit
