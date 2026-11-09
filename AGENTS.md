@@ -6,6 +6,10 @@
 - Do not run drizzle-kit or any other db cli tool. This should be done manually
 - Do not git push to remote ever. This should always be done manually.
 
+## Architecture decisions
+
+Decisions live in `adr/` as numbered files (`0001-roles-and-permissions.md`). Read the ones that touch your change before starting. Write a new one, with the next number, when a change makes a decision worth explaining later.
+
 ## Vendored Repositories
 
 This project vendors external repositories under @.repos/
