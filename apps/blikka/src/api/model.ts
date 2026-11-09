@@ -1,9 +1,10 @@
-import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { boolean, index, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 
 // Better Auth core tables. Column names follow Better Auth's field names so the adapter maps 1:1.
 
 export const user = pgTable("user", {
-  id: text().primaryKey(),
+  id: uuid().primaryKey().default(sql`uuidv7()`),
   name: text().notNull(),
   email: text().notNull().unique(),
   emailVerified: boolean().notNull().default(false),
@@ -17,14 +18,14 @@ export const user = pgTable("user", {
 export const session = pgTable(
   "session",
   {
-    id: text().primaryKey(),
+    id: uuid().primaryKey().default(sql`uuidv7()`),
     expiresAt: timestamp().notNull(),
     token: text().notNull().unique(),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
     ipAddress: text(),
     userAgent: text(),
-    userId: text()
+    userId: uuid()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
   },
@@ -34,10 +35,10 @@ export const session = pgTable(
 export const account = pgTable(
   "account",
   {
-    id: text().primaryKey(),
+    id: uuid().primaryKey().default(sql`uuidv7()`),
     accountId: text().notNull(),
     providerId: text().notNull(),
-    userId: text()
+    userId: uuid()
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     accessToken: text(),
@@ -56,7 +57,7 @@ export const account = pgTable(
 export const verification = pgTable(
   "verification",
   {
-    id: text().primaryKey(),
+    id: uuid().primaryKey().default(sql`uuidv7()`),
     identifier: text().notNull(),
     value: text().notNull(),
     expiresAt: timestamp().notNull(),

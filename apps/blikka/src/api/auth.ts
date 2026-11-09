@@ -41,6 +41,8 @@ const makeAuth = (
     trustedOrigins: [config.websiteURL],
     advanced: {
       crossSubDomainCookies: { enabled: cookieDomain !== undefined, domain: cookieDomain },
+      // Postgres generates ids with the uuidv7() column default.
+      database: { generateId: "uuid" },
     },
     // Account linking is on by default: Google and email OTP with the same verified email are one user.
     socialProviders: {
