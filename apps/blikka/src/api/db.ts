@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import { Pool } from "pg";
-import * as schema from "./schema.ts";
+import * as model from "./model.ts";
 
 // Hyperdrive in front of the Postgres in DATABASE_URL. `alchemy dev` passes through to the same origin.
 export const Database = Effect.gen(function* () {
@@ -23,7 +23,7 @@ export const Database = Effect.gen(function* () {
   });
 });
 
-export class Db extends Context.Service<Db, NodePgDatabase<typeof schema>>()("blikka/db/Db") {}
+export class Db extends Context.Service<Db, NodePgDatabase<typeof model>>()("blikka/db/Db") {}
 
 // Per request: Workers can't share sockets across requests, and Hyperdrive does the real pooling.
 export const DbLive = (hyperdrive: Cloudflare.Hyperdrive.ConnectClient) =>
@@ -35,6 +35,6 @@ export const DbLive = (hyperdrive: Cloudflare.Hyperdrive.ConnectClient) =>
         Effect.sync(() => new Pool({ connectionString: Redacted.value(url), max: 1 })),
         (pool) => Effect.promise(() => pool.end()),
       );
-      return drizzle(pool, { schema, casing: "snake_case" });
+      return drizzle(pool, { schema: model, casing: "snake_case" });
     }),
   );

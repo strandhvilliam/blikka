@@ -11,7 +11,7 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerRespondable from "effect/http/HttpServerRespondable";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { Db } from "./db.ts";
-import * as schema from "./schema.ts";
+import * as model from "./model.ts";
 
 export const AuthConfig = Config.all({
   secret: Config.Redacted("BETTER_AUTH_SECRET"),
@@ -34,7 +34,7 @@ const makeAuth = (
   cookieDomain: CookieDomain,
 ) =>
   betterAuth({
-    database: drizzleAdapter(db, { provider: "pg", schema }),
+    database: drizzleAdapter(db, { provider: "pg", schema: model }),
     secret: Redacted.value(config.secret),
     baseURL: config.baseURL,
     basePath: "/auth",
