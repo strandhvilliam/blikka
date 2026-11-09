@@ -1,7 +1,8 @@
-import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { env } from "../env.ts";
-import { getSession } from "../session.ts";
+import { sessionQuery } from "../session.ts";
 
 // The browser's config comes from the server at runtime (read from these meta tags by
 // src/web/meta.ts), so one build serves every stage.
@@ -11,9 +12,12 @@ const getPublicConfig = createServerFn().handler(() => ({
   sentryEnvironment: env.SENTRY_ENVIRONMENT,
 }));
 
-export const Route = createRootRoute({
-  // Every navigation, so pages see sign-in and sign-out. Routes read it from their context.
-  beforeLoad: async () => ({ session: await getSession() }),
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Runs on every navigation but asks the Api only when the cached session is stale (fetchQuery,
+  // unlike ensureQueryData, refetches stale data). Routes read it from their context.
+  beforeLoad: async ({ context }) => ({
+    session: await context.queryClient.fetchQuery(sessionQuery),
+  }),
   loader: () => getPublicConfig(),
   // Loaded once with the document; client-side navigations reuse it.
   staleTime: Infinity,

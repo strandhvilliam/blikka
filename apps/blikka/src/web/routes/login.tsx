@@ -1,11 +1,14 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { authClient } from "../auth-client.ts";
+import { sessionQuery } from "../session.ts";
 
 export const Route = createFileRoute("/login")({ component: Login });
 
 function Login() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
@@ -20,6 +23,7 @@ function Login() {
   const verifyOtp = async () => {
     const { error } = await authClient.signIn.emailOtp({ email, otp });
     if (error) return setError(error.message);
+    await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
     navigate({ to: "/" });
   };
 

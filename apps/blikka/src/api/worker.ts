@@ -4,16 +4,23 @@ import { Stage } from "alchemy/Stage";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
+import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";
 import * as HttpEffect from "effect/http/HttpEffect";
 import * as HttpRouter from "effect/http/HttpRouter";
-import * as HttpServerResponse from "effect/http/HttpServerResponse";
+import * as HttpServer from "effect/http/HttpServer";
 import { Hostnames } from "../domain.ts";
 import { Auth, AuthConfig, AuthLive, requireUser } from "./auth.ts";
+import { Api as Contract } from "./contract.ts";
 import { Database, DbLive } from "./db.ts";
 import { Ingest, Logs, SentryDsn, SentrySourceMaps, Traces } from "./observability.ts";
 import { withSentry } from "./sentry.ts";
 
+const UsersHandlers = HttpApiBuilder.group(Contract, "users", (handlers) =>
+  handlers.handle("me", () => Effect.map(requireUser(), (user) => ({ user }))),
+);
+
 const Routes = Layer.mergeAll(
+  // Better Auth serves its own endpoints, so they stay outside the contract.
   HttpRouter.add(
     "*",
     "/auth/*",
@@ -22,13 +29,9 @@ const Routes = Layer.mergeAll(
       return yield* HttpEffect.fromWebHandler(auth.handler);
     }),
   ),
-  HttpRouter.add(
-    "GET",
-    "/me",
-    Effect.gen(function* () {
-      const user = yield* requireUser();
-      return yield* HttpServerResponse.json({ user });
-    }),
+  HttpApiBuilder.layer(Contract, { openapiPath: "/openapi.json" }).pipe(
+    Layer.provide(UsersHandlers),
+    Layer.provide(HttpServer.layerServices),
   ),
 );
 

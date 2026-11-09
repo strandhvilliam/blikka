@@ -6,10 +6,8 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
-import * as Schema from "effect/Schema";
+import * as HttpApiError from "effect/http-api/HttpApiError";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
-import * as HttpServerRespondable from "effect/http/HttpServerRespondable";
-import * as HttpServerResponse from "effect/http/HttpServerResponse";
 import { Db } from "./db.ts";
 import * as model from "./model.ts";
 
@@ -81,12 +79,6 @@ export const AuthLive = (config: Config.Success<typeof AuthConfig>, cookieDomain
     }),
   );
 
-export class Unauthorized extends Schema.TaggedError<Unauthorized>()("Unauthorized", {}) {
-  [HttpServerRespondable.symbol]() {
-    return Effect.succeed(HttpServerResponse.empty({ status: 401 }));
-  }
-}
-
 // A getSession rejection is an infrastructure failure (DB down), so it is a defect → 500.
 export const getSession = Effect.fn("getSession")(function* () {
   const auth = yield* Auth;
@@ -96,6 +88,7 @@ export const getSession = Effect.fn("getSession")(function* () {
 
 export const requireUser = Effect.fn("requireUser")(function* () {
   const session = yield* getSession();
-  if (!session) return yield* new Unauthorized();
+  // The contract's error, so clients decode it; it renders itself as an empty 401.
+  if (!session) return yield* new HttpApiError.Unauthorized();
   return session.user;
 });
