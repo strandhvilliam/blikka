@@ -3,6 +3,7 @@
   "type": "module",
   "private": true,
   "scripts": {
+    "up": "bun scripts/up.ts",
     "dev": "env -u npm_execpath alchemy dev",
     "deploy": "drizzle-kit check && drizzle-kit migrate && alchemy deploy",
     "deploy:prod": "drizzle-kit check && bun --env-file=.env.prod run drizzle-kit migrate && alchemy deploy --stage prod --env-file .env.prod",

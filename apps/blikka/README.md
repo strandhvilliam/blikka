@@ -5,7 +5,8 @@ Effect + [Alchemy](https://alchemy.run) stack on Cloudflare. `alchemy.run.ts` de
 Log in once with `bunx alchemy profile edit --add Cloudflare`; credentials go to the `default` profile in `~/.alchemy`. CI uses `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` instead.
 
 ```bash
-bun run dev      # local workerd, stage dev_$USER; state is still stored in your Cloudflare account
+bun run up       # check and set up everything local (deps, .env, login, Postgres, migrations), then dev
+bun run dev      # local workerd, stage dev_$USER, logs in the terminal (no Axiom); state is still stored in your Cloudflare account
 bun run deploy   # migrate the .env database, then deploy to Cloudflare, stage live_$USER
 bun run deploy:prod  # migrate the .env.prod database, then deploy the prod stage, the only one served on the custom domain
 bun run destroy  # tear down
@@ -42,6 +43,8 @@ GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...                         # redirect URI: $BETTER_AUTH_URL/auth/callback/google
 ```
 
+The Google pair is required on deployed stages. Under `alchemy dev` it is optional: leave it out and sign in with email OTP, whose code is logged in the terminal.
+
 ## Errors (Sentry)
 
 Errors from the `Api` worker, the website server and the browser go to the Sentry project in `src/sentry-project.ts`, tagged with the stage as `environment`. Reporting is off under `alchemy dev` and whenever `SENTRY_DSN` is unset. Source maps are uploaded on deploy when `SENTRY_AUTH_TOKEN` is set.
@@ -55,4 +58,15 @@ SENTRY_AUTH_TOKEN=sntrys_...                      # org token with project:relea
 - Website server: `src/web/server.ts` wraps TanStack Start's handler with `Sentry.withSentry`, but Start rarely lets an error escape it. Failed server functions are reported by the middleware in `src/web/start.ts`, and failures of the root route while rendering on the server by its `onError`. Any other route's failure reaches the browser with the page and is reported there. `@sentry/tanstackstart-react` isn't used: it pulls in `@sentry/node`, which doesn't run on Workers, so its middleware is copied.
 - Browser: `src/web/client.tsx` initialises `@sentry/react` from the meta tags the root route renders, and reports React render and route errors.
 
-Create the tables with `bunx drizzle-kit migrate` (run manually). Schema changes follow [ADR-0003](../../adr/0003-database-migrations.md). Until real email sending is wired up, OTP codes are logged by the worker.
+## Local database
+
+`alchemy dev` connects to the Postgres in `docker-compose.yml` (the `dev` origin in `src/api/db.ts`), never to `DATABASE_URL`, which stays the database for `bun run deploy`. `DATABASE_URL` must still be set, since the deployed origin is read either way. `bun run up` starts it and applies new migrations; by hand that is:
+
+```bash
+docker compose up -d
+DATABASE_URL=postgres://postgres:postgres@localhost:5432/blikka bunx drizzle-kit migrate
+```
+
+`docker compose down -v` wipes it.
+
+Create the tables on other databases with `bunx drizzle-kit migrate` (run manually). Schema changes follow [ADR-0003](../../adr/0003-database-migrations.md). Until real email sending is wired up, OTP codes are logged by the worker.

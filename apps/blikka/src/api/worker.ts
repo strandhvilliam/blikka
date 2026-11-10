@@ -1,4 +1,3 @@
-import * as Axiom from "@alchemy.run/axiom";
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import { Stage } from "alchemy/Stage";
 import * as Effect from "effect/Effect";
@@ -12,7 +11,7 @@ import { Hostnames } from "../domain.ts";
 import { Auth, AuthConfig, AuthLive, requireUser } from "./auth.ts";
 import { Api as Contract } from "./contract.ts";
 import { Database, DbLive } from "./db.ts";
-import { Ingest, Logs, SentryDsn, SentrySourceMaps, Traces } from "./observability.ts";
+import { SentryDsn, SentrySourceMaps, Telemetry } from "./observability.ts";
 import { withSentry } from "./sentry.ts";
 
 const UsersHandlers = HttpApiBuilder.group(Contract, "users", (handlers) =>
@@ -67,6 +66,6 @@ export default class Api extends Cloudflare.Worker<Api>()(
     };
   }).pipe(
     Effect.provide(Cloudflare.Hyperdrive.ConnectBinding),
-    Effect.provide(Axiom.Telemetry({ token: Ingest, traces: Traces, logs: Logs })),
+    Effect.provide(Telemetry),
   ),
 ) {}

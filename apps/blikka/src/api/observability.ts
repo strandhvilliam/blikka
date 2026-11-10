@@ -6,6 +6,7 @@ import * as RemovalPolicy from "alchemy/RemovalPolicy";
 import { Stage } from "alchemy/Stage";
 import * as Config from "effect/Config";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import { sentryProject } from "../sentry-project.ts";
@@ -34,6 +35,15 @@ export const Ingest = Effect.gen(function* () {
     },
   });
 });
+
+// Traces and logs go to Axiom from deployed stages only; under `alchemy dev` logs stay in the terminal
+// and no Axiom resources are created.
+export const Telemetry = Layer.unwrap(
+  Effect.gen(function* () {
+    if (yield* ALCHEMY_DEV) return Layer.empty;
+    return Axiom.Telemetry({ token: Ingest, traces: Traces, logs: Logs });
+  }),
+);
 
 // Sentry reports only from deployed stages: never under `alchemy dev`, and not at all without SENTRY_DSN.
 export const SentryDsn = Config.all({

@@ -1,15 +1,22 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, emailOTP } from "better-auth/plugins";
+import { ALCHEMY_DEV } from "alchemy/Phase";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
+import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as HttpApiError from "effect/http-api/HttpApiError";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { Db } from "./db.ts";
 import * as model from "./model.ts";
+
+const GoogleConfig = Config.all({
+  clientId: Config.String("GOOGLE_CLIENT_ID"),
+  clientSecret: Config.Redacted("GOOGLE_CLIENT_SECRET"),
+});
 
 export const AuthConfig = Config.all({
   secret: Config.Redacted("BETTER_AUTH_SECRET"),
@@ -17,8 +24,10 @@ export const AuthConfig = Config.all({
   baseURL: Config.String("BETTER_AUTH_URL"),
   // The website's origin: the only one allowed to call the Api with cookies, and to be redirected to.
   websiteURL: Config.String("WEBSITE_URL"),
-  googleClientId: Config.String("GOOGLE_CLIENT_ID"),
-  googleClientSecret: Config.Redacted("GOOGLE_CLIENT_SECRET"),
+  // Required on deployed stages. Under `alchemy dev` Google sign-in is off unless both are set.
+  google: Config.flatMap(ALCHEMY_DEV, (dev) =>
+    dev ? Config.option(GoogleConfig) : Config.map(GoogleConfig, Option.some),
+  ),
 });
 
 // Set on a custom domain: the session cookie goes to <domain> and all its subdomains, so the
@@ -43,13 +52,12 @@ const makeAuth = (
       database: { generateId: "uuid" },
     },
     // Account linking is on by default: Google and email OTP with the same verified email are one user.
-    socialProviders: {
-      google: {
-        clientId: config.googleClientId,
-        clientSecret: Redacted.value(config.googleClientSecret),
-        prompt: "select_account",
-      },
-    },
+    socialProviders: Option.match(config.google, {
+      onNone: () => ({}),
+      onSome: ({ clientId, clientSecret }) => ({
+        google: { clientId, clientSecret: Redacted.value(clientSecret), prompt: "select_account" as const },
+      }),
+    }),
     user: {
       additionalFields: {
         platformRole: { type: "string", required: false, defaultValue: "user", input: false },
