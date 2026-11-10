@@ -8,11 +8,11 @@ import * as HttpEffect from "effect/http/HttpEffect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServer from "effect/http/HttpServer";
 import { Hostnames } from "../../domain.ts";
-import { Auth, AuthConfig, AuthLive, requireUser } from "./auth.ts";
+import { Auth, AuthConfig, AuthLive, requireUser } from "./auth/Auth.ts";
 import { Api as Contract } from "./contract.ts";
-import { Database, DbLive } from "./db.ts";
+import { Database, DbLive } from "./db/Db.ts";
 import { SentryDsn, SentrySourceMaps, Telemetry } from "./observability.ts";
-import { withSentry } from "./sentry.ts";
+import { withSentry } from "./sentry/SentryScope.ts";
 
 const UsersHandlers = HttpApiBuilder.group(Contract, "users", (handlers) =>
   handlers.handle("me", () => Effect.map(requireUser(), (user) => ({ user }))),

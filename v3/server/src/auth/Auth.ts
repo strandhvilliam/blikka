@@ -10,8 +10,8 @@ import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as HttpApiError from "effect/http-api/HttpApiError";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
-import { Db } from "./db.ts";
-import * as model from "./model.ts";
+import { Db } from "../db/Db.ts";
+import * as model from "../model.ts";
 
 const GoogleConfig = Config.all({
   clientId: Config.String("GOOGLE_CLIENT_ID"),
@@ -88,13 +88,13 @@ export const AuthLive = (config: Config.Success<typeof AuthConfig>, cookieDomain
   );
 
 // A getSession rejection is an infrastructure failure (DB down), so it is a defect → 500.
-export const getSession = Effect.fn("getSession")(function* () {
+export const getSession = Effect.fn("Auth.getSession")(function* () {
   const auth = yield* Auth;
   const request = yield* HttpServerRequest.HttpServerRequest;
   return yield* Effect.promise(() => auth.api.getSession({ headers: new Headers(request.headers) }));
 });
 
-export const requireUser = Effect.fn("requireUser")(function* () {
+export const requireUser = Effect.fn("Auth.requireUser")(function* () {
   const session = yield* getSession();
   // The contract's error, so clients decode it; it renders itself as an empty 401.
   if (!session) return yield* new HttpApiError.Unauthorized();

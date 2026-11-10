@@ -10,6 +10,17 @@
 
 Decisions live in `adr/` as numbered files (`0001-roles-and-permissions.md`). Read the ones that touch your change before starting. Write a new one, with the next number, when a change makes a decision worth explaining later.
 
+## Naming in v3/
+
+Follows the layout in Effect's LLMS.md.
+
+- An Effect service lives in a PascalCase file named after its class, inside a domain folder: `server/src/db/Db.ts`. Its id is that path, `"blikka/db/Db"`, so an id in a trace leads to its file
+- Every other module is camelCase: `observability.ts`, `web/src/authClient.ts`
+- React components are PascalCase (`PhotoGrid.tsx`). Logic worth testing moves beside the component as `PhotoGrid.logic.ts`
+- Tests sit beside their file as `*.test.ts`
+- Reusable effects are `Effect.fn("Service.operation")`, which names their span
+- Route files are named by their URL, as TanStack Router reads them (`routes/login.tsx`, `routes/__root.tsx`), and generated files end in `.gen.ts`
+
 ## Vendored Repositories
 
 This project vendors external repositories under @.repos/

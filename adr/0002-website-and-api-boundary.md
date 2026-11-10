@@ -95,7 +95,7 @@ Its env is the public runtime config it has today (`API_URL`, `SENTRY_DSN`,
 ## Consequences
 
 - Any client can do whatever the website does, through the same contract and the same auth
-  (cookie in browsers, bearer token elsewhere, see `server/src/auth.ts`).
+  (cookie in browsers, bearer token elsewhere, see `server/src/auth/Auth.ts`).
 - The website server does an Api round trip per uncached loader on the first load. That is the
   price of server rendering with a separate Api, and a service binding is the fix if it shows up
   in traces.
@@ -113,9 +113,8 @@ Its env is the public runtime config it has today (`API_URL`, `SENTRY_DSN`,
 
 - **Server functions as the data layer.** Fewer files per feature, but it builds a second API
   only the website can call. Rejected for the reasons in Context.
-- **A plain Vite SPA.** Simplest, and what opencode and t3code use, but they are local developer
-  tools with returning, signed-in users. Our cold load from a QR code needs content in the first
-  response.
+- **A plain Vite SPA.** Simplest, and fine for apps whose users return already signed in.
+  Our cold load from a QR code needs content in the first response.
 - **React Server Components** (`@vitejs/plugin-rsc`, RedwoodSDK, Waku). They also need React on
   a server per request, so they add the same extra tier as Start. They help most on content-heavy
   pages, and most of ours are interactive. No comparable app we found uses them with a separate API.
@@ -123,7 +122,7 @@ Its env is the public runtime config it has today (`API_URL`, `SENTRY_DSN`,
   step, but it put Effect, Schema and the HTTP client into the browser: about 55 kB gzipped,
   against about 2 kB for `openapi-fetch`. The participant pages load on phones over mobile data.
 - **tRPC (the old app).** Typed for TypeScript clients only, and has no OpenAPI for others.
-- **Effect atoms (`@effect/atom-react`) as the client cache.** It works (t3code uses it), but
+- **Effect atoms (`@effect/atom-react`) as the client cache.** It works, but
   TanStack Query integrates with the router's server rendering out of the box.
 
 ## Open questions

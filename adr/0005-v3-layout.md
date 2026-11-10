@@ -74,5 +74,5 @@ dependencies (a container), or publishing.
   boundary and two deploys. Ours is one TypeScript stack deployed together; two lockfiles would
   add friction for nothing.
 - **A package per module (`db`, `auth`, ...), as the old app's `packages/` did.** See above.
-- **A separate contract package (opencode's `protocol`).** Only the server and its codegen script
+- **A separate contract package.** Only the server and its codegen script
   read the Effect contract, so it stays in `server/src/contract.ts`.

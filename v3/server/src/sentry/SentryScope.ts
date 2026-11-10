@@ -16,7 +16,7 @@ import * as HttpServerResponse from "effect/http/HttpServerResponse";
 export class SentryScope extends Context.Service<
   SentryScope,
   { readonly isolationScope: Sentry.Scope; readonly scope: Sentry.Scope }
->()("blikka/api/SentryScope") {}
+>()("blikka/sentry/SentryScope") {}
 
 // Tagged with the trace id, so the full request trace can be found in Axiom.
 export const captureException = Effect.fn("Sentry.captureException")(function* (error: unknown) {

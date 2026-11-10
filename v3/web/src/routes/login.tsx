@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { authClient } from "../auth-client.ts";
+import { authClient } from "../authClient.ts";
 import { sessionQuery } from "../session.ts";
 
 export const Route = createFileRoute("/login")({ component: Login });

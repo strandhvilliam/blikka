@@ -39,9 +39,9 @@ The Api's endpoints are defined in `server/src/contract.ts` (Effect `HttpApi`, S
 
 ## Auth
 
-Better Auth runs in the `Api` worker (`server/src/auth.ts`) under `/auth/*`. The browser calls it directly with credentials; the Api allows CORS from `WEBSITE_URL` only.
+Better Auth runs in the `Api` worker (`server/src/auth/Auth.ts`) under `/auth/*`. The browser calls it directly with credentials; the Api allows CORS from `WEBSITE_URL` only.
 
-Browsers authenticate with the session cookie. Every other client (SDKs, apps, scripts) signs in through the same endpoints, takes the token from the `set-auth-token` response header, and sends it as `Authorization: Bearer <token>`. It is the same session either way, so `requireUser` works for both and signing out revokes both. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`server/src/db.ts`).
+Browsers authenticate with the session cookie. Every other client (SDKs, apps, scripts) signs in through the same endpoints, takes the token from the `set-auth-token` response header, and sends it as `Authorization: Bearer <token>`. It is the same session either way, so `requireUser` works for both and signing out revokes both. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`server/src/db/Db.ts`).
 
 Add these to `.env` for `alchemy dev`. `bun run deploy:prod` reads `.env.prod` instead (not on top of `.env`, so it needs every variable), with the URLs set to `https://api.<domain>` and `https://<domain>`:
 
@@ -65,13 +65,13 @@ SENTRY_DSN=https://...@....ingest.sentry.io/...  # project DSN
 SENTRY_AUTH_TOKEN=sntrys_...                      # org token with project:releases, for source maps
 ```
 
-- `Api`: `withSentry` (`server/src/sentry.ts`) wraps the HTTP handler. Failures that are respondable (e.g. `Unauthorized` → 401) are expected and not reported; any other failure or defect is logged, reported with the request and its Axiom `trace_id`, and answered with a 500. Report a handled error yourself with `yield* captureException(error)`; don't call `Sentry.*` directly inside Effect code, since the scope it reads may belong to another request.
+- `Api`: `withSentry` (`server/src/sentry/SentryScope.ts`) wraps the HTTP handler. Failures that are respondable (e.g. `Unauthorized` → 401) are expected and not reported; any other failure or defect is logged, reported with the request and its Axiom `trace_id`, and answered with a 500. Report a handled error yourself with `yield* captureException(error)`; don't call `Sentry.*` directly inside Effect code, since the scope it reads may belong to another request.
 - Website server: `web/src/server.ts` wraps TanStack Start's handler with `Sentry.withSentry`, but Start rarely lets an error escape it. Failed server functions are reported by the middleware in `web/src/start.ts`, and failures of the root route while rendering on the server by its `onError`. Any other route's failure reaches the browser with the page and is reported there. `@sentry/tanstackstart-react` isn't used: it pulls in `@sentry/node`, which doesn't run on Workers, so its middleware is copied.
 - Browser: `web/src/client.tsx` initialises `@sentry/react` from the meta tags the root route renders, and reports React render and route errors.
 
 ## Local database
 
-`alchemy dev` connects to the Postgres in `docker-compose.yml` (the `dev` origin in `server/src/db.ts`), never to `DATABASE_URL`, which stays the database for `bun run deploy`. `DATABASE_URL` must still be set, since the deployed origin is read either way. `bun run up` starts it and applies new migrations; by hand that is:
+`alchemy dev` connects to the Postgres in `docker-compose.yml` (the `dev` origin in `server/src/db/Db.ts`), never to `DATABASE_URL`, which stays the database for `bun run deploy`. `DATABASE_URL` must still be set, since the deployed origin is read either way. `bun run up` starts it and applies new migrations; by hand that is:
 
 ```bash
 docker compose up -d
