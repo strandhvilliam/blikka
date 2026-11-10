@@ -10,8 +10,12 @@ import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import * as HttpApiError from "effect/http-api/HttpApiError";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
+import type * as HttpServerResponse from "effect/http/HttpServerResponse";
+import type * as Types from "effect/Types";
 import { Db } from "../db/Db.ts";
 import * as model from "../db/model.ts";
+import { Authenticated } from "./Authenticated.ts";
+import { CurrentUser } from "./CurrentUser.ts";
 
 const GoogleConfig = Config.all({
   clientId: Config.String("GOOGLE_CLIENT_ID"),
@@ -94,9 +98,17 @@ export const getSession = Effect.fn("Auth.getSession")(function* () {
   return yield* Effect.promise(() => auth.api.getSession({ headers: new Headers(request.headers) }));
 });
 
-export const requireUser = Effect.fn("Auth.requireUser")(function* () {
+const authenticate = Effect.fn("Auth.authenticate")(function* (
+  httpEffect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled, CurrentUser>,
+) {
   const session = yield* getSession();
   // The contract's error, so clients decode it; it renders itself as an empty 401.
   if (!session) return yield* new HttpApiError.Unauthorized();
-  return session.user;
+  return yield* Effect.provideService(httpEffect, CurrentUser, session.user);
 });
+
+// The cast swaps Auth for its per-request marker (see Authenticated.ts). It holds because the
+// middleware runs inside each request, after api.ts has provided Auth.
+export const AuthenticatedLive = Layer.succeed(Authenticated)(
+  authenticate as Authenticated["Service"],
+);

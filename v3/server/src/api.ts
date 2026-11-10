@@ -10,7 +10,8 @@ import * as HttpEffect from "effect/http/HttpEffect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServer from "effect/http/HttpServer";
 import { Hostnames } from "../../domain.ts";
-import { Auth, AuthConfig, AuthLive, requireUser } from "./auth/Auth.ts";
+import { Auth, AuthConfig, AuthenticatedLive, AuthLive } from "./auth/Auth.ts";
+import { CurrentUser } from "./auth/CurrentUser.ts";
 import { Api as Contract } from "./contract.ts";
 import { Database, Db, DbLive } from "./db/Db.ts";
 import * as model from "./db/model.ts";
@@ -18,7 +19,7 @@ import { SentryDsn, SentrySourceMaps, Telemetry } from "./observability.ts";
 import { withSentry } from "./sentry/SentryScope.ts";
 
 const UsersHandlers = HttpApiBuilder.group(Contract, "users", (handlers) =>
-  handlers.handle("me", () => Effect.map(requireUser(), (user) => ({ user }))),
+  handlers.handle("me", () => CurrentUser.useSync((user) => ({ user }))),
 );
 
 const organizationColumns = { id: model.organizations.id, name: model.organizations.name };
@@ -28,7 +29,7 @@ const OrganizationsHandlers = HttpApiBuilder.group(Contract, "organizations", (h
   handlers
     .handle("create", ({ payload }) =>
       Effect.gen(function* () {
-        const user = yield* requireUser();
+        const user = yield* CurrentUser;
         const db = yield* Db;
         return yield* Effect.promise(() =>
           db.transaction(async (tx) => {
@@ -47,7 +48,7 @@ const OrganizationsHandlers = HttpApiBuilder.group(Contract, "organizations", (h
     )
     .handle("get", ({ params }) =>
       Effect.gen(function* () {
-        const user = yield* requireUser();
+        const user = yield* CurrentUser;
         const db = yield* Db;
         const [organization] = yield* Effect.promise(() =>
           db
@@ -82,7 +83,9 @@ const Routes = Layer.mergeAll(
     }),
   ),
   HttpApiBuilder.layer(Contract, { openapiPath: "/openapi.json" }).pipe(
-    Layer.provide([UsersHandlers, OrganizationsHandlers]),
+    Layer.provide(
+      Layer.mergeAll(UsersHandlers, OrganizationsHandlers).pipe(Layer.provide(AuthenticatedLive)),
+    ),
     Layer.provide(HttpServer.layerServices),
   ),
 );

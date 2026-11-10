@@ -41,7 +41,7 @@ The Api's endpoints are defined in `server/src/contract.ts` (Effect `HttpApi`, S
 
 Better Auth runs in the `Api` worker (`server/src/auth/Auth.ts`) under `/auth/*`. The browser calls it directly with credentials; the Api allows CORS from `WEBSITE_URL` only.
 
-Browsers authenticate with the session cookie. Every other client (SDKs, apps, scripts) signs in through the same endpoints, takes the token from the `set-auth-token` response header, and sends it as `Authorization: Bearer <token>`. It is the same session either way, so `requireUser` works for both and signing out revokes both. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`server/src/db/Db.ts`).
+Browsers authenticate with the session cookie. Every other client (SDKs, apps, scripts) signs in through the same endpoints, takes the token from the `set-auth-token` response header, and sends it as `Authorization: Bearer <token>`. It is the same session either way, so the `Authenticated` middleware (`server/src/auth/Authenticated.ts`) works for both and signing out revokes both. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`server/src/db/Db.ts`).
 
 Add these to `.env` for `alchemy dev`. `bun run deploy:prod` reads `.env.prod` instead (not on top of `.env`, so it needs every variable), with the URLs set to `https://api.<domain>` and `https://<domain>`:
 
