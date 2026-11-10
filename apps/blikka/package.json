@@ -8,6 +8,7 @@
     "deploy": "drizzle-kit check && drizzle-kit migrate && alchemy deploy",
     "deploy:prod": "drizzle-kit check && bun --env-file=.env.prod run drizzle-kit migrate && alchemy deploy --stage prod --env-file .env.prod",
     "destroy": "alchemy destroy",
+    "db:generate": "drizzle-kit generate --name",
     "api:generate": "bun scripts/openapi.ts > openapi.json && openapi-typescript openapi.json -o src/web/api.gen.ts"
   },
   "devDependencies": {
@@ -43,6 +44,7 @@
     "react-dom": "19.3.1"
   },
   "overrides": {
-    "@effect/platform-node-shared": "4.0.6"
+    "@effect/platform-node-shared": "4.0.6",
+    "rolldown": "1.2.15"
   }
 }

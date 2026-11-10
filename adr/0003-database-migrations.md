@@ -20,7 +20,7 @@ the first one.
 ### One way to change the schema
 
 1. Edit `src/api/model.ts`.
-2. `bunx drizzle-kit generate --name <what_changed>` from `apps/blikka`. Name every migration
+2. `bun run db:generate <what_changed>` from `apps/blikka`. Name every migration
    (`add_jury_invitations`, not the random default).
 3. Read the generated SQL (see below).
 4. Commit `model.ts` and everything under `drizzle/` (SQL, `meta/_journal.json`, snapshot) in
@@ -35,7 +35,7 @@ No `drizzle-kit push`, no SQL typed into a console, no files applied by hand. Th
 is only correct if every change goes through `migrate`.
 
 Changes Drizzle cannot express from the model (backfills, data fixes, extensions, triggers) use
-`bunx drizzle-kit generate --custom --name <what_changed>`, which creates an empty SQL file in
+`bun run db:generate <what_changed> --custom`, which creates an empty SQL file in
 the same sequence. It is written by hand and committed like any other migration.
 
 ### Read the SQL before committing

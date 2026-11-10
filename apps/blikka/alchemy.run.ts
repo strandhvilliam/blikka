@@ -1,6 +1,7 @@
 import * as Alchemy from "alchemy";
 import * as Axiom from "@alchemy.run/axiom";
 import * as Cloudflare from "@alchemy.run/cloudflare";
+import { ALCHEMY_DEV } from "alchemy/Phase";
 import { Stage } from "alchemy/Stage";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -32,7 +33,12 @@ export default Alchemy.Stack(
   "Blikka",
   {
     providers: Layer.mergeAll(Cloudflare.providers(), Axiom.providers()),
-    state: Cloudflare.state(),
+    // `alchemy dev` keeps its state in .alchemy/ so it runs without a Cloudflare account; deploys use the account's store.
+    state: Layer.unwrap(
+      Effect.gen(function* () {
+        return (yield* ALCHEMY_DEV) ? Alchemy.localState() : Cloudflare.state();
+      }).pipe(Effect.orDie),
+    ),
   },
   Effect.gen(function* () {
     const api = yield* Api;

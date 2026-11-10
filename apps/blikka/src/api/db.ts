@@ -24,7 +24,7 @@ export const Database = Effect.gen(function* () {
     dev: {
       scheme: "postgres",
       host: "localhost",
-      port: 5432,
+      port: 5433, // docker-compose.yml
       database: "blikka",
       user: "postgres",
       password: Redacted.make("postgres"),

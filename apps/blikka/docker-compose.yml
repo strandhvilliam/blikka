@@ -1,9 +1,9 @@
 # Local Postgres for `alchemy dev` (the `dev` origin in src/api/db.ts). Start with `docker compose up -d`.
 services:
   postgres:
-    image: postgres:17
+    image: postgres:18 # 18+ for uuidv7(), the default for ids in src/api/model.ts
     ports:
-      - "5432:5432"
+      - "5433:5432" # 5432 is often taken by another local Postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -13,7 +13,7 @@ services:
       interval: 1s
       retries: 30
     volumes:
-      - postgres:/var/lib/postgresql/data
+      - postgres:/var/lib/postgresql # 18+ keeps data in a versioned subfolder here, not in data/
 
 volumes:
   postgres:

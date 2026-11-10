@@ -2,17 +2,19 @@
 
 Effect + [Alchemy](https://alchemy.run) stack on Cloudflare. `alchemy.run.ts` defines the stack: the `Api` Worker (`src/api`) and a TanStack Start site (`src/web`, built by `Cloudflare.Website.Vite` via `vite.config.ts`). The two are separate: the browser calls the Api on its own origin, and nothing in the Api depends on the website, so the frontend can be swapped out.
 
-Log in once with `bunx alchemy profile edit --add Cloudflare`; credentials go to the `default` profile in `~/.alchemy`. CI uses `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` instead.
+Deploying needs a Cloudflare login; `alchemy dev` doesn't (its state stays in `.alchemy/`). Log in once with `bunx alchemy profile edit --add Cloudflare`; credentials go to the `default` profile in `~/.alchemy`. CI uses `CLOUDFLARE_ACCOUNT_ID` + `CLOUDFLARE_API_TOKEN` instead.
 
 ```bash
-bun run up       # check and set up everything local (deps, .env, login, Postgres, migrations), then dev
-bun run dev      # local workerd, stage dev_$USER, logs in the terminal (no Axiom); state is still stored in your Cloudflare account
+bun run up       # check and set up everything local (deps, .env, Postgres, migrations), then dev
+bun run dev      # local workerd, stage dev_$USER, logs in the terminal (no Axiom), state in .alchemy/; no Cloudflare account needed
 bun run deploy   # migrate the .env database, then deploy to Cloudflare, stage live_$USER
 bun run deploy:prod  # migrate the .env.prod database, then deploy the prod stage, the only one served on the custom domain
 bun run destroy  # tear down
 ```
 
 `dev` unsets `npm_execpath` so the alchemy CLI runs under Node: under Bun, beta.84 starts the Vite child with the unpublished `register-dev-mode.js` (fixed upstream in alchemy-run/alchemy#2525). Drop the `env -u npm_execpath` once a release after `2.0.0-beta.84` includes that fix.
+
+`overrides.rolldown` keeps one copy of rolldown installed. Vite wants `~1.2.14` and the alchemy packages pin `1.2.13`, so without it each alchemy package gets its own copy. Alchemy's plugin that turns CJS `require("events")` (from `pg`) into an import then fails its `instanceof` check, and the Api worker crashes on startup. Drop the override once alchemy and vite agree on a version.
 
 This app is excluded from the root workspace (`!apps/blikka` in the root `package.json`) so it can run Effect 4.0 stable and the latest `alchemy` while the rest of the repo stays on the catalog's `4.0.0-beta.101` (the root `overrides.effect` would otherwise force it). It has its own `bun.lock`; run `bun install` inside `apps/blikka`.
 
@@ -64,7 +66,7 @@ SENTRY_AUTH_TOKEN=sntrys_...                      # org token with project:relea
 
 ```bash
 docker compose up -d
-DATABASE_URL=postgres://postgres:postgres@localhost:5432/blikka bunx drizzle-kit migrate
+DATABASE_URL=postgres://postgres:postgres@localhost:5433/blikka bunx drizzle-kit migrate
 ```
 
 `docker compose down -v` wipes it.

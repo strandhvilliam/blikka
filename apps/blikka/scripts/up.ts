@@ -1,12 +1,11 @@
 import { spawn, spawnSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { homedir } from "node:os";
 import { join } from "node:path";
 
 // `bun run up`: checks and fixes everything `alchemy dev` needs, then starts it. Safe to run every time.
 
-const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:5432/blikka"; // docker-compose.yml
+const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:5433/blikka"; // docker-compose.yml
 process.chdir(join(import.meta.dirname, ".."));
 
 const ok = (step: string, detail: string) => console.log(`✓ ${step.padEnd(12)} ${detail}`);
@@ -36,18 +35,11 @@ if (added.length > 0) {
 }
 ok("env", added.length > 0 ? `added ${added.join(", ")}` : "complete");
 
-const alchemyHome = process.env.ALCHEMY_HOME ?? join(homedir(), ".alchemy");
-const profile = process.env.ALCHEMY_PROFILE ?? "default";
-if (!existsSync(join(alchemyHome, "profiles", profile, "cloudflare.json"))) {
-  fail("cloudflare", `not logged in (profile "${profile}"): bunx alchemy profile edit --add Cloudflare`);
-}
-ok("cloudflare", `profile "${profile}"`);
-
 if (!run("docker", ["info"])) fail("docker", "not running, start Docker");
 if (!run("docker", ["compose", "up", "-d", "--wait"])) {
   fail("postgres", "did not start: docker compose logs postgres");
 }
-ok("postgres", "healthy on :5432");
+ok("postgres", "healthy on :5433");
 
 if (existsSync("drizzle")) {
   if (!run("bunx", ["drizzle-kit", "migrate"], { DATABASE_URL: LOCAL_DATABASE_URL })) {
