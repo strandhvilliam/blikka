@@ -9,6 +9,7 @@ import {
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import { env } from "../env.ts";
+import appCss from "../styles.css?url";
 import { captureServerError } from "../sentry.ts";
 import { sessionQuery } from "../session.ts";
 
@@ -38,6 +39,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "sentry-dsn", content: loaderData?.sentryDsn },
       { name: "sentry-environment", content: loaderData?.sentryEnvironment },
     ],
+    links: [{ rel: "stylesheet", href: appCss }],
   }),
   // A failed root (the Api is down) renders the error page inside the document, not in place of it.
   shellComponent: RootDocument,

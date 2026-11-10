@@ -1,4 +1,5 @@
 import { sentryVitePlugin } from "@sentry/vite-plugin";
+import tailwindcss from "@tailwindcss/vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
@@ -9,8 +10,10 @@ export default defineConfig(({ mode }) => {
   const { SENTRY_AUTH_TOKEN } = loadEnv(mode, `${import.meta.dirname}/..`, "SENTRY_");
   return {
     // Hidden: generated for the upload, not referenced from the shipped files.
+    resolve: { tsconfigPaths: true },
     build: { sourcemap: SENTRY_AUTH_TOKEN ? "hidden" : false },
     plugins: [
+      tailwindcss(),
       tanstackStart({ srcDirectory: "src" }),
       viteReact(),
       sentryVitePlugin({
