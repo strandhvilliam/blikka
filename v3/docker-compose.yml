@@ -1,7 +1,9 @@
-# Local Postgres for `alchemy dev` (the `dev` origin in src/api/db.ts). Start with `docker compose up -d`.
+# Local Postgres for `alchemy dev` (the `dev` origin in server/src/db.ts). Start with `docker compose up -d`.
+# Pinned: the project name otherwise comes from the folder, and this keeps the existing blikka_postgres volume.
+name: blikka
 services:
   postgres:
-    image: postgres:18 # 18+ for uuidv7(), the default for ids in src/api/model.ts
+    image: postgres:18 # 18+ for uuidv7(), the default for ids in server/src/model.ts
     ports:
       - "5433:5432" # 5432 is often taken by another local Postgres
     environment:

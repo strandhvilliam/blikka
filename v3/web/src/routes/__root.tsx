@@ -13,7 +13,7 @@ import { captureServerError } from "../sentry.ts";
 import { sessionQuery } from "../session.ts";
 
 // The browser's config comes from the server at runtime (read from these meta tags by
-// src/web/meta.ts), so one build serves every stage.
+// web/src/meta.ts), so one build serves every stage.
 const getPublicConfig = createServerFn().handler(() => ({
   apiUrl: env.API_URL,
   sentryDsn: env.SENTRY_DSN,

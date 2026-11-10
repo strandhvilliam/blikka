@@ -1,7 +1,7 @@
 # ADR-0003: Every schema change is a generated, committed, append-only Drizzle migration
 
 - **Status**: Proposed
-- **Area**: API (`apps/blikka`)
+- **Area**: API (`v3`)
 - **Date**: 2026-11-09
 
 ## Context
@@ -12,15 +12,15 @@ database, so the files had to be written as `if not exists` / `drop constraint i
 safe to re-run. The Drizzle model and the real schema drifted apart, and the only way to know the
 production schema was to look at production.
 
-v3 has no migrations yet (`apps/blikka/drizzle/` does not exist), so we can set the rules before
+v3 has no migrations yet (`v3/server/drizzle/` does not exist), so we can set the rules before
 the first one.
 
 ## Decision
 
 ### One way to change the schema
 
-1. Edit `src/api/model.ts`.
-2. `bun run db:generate <what_changed>` from `apps/blikka`. Name every migration
+1. Edit `server/src/model.ts`.
+2. `bun run db:generate <what_changed>` from `v3`. Name every migration
    (`add_jury_invitations`, not the random default).
 3. Read the generated SQL (see below).
 4. Commit `model.ts` and everything under `drizzle/` (SQL, `meta/_journal.json`, snapshot) in
@@ -63,7 +63,7 @@ The journal and the snapshot chain are linear, so two branches that each generat
 conflict. The branch that merges second resolves it by discarding its own migration rather than
 merging the files:
 
-1. `git checkout main -- apps/blikka/drizzle` (after rebasing onto `main`).
+1. `git checkout main -- v3/server/drizzle` (after rebasing onto `main`).
 2. Regenerate with `generate --name ...`.
 3. `bunx drizzle-kit check` to confirm the history is consistent.
 

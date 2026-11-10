@@ -1,7 +1,7 @@
 # ADR-0001: Authorization checks permissions, and a role is a set of permissions
 
 - **Status**: Proposed
-- **Area**: API (`apps/blikka`)
+- **Area**: API (`v3`)
 - **Date**: 2026-11-09
 
 ## Context
@@ -79,7 +79,7 @@ in `ROLE_PERMISSIONS`.
 
 ### The check
 
-- `permissions.ts` in `apps/blikka/src/api/` holds the permission list, `ROLE_PERMISSIONS`
+- `permissions.ts` in `v3/server/src/` holds the permission list, `ROLE_PERMISSIONS`
   (role to permission set) and `JURY_PERMISSIONS`. That file is the spec. A test asserts each
   role's exact set, so changing one is a visible, reviewed diff.
 - Every procedure declares exactly one permission. A test lists all procedures and fails if any

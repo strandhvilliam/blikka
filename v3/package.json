@@ -1,0 +1,43 @@
+{
+  "name": "blikka-v3",
+  "type": "module",
+  "private": true,
+  "workspaces": {
+    "packages": ["server", "web"],
+    "catalog": {
+      "@alchemy.run/axiom": "2.0.0-beta.84",
+      "@alchemy.run/cloudflare": "2.0.0-beta.84",
+      "@cloudflare/workers-types": "5.20261026.1",
+      "@sentry/cloudflare": "11.8.0",
+      "alchemy": "2.0.0-beta.84",
+      "better-auth": "1.8.0-beta.3",
+      "effect": "4.0.6"
+    }
+  },
+  "scripts": {
+    "up": "bun scripts/up.ts",
+    "dev": "env -u npm_execpath alchemy dev",
+    "deploy": "drizzle-kit check && drizzle-kit migrate && alchemy deploy",
+    "deploy:prod": "drizzle-kit check && bun --env-file=.env.prod run drizzle-kit migrate && alchemy deploy --stage prod --env-file .env.prod",
+    "destroy": "alchemy destroy",
+    "db:generate": "drizzle-kit generate --name",
+    "api:generate": "bun server/scripts/openapi.ts > server/openapi.json && openapi-typescript server/openapi.json -o web/src/api.gen.ts"
+  },
+  "dependencies": {
+    "@alchemy.run/axiom": "catalog:",
+    "@alchemy.run/cloudflare": "catalog:",
+    "alchemy": "catalog:",
+    "effect": "catalog:"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@effect/platform-node": "4.0.6",
+    "drizzle-kit": "0.31.11",
+    "openapi-typescript": "7.13.0",
+    "typescript": "^5.9.3"
+  },
+  "overrides": {
+    "@effect/platform-node-shared": "4.0.6",
+    "rolldown": "1.2.15"
+  }
+}

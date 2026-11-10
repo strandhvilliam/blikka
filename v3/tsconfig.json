@@ -1,13 +1,13 @@
 {
   "compilerOptions": {
     // Environment setup & latest features
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "lib": ["ESNext"],
     "target": "ESNext",
     "module": "Preserve",
     "moduleDetection": "force",
     "jsx": "react-jsx",
     "allowJs": true,
-    "types": ["vite/client", "@cloudflare/workers-types"],
+    "types": ["@cloudflare/workers-types"],
 
     // Bundler mode
     "moduleResolution": "bundler",
@@ -26,5 +26,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false
-  }
+  },
+  // The stack and its scripts; server/ and web/ have their own tsconfig extending this one.
+  "include": ["*.ts", "scripts"]
 }

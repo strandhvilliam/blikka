@@ -6,28 +6,31 @@ import { Stage } from "alchemy/Stage";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import { SentryDsn } from "./src/api/observability.ts";
-import { Hostnames } from "./src/domain.ts";
-import Api from "./src/api/worker.ts";
+import { SentryDsn } from "./server/src/observability.ts";
+import { Hostnames } from "./domain.ts";
+import Api from "./server/src/api.ts";
+import type { WebsiteEnv } from "./web/src/env.ts";
 
 export const Website = Cloudflare.Website.Vite(
   "Website",
   Effect.gen(function* () {
     const api = yield* Api;
     return {
+      rootDir: "web",
       domain: (yield* Hostnames)?.website,
+      // WEBSITE_URL (the Api's CORS and trusted origin) expects this port; without it the website takes 1338.
+      dev: { port: 5173, strictPort: true },
       env: {
-        // Read at runtime by the server and handed to the browser (src/web/routes/__root.tsx), so one
+        // Read at runtime by the server and handed to the browser (web/src/routes/__root.tsx), so one
         // build serves every stage. The browser calls the Api directly; an empty DSN turns Sentry off.
         API_URL: api.url.as<string>(),
         SENTRY_DSN: Option.getOrElse(yield* SentryDsn, () => ""),
         SENTRY_ENVIRONMENT: yield* Stage,
-      },
+        // The website declares its env itself, so it never imports this file (and through it the server).
+      } satisfies Record<keyof WebsiteEnv, unknown>,
     };
   }).pipe(Effect.orDie),
 );
-
-export type WebsiteEnv = Cloudflare.InferEnv<typeof Website>;
 
 export default Alchemy.Stack(
   "Blikka",

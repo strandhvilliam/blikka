@@ -1,0 +1,20 @@
+{
+  "name": "@blikka/server",
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@alchemy.run/axiom": "catalog:",
+    "@alchemy.run/cloudflare": "catalog:",
+    "@sentry/cloudflare": "catalog:",
+    "alchemy": "catalog:",
+    "better-auth": "catalog:",
+    "drizzle-orm": "0.45.4",
+    "effect": "catalog:",
+    "pg": "8.23.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "catalog:",
+    "@sentry/rollup-plugin": "11.8.0",
+    "@types/pg": "8.23.1"
+  }
+}

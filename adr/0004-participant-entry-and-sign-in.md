@@ -1,7 +1,7 @@
 # ADR-0004: Participants enter through one flow, as a guest or with Google, and own their entry by session or guest token
 
 - **Status**: Proposed
-- **Area**: API and website (`apps/blikka`)
+- **Area**: API and website (`v3`)
 - **Date**: 2026-11-10
 
 ## Context

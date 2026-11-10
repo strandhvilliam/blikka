@@ -7,7 +7,7 @@ import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";
 import * as HttpEffect from "effect/http/HttpEffect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServer from "effect/http/HttpServer";
-import { Hostnames } from "../domain.ts";
+import { Hostnames } from "../../domain.ts";
 import { Auth, AuthConfig, AuthLive, requireUser } from "./auth.ts";
 import { Api as Contract } from "./contract.ts";
 import { Database, DbLive } from "./db.ts";

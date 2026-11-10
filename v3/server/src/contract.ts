@@ -5,7 +5,7 @@ import * as HttpApiError from "effect/http-api/HttpApiError";
 import * as HttpApiGroup from "effect/http-api/HttpApiGroup";
 
 // The Api's contract (adr/0002-website-and-api-boundary.md): Schemas only, so any client can import
-// it without pulling in the database, Better Auth or secrets. The Api implements it in worker.ts.
+// it without pulling in the database, Better Auth or secrets. The Api implements it in api.ts.
 
 // Encoding drops every field not listed here, so the Api only ever sends these.
 export const User = Schema.Struct({

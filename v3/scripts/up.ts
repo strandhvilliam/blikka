@@ -41,13 +41,13 @@ if (!run("docker", ["compose", "up", "-d", "--wait"])) {
 }
 ok("postgres", "healthy on :5433");
 
-if (existsSync("drizzle")) {
+if (existsSync("server/drizzle")) {
   if (!run("bunx", ["drizzle-kit", "migrate"], { DATABASE_URL: LOCAL_DATABASE_URL })) {
     fail("migrations", `failed: DATABASE_URL=${LOCAL_DATABASE_URL} bunx drizzle-kit migrate`);
   }
   ok("migrations", "applied to the local database");
 } else {
-  ok("migrations", "none yet (no drizzle/ folder)");
+  ok("migrations", "none yet (no server/drizzle/ folder)");
 }
 
 console.log("→ starting alchemy dev");

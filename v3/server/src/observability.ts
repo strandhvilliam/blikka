@@ -9,7 +9,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
-import { sentryProject } from "../sentry-project.ts";
+import { sentryProject } from "../../sentry-project.ts";
 
 // Datasets are shared by every stage (Axiom plan dataset limit); stages are told apart by
 // service.name. Adopt so each stage can take them over, retain so destroying a stage keeps them.
