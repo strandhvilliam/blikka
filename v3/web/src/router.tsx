@@ -11,6 +11,7 @@ export function getRouter() {
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
+    defaultNotFoundComponent: () => <p>Not found</p>,
   });
   setupRouterSsrQueryIntegration({ router, queryClient });
   return router;
