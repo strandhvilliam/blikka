@@ -101,6 +101,15 @@ export const getSession = Effect.fn("Auth.getSession")(function* () {
 const authenticate = Effect.fn("Auth.authenticate")(function* (
   httpEffect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled, CurrentUser>,
 ) {
+  const auth = yield* Auth;
+  const request = yield* HttpServerRequest.HttpServerRequest;
+  // CSRF: the session cookie is SameSite=Lax, so any subdomain of the cookie domain can still send
+  // it with a POST. Browsers always send Origin on those; non-browser clients send none.
+  const origin = request.headers["origin"];
+  const safeMethod = request.method === "GET" || request.method === "HEAD";
+  if (!safeMethod && origin !== undefined && !auth.options.trustedOrigins.includes(origin)) {
+    return yield* new HttpApiError.Forbidden();
+  }
   const session = yield* getSession();
   // The contract's error, so clients decode it; it renders itself as an empty 401.
   if (!session) return yield* new HttpApiError.Unauthorized();

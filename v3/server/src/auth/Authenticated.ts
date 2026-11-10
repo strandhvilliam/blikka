@@ -12,4 +12,7 @@ export class Authenticated extends HttpApiMiddleware.Service<
   // Auth is built per request (api.ts), like the handlers' Db. A plain `requires: Auth` would ask for
   // it when the layer is built, so it carries the router's per-request marker, as handler requirements do.
   { provides: CurrentUser; requires: HttpRouter.Request<"Requires", Auth> }
->()("blikka/auth/Authenticated", { error: HttpApiError.UnauthorizedNoContent }) {}
+>()("blikka/auth/Authenticated", {
+  // Forbidden: a write from a site other than the website (see AuthenticatedLive).
+  error: [HttpApiError.UnauthorizedNoContent, HttpApiError.ForbiddenNoContent],
+}) {}
