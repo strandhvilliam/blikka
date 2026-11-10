@@ -6,7 +6,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import { Pool } from "pg";
-import * as model from "../model.ts";
+import * as model from "./model.ts";
 
 // Hyperdrive in front of the Postgres in DATABASE_URL. `alchemy dev` connects to the local Postgres
 // in docker-compose.yml instead, so dev never touches the database deployed stages use.

@@ -11,7 +11,7 @@ import * as Redacted from "effect/Redacted";
 import * as HttpApiError from "effect/http-api/HttpApiError";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import { Db } from "../db/Db.ts";
-import * as model from "../model.ts";
+import * as model from "../db/model.ts";
 
 const GoogleConfig = Config.all({
   clientId: Config.String("GOOGLE_CLIENT_ID"),
