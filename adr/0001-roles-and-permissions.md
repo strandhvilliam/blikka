@@ -33,6 +33,7 @@ Every request resolves to exactly one kind of caller before any check runs:
 
 A participant is not a role. A participant owns their own entry, through `participants.user_id`
 or a guest upload token, and the routes that act on that entry check ownership, not permissions.
+ADR-0004 covers how participants enter and how that ownership is checked.
 
 ### Roles
 
