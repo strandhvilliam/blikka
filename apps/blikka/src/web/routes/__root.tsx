@@ -1,7 +1,15 @@
 import type { QueryClient } from "@tanstack/react-query";
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import {
+  HeadContent,
+  Scripts,
+  createRootRouteWithContext,
+  useRouter,
+  type ErrorComponentProps,
+} from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import type { ReactNode } from "react";
 import { env } from "../env.ts";
+import { captureServerError } from "../sentry.ts";
 import { sessionQuery } from "../session.ts";
 
 // The browser's config comes from the server at runtime (read from these meta tags by
@@ -31,19 +39,37 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "sentry-environment", content: loaderData?.sentryEnvironment },
     ],
   }),
-  component: RootComponent,
+  // A failed root (the Api is down) renders the error page inside the document, not in place of it.
+  shellComponent: RootDocument,
+  errorComponent: RootError,
+  // While rendering on the server, failed loaders become an error page without throwing. Only the
+  // root's are reported here: when the root fails the page has no DSN, so the browser can't report
+  // it. Any other route's failure reaches the browser with the page and is reported there.
+  onError: captureServerError,
 });
 
-function RootComponent() {
+function RootDocument({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        <Outlet />
+        {children}
         <Scripts />
       </body>
     </html>
+  );
+}
+
+function RootError(_: ErrorComponentProps) {
+  const router = useRouter();
+  return (
+    <main>
+      <p>Something went wrong.</p>
+      <button type="button" onClick={() => router.invalidate()}>
+        Try again
+      </button>
+    </main>
   );
 }

@@ -52,7 +52,7 @@ SENTRY_AUTH_TOKEN=sntrys_...                      # org token with project:relea
 ```
 
 - `Api`: `withSentry` (`src/api/sentry.ts`) wraps the HTTP handler. Failures that are respondable (e.g. `Unauthorized` → 401) are expected and not reported; any other failure or defect is logged, reported with the request and its Axiom `trace_id`, and answered with a 500. Report a handled error yourself with `yield* captureException(error)`; don't call `Sentry.*` directly inside Effect code, since the scope it reads may belong to another request.
-- Website server: `src/web/server.ts` wraps TanStack Start's handler with `Sentry.withSentry`.
+- Website server: `src/web/server.ts` wraps TanStack Start's handler with `Sentry.withSentry`, but Start rarely lets an error escape it. Failed server functions are reported by the middleware in `src/web/start.ts`, and failures of the root route while rendering on the server by its `onError`. Any other route's failure reaches the browser with the page and is reported there. `@sentry/tanstackstart-react` isn't used: it pulls in `@sentry/node`, which doesn't run on Workers, so its middleware is copied.
 - Browser: `src/web/client.tsx` initialises `@sentry/react` from the meta tags the root route renders, and reports React render and route errors.
 
 Create the tables with `bunx drizzle-kit migrate` (run manually). Schema changes follow [ADR-0003](../../adr/0003-database-migrations.md). Until real email sending is wired up, OTP codes are logged by the worker.
