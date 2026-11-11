@@ -1,10 +1,15 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { authClient } from "../authClient.ts";
 import { sessionQuery } from "../session.ts";
 
-export const Route = createFileRoute("/login")({ component: Login });
+export const Route = createFileRoute("/login")({
+  beforeLoad: ({ context }) => {
+    if (context.session) throw redirect({ to: "/dashboard" });
+  },
+  component: Login,
+});
 
 function Login() {
   const navigate = useNavigate();
@@ -24,13 +29,13 @@ function Login() {
     const { error } = await authClient.signIn.emailOtp({ email, otp });
     if (error) return setError(error.message);
     await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
-    navigate({ to: "/" });
+    navigate({ to: "/dashboard" });
   };
 
   return (
     <main>
       <h1>Sign in</h1>
-      <button type="button" onClick={() => authClient.signIn.social({ provider: "google", callbackURL: window.location.origin })}>
+      <button type="button" onClick={() => authClient.signIn.social({ provider: "google", callbackURL: `${window.location.origin}/dashboard` })}>
         Continue with Google
       </button>
       <form

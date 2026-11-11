@@ -1,8 +1,13 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { api } from "../api.ts";
 
-export const Route = createFileRoute("/onboarding")({ component: Onboarding });
+export const Route = createFileRoute("/onboarding")({
+  beforeLoad: ({ context }) => {
+    if (!context.session) throw redirect({ to: "/login" });
+  },
+  component: Onboarding,
+});
 
 function Onboarding() {
   const navigate = useNavigate();

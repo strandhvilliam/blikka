@@ -5,12 +5,12 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";
-import * as HttpApiError from "effect/http-api/HttpApiError";
 import * as HttpEffect from "effect/http/HttpEffect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServer from "effect/http/HttpServer";
 import { Hostnames } from "../../domain.ts";
 import { Auth, AuthConfig, AuthenticatedLive, AuthLive } from "./auth/Auth.ts";
+import { authorize, authorizeCreateOrganization } from "./auth/authorize.ts";
 import { CurrentUser } from "./auth/CurrentUser.ts";
 import { Api as Contract } from "./contract.ts";
 import { Database, Db, DbLive } from "./db/Db.ts";
@@ -27,9 +27,28 @@ const organizationColumns = { id: model.organizations.id, name: model.organizati
 // Database failures are infrastructure failures, so Effect.promise makes them defects → 500.
 const OrganizationsHandlers = HttpApiBuilder.group(Contract, "organizations", (handlers) =>
   handlers
+    .handle("list", () =>
+      Effect.gen(function* () {
+        const user = yield* CurrentUser;
+        const db = yield* Db;
+        return yield* Effect.promise(() =>
+          db
+            .select({ ...organizationColumns, role: model.organizationMembers.role })
+            .from(model.organizations)
+            .innerJoin(
+              model.organizationMembers,
+              eq(model.organizationMembers.organizationId, model.organizations.id),
+            )
+            .where(and(eq(model.organizationMembers.userId, user.id), isNull(model.organizations.deletedAt)))
+            // uuidv7 ids sort by creation time.
+            .orderBy(model.organizations.id),
+        );
+      }),
+    )
     .handle("create", ({ payload }) =>
       Effect.gen(function* () {
         const user = yield* CurrentUser;
+        yield* authorizeCreateOrganization(user);
         const db = yield* Db;
         return yield* Effect.promise(() =>
           db.transaction(async (tx) => {
@@ -49,27 +68,14 @@ const OrganizationsHandlers = HttpApiBuilder.group(Contract, "organizations", (h
     .handle("get", ({ params }) =>
       Effect.gen(function* () {
         const user = yield* CurrentUser;
+        const permissions = yield* authorize(user, "organization:read", params.id);
         const db = yield* Db;
         const [organization] = yield* Effect.promise(() =>
-          db
-            .select(organizationColumns)
-            .from(model.organizations)
-            .innerJoin(
-              model.organizationMembers,
-              eq(model.organizationMembers.organizationId, model.organizations.id),
-            )
-            .where(
-              and(
-                eq(model.organizations.id, params.id),
-                eq(model.organizationMembers.userId, user.id),
-                isNull(model.organizations.deletedAt),
-              ),
-            ),
+          db.select(organizationColumns).from(model.organizations).where(eq(model.organizations.id, params.id)),
         );
-        if (!organization) return yield* new HttpApiError.NotFound();
-        return organization;
+        return { ...organization!, permissions };
       }),
-    ),
+    )
 );
 
 const Routes = Layer.mergeAll(

@@ -13,3 +13,14 @@ export const organizationQuery = (id: string) =>
       return data;
     },
   });
+
+// The caller's organizations with their role, oldest first. No staleTime, so /dashboard always
+// asks the Api and never sends someone who just created an org back to onboarding.
+export const organizationsQuery = queryOptions({
+  queryKey: ["organizations"],
+  queryFn: async () => {
+    const { data, response } = await api().GET("/organizations");
+    if (!data) throw new Error(`Could not list the organizations: ${response.status}`);
+    return data;
+  },
+});

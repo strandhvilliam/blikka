@@ -52,11 +52,64 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         }
       }
     },
     "/organizations": {
+      "get": {
+        "tags": [
+          "organizations"
+        ],
+        "operationId": "organizations.list",
+        "parameters": [],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "owner",
+                          "admin"
+                        ]
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "name",
+                      "role"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      },
       "post": {
         "tags": [
           "organizations"
@@ -90,6 +143,9 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           }
         },
         "requestBody": {
@@ -145,11 +201,33 @@
                     },
                     "name": {
                       "type": "string"
+                    },
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "organization:read",
+                          "organization:write",
+                          "members:read",
+                          "members:write",
+                          "competitions:read",
+                          "competitions:write",
+                          "participants:read",
+                          "participants:write",
+                          "submissions:read",
+                          "submissions:write",
+                          "jury:read",
+                          "jury:write",
+                          "jury:rate"
+                        ]
+                      }
                     }
                   },
                   "required": [
                     "id",
-                    "name"
+                    "name",
+                    "permissions"
                   ],
                   "additionalProperties": false
                 }
@@ -161,6 +239,9 @@
           },
           "401": {
             "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
           },
           "404": {
             "description": "NotFound"

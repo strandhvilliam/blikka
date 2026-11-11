@@ -104,8 +104,7 @@ export const organizationMembers = pgTable(
     userId: uuid()
       .notNull()
       .references(() => user.id),
-    // 'owner' | 'admin'
-    role: text().notNull().default('admin'),
+    role: text().$type<'owner' | 'admin'>().notNull().default('admin'),
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [

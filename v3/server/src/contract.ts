@@ -5,6 +5,7 @@ import * as HttpApiError from "effect/http-api/HttpApiError";
 import * as HttpApiGroup from "effect/http-api/HttpApiGroup";
 import * as HttpApiSchema from "effect/http-api/HttpApiSchema";
 import { Authenticated } from "./auth/Authenticated.ts";
+import { Permission, Role } from "./permissions.ts";
 
 // The Api's contract (adr/0002-website-and-api-boundary.md): Schemas only, so any client can import
 // it without pulling in the database, Better Auth or secrets. The Api implements it in api.ts.
@@ -28,6 +29,12 @@ export const Organization = Schema.Struct({
 
 export class OrganizationsApi extends HttpApiGroup.make("organizations")
   .add(
+    HttpApiEndpoint.get("list", "/organizations", {
+      // The caller's organizations, oldest first.
+      success: Schema.Array(Schema.Struct({ ...Organization.fields, role: Role })),
+    }),
+  )
+  .add(
     HttpApiEndpoint.post("create", "/organizations", {
       payload: Schema.Struct({ name: Schema.String }),
       success: HttpApiSchema.status(201)(Organization),
@@ -37,9 +44,14 @@ export class OrganizationsApi extends HttpApiGroup.make("organizations")
     HttpApiEndpoint.get("get", "/organizations/:id", {
       // A malformed id is a 400 here rather than a Postgres error (500).
       params: { id: Schema.String.check(Schema.isUUID()) },
-      success: Organization,
+      // The caller's permissions, so the website hides what the Api would refuse.
+      success: Schema.Struct({ ...Organization.fields, permissions: Schema.Array(Permission) }),
       // NotFound also when the caller is not a member, so outsiders can't tell whether it exists.
-      error: [HttpApiError.BadRequestNoContent, HttpApiError.NotFoundNoContent],
+      error: [
+        HttpApiError.BadRequestNoContent,
+        HttpApiError.NotFoundNoContent,
+        HttpApiError.ForbiddenNoContent,
+      ],
     }),
   )
   .middleware(Authenticated) {}
