@@ -27,6 +27,9 @@ export const Organization = Schema.Struct({
   name: Schema.String,
 });
 
+// Trimmed before it's checked, so "  " is rejected and " Foto " is saved as "Foto".
+export const OrganizationName = Schema.Trim.check(Schema.isNonEmpty(), Schema.isMaxLength(100));
+
 export class OrganizationsApi extends HttpApiGroup.make("organizations")
   .add(
     HttpApiEndpoint.get("list", "/organizations", {
@@ -36,7 +39,7 @@ export class OrganizationsApi extends HttpApiGroup.make("organizations")
   )
   .add(
     HttpApiEndpoint.post("create", "/organizations", {
-      payload: Schema.Struct({ name: Schema.String }),
+      payload: Schema.Struct({ name: OrganizationName }),
       success: HttpApiSchema.status(201)(Organization),
     }),
   )
