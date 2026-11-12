@@ -35,13 +35,15 @@ On the domain, the Api sets its session cookie for `<domain>` and every subdomai
 
 ## Api contract
 
-The Api's endpoints are defined in `server/src/contract.ts` (Effect `HttpApi`, Schemas only) and implemented in `server/src/api.ts`. The Api serves the spec at `/openapi.json`. After changing the contract, run `bun run api:generate`: it writes the spec to `server/openapi.json` and the website's types to `web/src/api.gen.ts`. The website calls the Api with `openapi-fetch` and those types (`web/src/api.ts`), never through server functions, and runs no Effect code. See `adr/0002-website-and-api-boundary.md`.
+The Api's endpoints are defined in `server/src/contract.ts` (Effect `HttpApi`, Schemas only), which adds each domain folder's group. A domain folder (`server/src/organizations/`) holds its schemas and errors (`schemas.ts`), its endpoints (`endpoints.ts`), its operations (`service.ts`, also for jobs) and thin handlers (`handlers.ts`); `server/src/api.ts` serves them. The Api serves the spec at `/openapi.json`. After changing the contract, run `bun run api:generate`: it writes the spec to `server/openapi.json` and the website's types to `web/src/api.gen.ts`. The website calls the Api with `openapi-fetch` and those types (`web/src/api.ts`), never through server functions, and runs no Effect code. See `adr/0002-website-and-api-boundary.md`.
 
 ## Auth
 
 Better Auth runs in the `Api` worker (`server/src/auth/Auth.ts`) under `/auth/*`. The browser calls it directly with credentials; the Api allows CORS from `WEBSITE_URL` only.
 
 Browsers authenticate with the session cookie. Every other client (SDKs, apps, scripts) signs in through the same endpoints, takes the token from the `set-auth-token` response header, and sends it as `Authorization: Bearer <token>`. It is the same session either way, so the `Authenticated` middleware (`server/src/auth/Authenticated.ts`) works for both and signing out revokes both. Sign-in methods are Google and email OTP. Postgres is reached through Hyperdrive (`server/src/db/Db.ts`).
+
+A code allows 3 guesses, and an email gets at most 5 codes an hour (`otp_sends`, counted in `Auth.ts`), which is what stops someone guessing their way into another account. Better Auth's own rate limiter is off: it only turns on when `NODE_ENV` is `production`, which the Worker doesn't set, and it counts per IP. The emailOTP endpoints the website doesn't call are disabled (`disabledAuthPaths`).
 
 Add these to `.env` for `alchemy dev`. `bun run deploy:prod` reads `.env.prod` instead (not on top of `.env`, so it needs every variable), with the URLs set to `https://api.<domain>` and `https://<domain>`:
 

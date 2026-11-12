@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { bearer, emailOTP } from "better-auth/plugins";
+import { sql } from "drizzle-orm";
 import { ALCHEMY_DEV } from "alchemy/Phase";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
@@ -24,9 +26,8 @@ const GoogleConfig = Config.all({
 
 export const AuthConfig = Config.all({
   secret: Config.Redacted("BETTER_AUTH_SECRET"),
-  // The Api's own origin; Google redirects back to it.
   baseURL: Config.String("BETTER_AUTH_URL"),
-  // The website's origin: the only one allowed to call the Api with cookies, and to be redirected to.
+  // The only origin allowed to call the Api with cookies, and to be redirected to.
   websiteURL: Config.String("WEBSITE_URL"),
   // Required on deployed stages. Under `alchemy dev` Google sign-in is off unless both are set.
   google: Config.flatMap(ALCHEMY_DEV, (dev) =>
@@ -34,12 +35,24 @@ export const AuthConfig = Config.all({
   ),
 });
 
-// Set on a custom domain: the session cookie goes to <domain> and all its subdomains, so the
-// website's server gets it too and can render signed-in pages. Unset, it stays on the Api's host
-// (in dev both run on localhost, which already shares it).
+// Set on a custom domain, so the website's server also gets the session cookie and can render
+// signed-in pages.
 type CookieDomain = string | undefined;
 
-const makeAuth = (
+// emailOTP endpoints the website doesn't call. check-verification-otp counts attempts without a
+// lock, so parallel guesses at a sign-in code get past the 3-attempt limit; the rest are
+// password and email-verification flows this Api doesn't have.
+export const disabledAuthPaths = [
+  "/email-otp/check-verification-otp",
+  "/email-otp/verify-email",
+  "/email-otp/request-password-reset",
+  "/email-otp/reset-password",
+  "/forget-password/email-otp",
+];
+
+const MAX_CODES_PER_HOUR = 5;
+
+export const makeAuth = (
   db: Db["Service"],
   config: Config.Success<typeof AuthConfig>,
   cookieDomain: CookieDomain,
@@ -50,9 +63,34 @@ const makeAuth = (
     baseURL: config.baseURL,
     basePath: "/auth",
     trustedOrigins: [config.websiteURL],
+    disabledPaths: disabledAuthPaths,
+    hooks: {
+      // Each code allows 3 guesses, so the number of codes per email is what bounds guessing at
+      // someone else's. Counted per email, not per IP, so it holds against any number of IPs.
+      before: createAuthMiddleware(async (ctx) => {
+        const email = ctx.body?.email;
+        if (ctx.path !== "/email-otp/send-verification-otp" || typeof email !== "string") return;
+        const { otpSends } = model;
+        const expired = sql`${otpSends.windowStart} < now() - interval '1 hour'`;
+        // One statement, so parallel requests can't each read the same count.
+        const [sent] = await db
+          .insert(otpSends)
+          .values({ email: email.toLowerCase(), count: 1, windowStart: sql`now()` })
+          .onConflictDoUpdate({
+            target: otpSends.email,
+            set: {
+              count: sql`case when ${expired} then 1 else ${otpSends.count} + 1 end`,
+              windowStart: sql`case when ${expired} then now() else ${otpSends.windowStart} end`,
+            },
+          })
+          .returning({ count: otpSends.count });
+        if (sent!.count > MAX_CODES_PER_HOUR) {
+          throw new APIError("TOO_MANY_REQUESTS", { message: "Too many codes requested. Try again in an hour." });
+        }
+      }),
+    },
     advanced: {
       crossSubDomainCookies: { enabled: cookieDomain !== undefined, domain: cookieDomain },
-      // Postgres generates ids with the uuidv7() column default.
       database: { generateId: "uuid" },
     },
     // Account linking is on by default: Google and email OTP with the same verified email are one user.
@@ -69,8 +107,7 @@ const makeAuth = (
     },
     session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
     plugins: [
-      // Browsers use the session cookie; other clients (SDKs, apps, scripts) send the same session
-      // as `Authorization: Bearer <token>`, taken from the `set-auth-token` header on sign-in.
+      // Non-browser clients send the session as `Authorization: Bearer <token>`.
       bearer({ requireSignature: true }),
       emailOTP({
         // shortcut: logs the code instead of emailing it, replace with the email service before launch.
@@ -91,7 +128,6 @@ export const AuthLive = (config: Config.Success<typeof AuthConfig>, cookieDomain
     }),
   );
 
-// A getSession rejection is an infrastructure failure (DB down), so it is a defect → 500.
 export const getSession = Effect.fn("Auth.getSession")(function* () {
   const auth = yield* Auth;
   const request = yield* HttpServerRequest.HttpServerRequest;
@@ -111,7 +147,6 @@ const authenticate = Effect.fn("Auth.authenticate")(function* (
     return yield* new HttpApiError.Forbidden();
   }
   const session = yield* getSession();
-  // The contract's error, so clients decode it; it renders itself as an empty 401.
   if (!session) return yield* new HttpApiError.Unauthorized();
   return yield* Effect.provideService(httpEffect, CurrentUser, session.user);
 });

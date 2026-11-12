@@ -36,8 +36,6 @@ export const Ingest = Effect.gen(function* () {
   });
 });
 
-// Traces and logs go to Axiom from deployed stages only; under `alchemy dev` logs stay in the terminal
-// and no Axiom resources are created.
 export const Telemetry = Layer.unwrap(
   Effect.gen(function* () {
     if (yield* ALCHEMY_DEV) return Layer.empty;
@@ -45,15 +43,13 @@ export const Telemetry = Layer.unwrap(
   }),
 );
 
-// Sentry reports only from deployed stages: never under `alchemy dev`, and not at all without SENTRY_DSN.
 export const SentryDsn = Config.all({
   dsn: Config.option(Config.String("SENTRY_DSN")),
   dev: ALCHEMY_DEV,
 }).pipe(Config.map(({ dsn, dev }) => (dev ? Option.none() : dsn)));
 
-// Worker `build` options that upload the bundle's source maps, so Sentry shows the original
-// stack traces. Plan-time only: the bundler folds `__ALCHEMY_RUNTIME__` to true in the Worker,
-// which drops this branch and keeps the plugin out of the deployed bundle.
+// Plan-time only: the bundler folds `__ALCHEMY_RUNTIME__` to true in the Worker, which drops this
+// branch and keeps the source-map plugin out of the deployed bundle.
 export const SentrySourceMaps = Effect.gen(function* () {
   if (!globalThis.__ALCHEMY_RUNTIME__) {
     const { dev, authToken } = yield* Config.all({

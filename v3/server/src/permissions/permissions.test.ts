@@ -1,7 +1,6 @@
 import { expect, test } from "bun:test";
 import { Permission, permissionsOf, ROLE_PERMISSIONS } from "./permissions.ts";
 
-// Changing a role's permissions has to change this test too, so it shows up in review.
 test("each role's exact permissions", () => {
   const admin: ReadonlyArray<Permission> = [
     "organization:read",

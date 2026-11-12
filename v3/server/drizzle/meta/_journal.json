@@ -8,6 +8,13 @@
       "when": 1794348058557,
       "tag": "0000_initial-setup",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794468573469,
+      "tag": "0001_add_otp_sends",
+      "breakpoints": true
     }
   ]
 }

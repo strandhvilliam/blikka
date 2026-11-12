@@ -55,7 +55,16 @@ export interface paths {
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: never;
+    schemas: {
+        PermissionDeniedEncoded: {
+            /** @enum {string} */
+            _tag: "PermissionDenied";
+        };
+        OrganizationNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "OrganizationNotFound";
+        };
+    };
     responses: never;
     parameters: never;
     requestBodies: never;
@@ -224,19 +233,23 @@ export interface operations {
                 };
                 content?: never;
             };
-            /** @description Forbidden */
+            /** @description PermissionDenied | Forbidden */
             403: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
             };
-            /** @description NotFound */
+            /** @description OrganizationNotFound */
             404: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundEncoded"];
+                };
             };
         };
     };

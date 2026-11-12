@@ -8,8 +8,6 @@ import * as Redacted from "effect/Redacted";
 import { Pool } from "pg";
 import * as model from "./model.ts";
 
-// Hyperdrive in front of the Postgres in DATABASE_URL. `alchemy dev` connects to the local Postgres
-// in docker-compose.yml instead, so dev never touches the database deployed stages use.
 export const Database = Effect.gen(function* () {
   const url = new URL(Redacted.value(yield* Config.Redacted("DATABASE_URL")));
   return yield* Cloudflare.Hyperdrive.Connection("Database", {

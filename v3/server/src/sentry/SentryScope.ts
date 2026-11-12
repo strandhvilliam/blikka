@@ -18,7 +18,6 @@ export class SentryScope extends Context.Service<
   { readonly isolationScope: Sentry.Scope; readonly scope: Sentry.Scope }
 >()("blikka/sentry/SentryScope") {}
 
-// Tagged with the trace id, so the full request trace can be found in Axiom.
 export const captureException = Effect.fn("Sentry.captureException")(function* (error: unknown) {
   const { isolationScope, scope } = yield* SentryScope;
   const span = yield* Effect.option(Effect.currentSpan);
@@ -33,8 +32,6 @@ export const captureException = Effect.fn("Sentry.captureException")(function* (
   );
 });
 
-// Failures that know their response (Unauthorized → 401) are expected and interrupts are
-// aborted requests; any other failure or defect is a bug.
 const isUnexpected = (cause: Cause.Cause<unknown>) =>
   cause.reasons.some((reason) =>
     Cause.isFailReason(reason)
@@ -42,11 +39,6 @@ const isUnexpected = (cause: Cause.Cause<unknown>) =>
       : Cause.isDieReason(reason),
   );
 
-/**
- * Runs an HTTP handler inside a Sentry request scope (request data, flushing via `waitUntil`).
- * Unexpected failures and defects are logged and reported; every failure becomes a response:
- * its own when it is respondable, otherwise a 500.
- */
 export const withSentry = (options: Sentry.CloudflareOptions) => {
   // What `Sentry.withSentry` sets up for a plain handler: without it each request shares one scope.
   Sentry.setAsyncLocalStorageAsyncContextStrategy();

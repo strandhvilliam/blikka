@@ -8,16 +8,17 @@ import * as HttpApiEndpoint from "effect/http-api/HttpApiEndpoint";
 import * as HttpApiGroup from "effect/http-api/HttpApiGroup";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServer from "effect/http/HttpServer";
+import * as Option from "effect/Option";
+import * as Redacted from "effect/Redacted";
 import { Api, User } from "../contract.ts";
-import { Auth, AuthenticatedLive } from "./Auth.ts";
+import type { Db } from "../db/Db.ts";
+import { Auth, AuthenticatedLive, disabledAuthPaths, makeAuth } from "./Auth.ts";
 import { Authenticated } from "./Authenticated.ts";
 import { CurrentUser } from "./CurrentUser.ts";
 
 const website = "https://blikka.test";
-// More than the contract's User, as Better Auth's user is.
 const sessionUser = { id: "u1", email: "a@b.c", name: "A", platformRole: "superadmin" };
 
-// Better Auth, reduced to what the middleware uses: a session for the cookie or token "ok".
 const FakeAuth = Layer.succeed(Auth)({
   options: { trustedOrigins: [website] },
   api: {
@@ -90,6 +91,20 @@ test("a cookie write from another origin is a 403, and the handler doesn't run",
 test("writes from the website, and token writes with no Origin, go through", async () => {
   expect((await request("POST", "/write", { cookie: "session=ok", origin: website })).status).toBe(200);
   expect((await request("POST", "/write", { authorization: "Bearer ok" })).status).toBe(200);
+});
+
+test("the emailOTP endpoints the website doesn't use are 404, and the two it uses are not", async () => {
+  const auth = makeAuth(
+    {} as Db["Service"],
+    { secret: Redacted.make("s".repeat(32)), baseURL: "https://api.blikka.test", websiteURL: website, google: Option.none() },
+    undefined,
+  );
+  const status = async (path: string) =>
+    (await auth.handler(new Request(`https://api.blikka.test/auth${path}`, { method: "POST" }))).status;
+  for (const path of disabledAuthPaths) expect(await status(path)).toBe(404);
+  // Reached: refused for the missing body, not for the path.
+  expect(await status("/email-otp/send-verification-otp")).not.toBe(404);
+  expect(await status("/sign-in/email-otp")).not.toBe(404);
 });
 
 // Reading CurrentUser without the middleware doesn't compile, but a handler that never reads it would

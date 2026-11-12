@@ -1,7 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { Link, createFileRoute, getRouteApi, useRouter } from "@tanstack/react-router";
-import { authClient } from "../authClient.ts";
-import { sessionQuery } from "../session.ts";
+import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
+import { useSignOut } from "../session.ts";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -10,13 +8,7 @@ const rootRoute = getRouteApi("__root__");
 function Home() {
   const { apiUrl } = rootRoute.useLoaderData();
   const { session } = Route.useRouteContext();
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const signOut = async () => {
-    await authClient.signOut();
-    await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
-    await router.invalidate();
-  };
+  const signOut = useSignOut();
   return (
     <main>
       <h1>Blikka</h1>

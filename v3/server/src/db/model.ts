@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   index,
+  integer,
   pgTable,
   primaryKey,
   text,
@@ -84,6 +85,15 @@ export const verification = pgTable(
   (table) => [index('verification_identifier_idx').on(table.identifier)],
 )
 
+// Sign-in codes sent to an email in its current hour. Auth.ts caps it, so a stranger can't keep
+// asking for new codes to guess at.
+// shortcut: one row per address ever asked for a code, never deleted; prune rows older than an hour once it grows.
+export const otpSends = pgTable('otp_sends', {
+  email: text().primaryKey(),
+  count: integer().notNull(),
+  windowStart: timestamp().notNull(),
+})
+
 export const organizations = pgTable('organizations', {
   id: uuid()
     .primaryKey()
@@ -122,7 +132,6 @@ export const competitions = pgTable(
     organizationId: uuid()
       .notNull()
       .references(() => organizations.id),
-    // Tenant slug used in the subdomain/URL.
     slug: text().notNull().unique(),
     name: text().notNull(),
     createdAt: timestamp().notNull().defaultNow(),
@@ -146,7 +155,6 @@ export const participants = pgTable(
     // Copied from the account on entry, so guests and users read the same.
     name: text().notNull(),
     email: text().notNull(),
-    // Participant number shown on contact sheets and exports.
     reference: text().notNull(),
     status: text().notNull().default('initialized'),
     createdAt: timestamp().notNull().defaultNow(),

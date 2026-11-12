@@ -1,6 +1,5 @@
 import * as Cloudflare from "@alchemy.run/cloudflare";
 import { Stage } from "alchemy/Stage";
-import { and, eq, isNull } from "drizzle-orm";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
@@ -10,11 +9,12 @@ import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServer from "effect/http/HttpServer";
 import { Hostnames } from "../../domain.ts";
 import { Auth, AuthConfig, AuthenticatedLive, AuthLive } from "./auth/Auth.ts";
-import { authorize, authorizeCreateOrganization } from "./auth/authorize.ts";
 import { CurrentUser } from "./auth/CurrentUser.ts";
 import { Api as Contract } from "./contract.ts";
-import { Database, Db, DbLive } from "./db/Db.ts";
-import * as model from "./db/model.ts";
+import { Database, DbLive } from "./db/Db.ts";
+import { OrganizationsHandlers } from "./organizations/handlers.ts";
+import { Organizations } from "./organizations/service.ts";
+import { Permissions } from "./permissions/service.ts";
 import { SentryDsn, SentrySourceMaps, Telemetry } from "./observability.ts";
 import { withSentry } from "./sentry/SentryScope.ts";
 
@@ -22,64 +22,7 @@ const UsersHandlers = HttpApiBuilder.group(Contract, "users", (handlers) =>
   handlers.handle("me", () => CurrentUser.useSync((user) => ({ user }))),
 );
 
-const organizationColumns = { id: model.organizations.id, name: model.organizations.name };
-
-// Database failures are infrastructure failures, so Effect.promise makes them defects → 500.
-const OrganizationsHandlers = HttpApiBuilder.group(Contract, "organizations", (handlers) =>
-  handlers
-    .handle("list", () =>
-      Effect.gen(function* () {
-        const user = yield* CurrentUser;
-        const db = yield* Db;
-        return yield* Effect.promise(() =>
-          db
-            .select({ ...organizationColumns, role: model.organizationMembers.role })
-            .from(model.organizations)
-            .innerJoin(
-              model.organizationMembers,
-              eq(model.organizationMembers.organizationId, model.organizations.id),
-            )
-            .where(and(eq(model.organizationMembers.userId, user.id), isNull(model.organizations.deletedAt)))
-            // uuidv7 ids sort by creation time.
-            .orderBy(model.organizations.id),
-        );
-      }),
-    )
-    .handle("create", ({ payload }) =>
-      Effect.gen(function* () {
-        const user = yield* CurrentUser;
-        yield* authorizeCreateOrganization(user);
-        const db = yield* Db;
-        return yield* Effect.promise(() =>
-          db.transaction(async (tx) => {
-            const [organization] = await tx
-              .insert(model.organizations)
-              .values({ name: payload.name })
-              .returning(organizationColumns);
-            // Exactly one owner per organization (adr/0001-roles-and-permissions.md).
-            await tx
-              .insert(model.organizationMembers)
-              .values({ organizationId: organization!.id, userId: user.id, role: "owner" });
-            return organization!;
-          }),
-        );
-      }),
-    )
-    .handle("get", ({ params }) =>
-      Effect.gen(function* () {
-        const user = yield* CurrentUser;
-        const permissions = yield* authorize(user, "organization:read", params.id);
-        const db = yield* Db;
-        const [organization] = yield* Effect.promise(() =>
-          db.select(organizationColumns).from(model.organizations).where(eq(model.organizations.id, params.id)),
-        );
-        return { ...organization!, permissions };
-      }),
-    )
-);
-
 const Routes = Layer.mergeAll(
-  // Better Auth serves its own endpoints, so they stay outside the contract.
   HttpRouter.add(
     "*",
     "/auth/*",
@@ -119,9 +62,11 @@ export default class Api extends Cloudflare.Worker<Api>()(
     return {
       fetch: handler.pipe(
         Effect.provide(
-          AuthLive(authConfig, cookieDomain).pipe(Layer.provideMerge(DbLive(hyperdrive))),
+          Layer.mergeAll(AuthLive(authConfig, cookieDomain), Organizations.layer).pipe(
+            Layer.provide(Permissions.layer),
+            Layer.provide(DbLive(hyperdrive)),
+          ),
         ),
-        // Reports unexpected errors and turns every error into a response (Unauthorized → 401, else 500).
         withSentry(sentry),
         Effect.withSpan("Api.fetch"),
       ),

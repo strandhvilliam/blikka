@@ -31,7 +31,7 @@ Two things already go against this and are cheap to fix now, while there are onl
 ### The API contract is the only thing the two share
 
 - Endpoints are defined with Effect `HttpApi` in a contract module that holds only Schemas:
-  `server/src/contract.ts`, split per resource when it grows.
+  `server/src/contract.ts`, which adds each domain folder's group (`organizations/endpoints.ts`).
 - The Api implements the contract and serves its OpenAPI spec at `/openapi.json`.
 - `bun run api:generate` writes the spec to `server/openapi.json` (`OpenApi.fromApi`) and generates the
   website's types from it into `web/src/api.gen.ts` (`openapi-typescript`). The website calls the

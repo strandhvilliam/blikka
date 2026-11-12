@@ -1,8 +1,6 @@
 import * as Schema from "effect/Schema";
 
-// Who may do what (adr/0001-roles-and-permissions.md). This file is the spec, and
-// permissions.test.ts pins each role's exact set. Schemas only, so the contract can import it.
-// auth/authorize.ts enforces it.
+// The spec (adr/0001-roles-and-permissions.md). Schemas only, so the contract can import it.
 
 export const Permission = Schema.Literals([
   "organization:read",
@@ -46,6 +44,11 @@ export const ROLE_PERMISSIONS: Record<Role, ReadonlyArray<Permission>> = {
   admin,
 };
 
-// No role (not a member, or the organization is deleted) has no permissions: deny by default.
 export const permissionsOf = (role: Role | undefined): ReadonlyArray<Permission> =>
   role ? ROLE_PERMISSIONS[role] : [];
+
+export class PermissionDenied extends Schema.TaggedError<PermissionDenied>()(
+  "PermissionDenied",
+  {},
+  { httpApiStatus: 403 },
+) {}
