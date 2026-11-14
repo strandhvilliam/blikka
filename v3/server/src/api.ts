@@ -14,6 +14,8 @@ import { CompetitionsHandlers } from "./competitions/handlers.ts";
 import { CompetitionsService } from "./competitions/service.ts";
 import { Api as Contract } from "./contract.ts";
 import { Database, DbLive } from "./db/Db.ts";
+import { InvitationsHandlers } from "./invitations/handlers.ts";
+import { InvitationsService } from "./invitations/service.ts";
 import { OrganizationsHandlers } from "./organizations/handlers.ts";
 import { OrganizationsService } from "./organizations/service.ts";
 import { PermissionsService } from "./permissions/service.ts";
@@ -35,7 +37,12 @@ const Routes = Layer.mergeAll(
   ),
   HttpApiBuilder.layer(Contract, { openapiPath: "/openapi.json" }).pipe(
     Layer.provide(
-      Layer.mergeAll(UsersHandlers, OrganizationsHandlers, CompetitionsHandlers).pipe(Layer.provide(AuthenticatedLive)),
+      Layer.mergeAll(
+        UsersHandlers,
+        OrganizationsHandlers,
+        CompetitionsHandlers,
+        InvitationsHandlers,
+      ).pipe(Layer.provide(AuthenticatedLive)),
     ),
     Layer.provide(HttpServer.layerServices),
   ),
@@ -64,7 +71,12 @@ export default class Api extends Cloudflare.Worker<Api>()(
     return {
       fetch: handler.pipe(
         Effect.provide(
-          Layer.mergeAll(AuthLive(authConfig, cookieDomain), OrganizationsService.layer, CompetitionsService.layer).pipe(
+          Layer.mergeAll(
+            AuthLive(authConfig, cookieDomain),
+            OrganizationsService.layer,
+            CompetitionsService.layer,
+            InvitationsService.layer,
+          ).pipe(
             Layer.provide(PermissionsService.layer),
             Layer.provide(DbLive(hyperdrive)),
           ),

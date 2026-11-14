@@ -8,6 +8,7 @@ import {
   text,
   timestamp,
   unique,
+  uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core'
 
@@ -120,6 +121,34 @@ export const organizationMembers = pgTable(
   (table) => [
     primaryKey({ columns: [table.organizationId, table.userId] }),
     index('organization_members_user_id_idx').on(table.userId),
+  ],
+)
+
+// No token: whoever signs in with this verified email accepts it (adr/0007-organization-invitations.md).
+export const organizationInvitations = pgTable(
+  'organization_invitations',
+  {
+    id: uuid()
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    organizationId: uuid()
+      .notNull()
+      .references(() => organizations.id),
+    // Lowercase.
+    email: text().notNull(),
+    invitedBy: uuid()
+      .notNull()
+      .references(() => user.id),
+    expiresAt: timestamp().notNull(),
+    acceptedAt: timestamp(),
+    revokedAt: timestamp(),
+    createdAt: timestamp().notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('organization_invitations_open_unique')
+      .on(table.organizationId, table.email)
+      .where(sql`${table.acceptedAt} is null and ${table.revokedAt} is null`),
+    index('organization_invitations_email_idx').on(table.email),
   ],
 )
 

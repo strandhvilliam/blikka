@@ -46,8 +46,8 @@ function OrganizationLayout() {
       <header className="flex h-14 items-center justify-between gap-4 border-b px-4">
         <Breadcrumb>
           <BreadcrumbList>
-            <BreadcrumbItem className="font-semibold text-foreground">Blikka</BreadcrumbItem>
-            <BreadcrumbSeparator>/</BreadcrumbSeparator>
+            <BreadcrumbItem className="font-semibold text-foreground max-sm:hidden">Blikka</BreadcrumbItem>
+            <BreadcrumbSeparator className="max-sm:hidden">/</BreadcrumbSeparator>
             <BreadcrumbItem>
               <DropdownMenu>
                 <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
@@ -93,19 +93,28 @@ function OrganizationLayout() {
             )}
           </BreadcrumbList>
         </Breadcrumb>
-        <DropdownMenu>
-          <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
-            {session.user.name || session.user.email}
-            <IconChevronDown className="text-muted-foreground" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuGroup>
-              <DropdownMenuLabel>{session.user.email}</DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            render={<Link to="/dashboard/$organizationId/members" params={{ organizationId: organization.id }} />}
+          >
+            Members
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
+              {session.user.name || session.user.email}
+              <IconChevronDown className="text-muted-foreground" />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuGroup>
+                <DropdownMenuLabel>{session.user.email}</DropdownMenuLabel>
+              </DropdownMenuGroup>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
       <Outlet />
     </div>

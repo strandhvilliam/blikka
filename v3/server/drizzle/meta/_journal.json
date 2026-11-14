@@ -15,6 +15,13 @@
       "when": 1794468573469,
       "tag": "0001_add_otp_sends",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794647508233,
+      "tag": "0002_add_organization_invitations",
+      "breakpoints": true
     }
   ]
 }
