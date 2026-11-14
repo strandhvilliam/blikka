@@ -1,5 +1,5 @@
 import { Link, createFileRoute, getRouteApi } from "@tanstack/react-router";
-import { useSignOut } from "../session.ts";
+import { useSignOut } from "@/api/session.ts";
 
 export const Route = createFileRoute("/")({ component: Home });
 

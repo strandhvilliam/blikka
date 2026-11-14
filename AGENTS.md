@@ -16,7 +16,7 @@ Follows the layout in Effect's LLMS.md.
 
 - An Effect service lives in a PascalCase file named after its class, inside a domain folder: `server/src/db/Db.ts`. Its id is that path, `"blikka/db/Db"`, so an id in a trace leads to its file
 - A domain's operations are the exception: the class is `<Domain>Service` in that folder's `service.ts`. `server/src/competitions/service.ts` holds `CompetitionsService`, with the id `"blikka/competitions/CompetitionsService"`
-- Every other module is camelCase: `observability.ts`, `web/src/authClient.ts`
+- Every other module is camelCase: `observability.ts`, `web/src/api/authClient.ts`
 - React components are PascalCase (`PhotoGrid.tsx`). Logic worth testing moves beside the component as `PhotoGrid.logic.ts`
 - Tests sit beside their file as `*.test.ts`
 - Reusable effects are `Effect.fn("Service.operation")`, which names their span

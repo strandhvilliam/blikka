@@ -1,11 +1,11 @@
 import { IconDots, IconUserPlus } from "@tabler/icons-react";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { useId, useState } from "react";
-import { api } from "../../../api.ts";
-import { Badge } from "../../../components/ui/Badge.tsx";
-import { Button } from "../../../components/ui/Button.tsx";
+import { ApiError } from "@/api/client.ts";
+import { Badge } from "@/components/ui/Badge.tsx";
+import { Button } from "@/components/ui/Button.tsx";
 import {
   Dialog,
   DialogContent,
@@ -14,8 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../../../components/ui/Dialog.tsx";
-import { Input } from "../../../components/ui/Input.tsx";
+} from "@/components/ui/Dialog.tsx";
+import { Input } from "@/components/ui/Input.tsx";
 import {
   Item,
   ItemActions,
@@ -23,18 +23,22 @@ import {
   ItemDescription,
   ItemGroup,
   ItemTitle,
-} from "../../../components/ui/Item.tsx";
-import { Label } from "../../../components/ui/Label.tsx";
-import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
+} from "@/components/ui/Item.tsx";
+import { Label } from "@/components/ui/Label.tsx";
+import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../../../components/ui/DropdownMenu.tsx";
-import { invitationsQuery } from "../../../invitations.ts";
-import { membersQuery } from "../../../members.ts";
-import { useRefreshOrganization } from "../../../organizations.ts";
+} from "@/components/ui/DropdownMenu.tsx";
+import { createInvitationMutation, invitationsQuery, revokeInvitationMutation } from "@/api/invitations.ts";
+import {
+  leaveOrganizationMutation,
+  membersQuery,
+  removeMemberMutation,
+  transferOwnershipMutation,
+} from "@/api/members.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/members")({
   loader: ({ context, params }) =>
@@ -113,9 +117,11 @@ function MemberActions({
   isSelf: boolean;
   canManage: boolean;
 }) {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
-  const refreshOrganization = useRefreshOrganization();
+  const router = useRouter();
+  const transfer = useMutation(transferOwnershipMutation(organization.id));
+  const remove = useMutation(removeMemberMutation(organization.id));
+  const leave = useMutation(leaveOrganizationMutation(organization.id));
   const [action, setAction] = useState<Action>();
   const actions: Array<Action> = [];
   if (organization.role === "owner" && !isSelf) actions.push("transfer");
@@ -124,40 +130,27 @@ function MemberActions({
   if (actions.length === 0) return null;
 
   const who = member.name || member.email;
-  const path = { params: { path: { user_id: member.user_id }, query: { organization_id: organization.id } } };
   const dialogs = {
     transfer: {
       label: "Make owner",
       title: `Make ${who} the owner?`,
       description: "An organization has one owner. You'll become an admin, and only the new owner can hand it back.",
-      confirm: async () => {
-        const { response } = await api().PATCH("/members/{user_id}", { ...path, body: { role: "owner" } });
-        if (!response.ok) return "Couldn't hand over ownership. Try again.";
-        await queryClient.invalidateQueries({ queryKey: ["members"] });
-        await refreshOrganization(organization.id);
-      },
+      confirm: () => transfer.mutateAsync(member.user_id).then(() => router.invalidate()),
+      failure: "Couldn't hand over ownership. Try again.",
     },
     remove: {
       label: "Remove",
       title: `Remove ${who}?`,
       description: `They lose access to ${organization.name} and its events. You can invite them again later.`,
-      confirm: async () => {
-        const { response } = await api().DELETE("/members/{user_id}", path);
-        // 404: removed by someone else meanwhile, which is what was asked for.
-        if (!response.ok && response.status !== 404) return "Couldn't remove them. Try again.";
-        await queryClient.invalidateQueries({ queryKey: ["members"] });
-      },
+      confirm: () => remove.mutateAsync(member.user_id),
+      failure: "Couldn't remove them. Try again.",
     },
     leave: {
       label: "Leave organization",
       title: `Leave ${organization.name}?`,
       description: "You lose access to it and its events. An admin can invite you again.",
-      confirm: async () => {
-        const { response } = await api().DELETE("/members/{user_id}", path);
-        if (!response.ok && response.status !== 404) return "Couldn't leave the organization. Try again.";
-        queryClient.removeQueries({ queryKey: ["organizations", organization.id] });
-        await navigate({ to: "/dashboard" });
-      },
+      confirm: () => leave.mutateAsync(member.user_id).then(() => navigate({ to: "/dashboard" })),
+      failure: "Couldn't leave the organization. Try again.",
     },
   };
 
@@ -183,6 +176,7 @@ function MemberActions({
           description={dialogs[action].description}
           action={dialogs[action].label}
           onConfirm={dialogs[action].confirm}
+          failure={dialogs[action].failure}
         />
       )}
     </>
@@ -196,19 +190,11 @@ function PendingInvitation({
   invitation: { id: string; organization_id: string; email: string; expires_at: string };
   canManage: boolean;
 }) {
-  const queryClient = useQueryClient();
-  const [busy, setBusy] = useState(false);
+  const invite = useMutation(createInvitationMutation(invitation.organization_id));
+  const revoke = useMutation(revokeInvitationMutation(invitation.organization_id));
+  const busy = invite.isPending || revoke.isPending;
   const expiresAt = new Date(invitation.expires_at);
   const expired = expiresAt <= new Date();
-
-  // Refetches either way: a failure means it was accepted or revoked elsewhere.
-  const act = async (request: () => Promise<unknown>) => {
-    setBusy(true);
-    await request();
-    await queryClient.invalidateQueries({ queryKey: ["invitations"] });
-    await queryClient.invalidateQueries({ queryKey: ["members"] });
-    setBusy(false);
-  };
 
   return (
     <Item variant="outline">
@@ -225,13 +211,7 @@ function PendingInvitation({
               variant="outline"
               size="sm"
               disabled={busy}
-              onClick={() =>
-                act(() =>
-                  api().POST("/invitations", {
-                    body: { organization_id: invitation.organization_id, email: invitation.email },
-                  }),
-                )
-              }
+              onClick={() => invite.mutate(invitation.email)}
             >
               Invite again
             </Button>
@@ -240,7 +220,7 @@ function PendingInvitation({
             variant="ghost"
             size="sm"
             disabled={busy}
-            onClick={() => act(() => api().DELETE("/invitations/{id}", { params: { path: { id: invitation.id } } }))}
+            onClick={() => revoke.mutate(invitation.id)}
           >
             Revoke
           </Button>
@@ -252,11 +232,14 @@ function PendingInvitation({
 
 function Invite({ organizationId }: { organizationId: string }) {
   const id = useId();
-  const queryClient = useQueryClient();
+  const invite = useMutation(createInvitationMutation(organizationId));
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
-  const [error, setError] = useState<string>();
-  const [submitting, setSubmitting] = useState(false);
+  const error =
+    invite.error &&
+    (invite.error instanceof ApiError && invite.error.status === 409
+      ? "They're already a member."
+      : "Couldn't send the invitation. Try again.");
 
   return (
     <Dialog
@@ -264,7 +247,7 @@ function Invite({ organizationId }: { organizationId: string }) {
       onOpenChange={(open) => {
         setOpen(open);
         setEmail("");
-        setError(undefined);
+        invite.reset();
       }}
     >
       <DialogTrigger render={<Button />}>
@@ -274,20 +257,9 @@ function Invite({ organizationId }: { organizationId: string }) {
       <DialogContent>
         <form
           className="grid gap-6"
-          onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
-            setSubmitting(true);
-            const { data, response } = await api().POST("/invitations", {
-              body: { organization_id: organizationId, email: email.trim() },
-            });
-            if (!data) {
-              setSubmitting(false);
-              setError(response.status === 409 ? "They're already a member." : "Couldn't send the invitation. Try again.");
-              return;
-            }
-            await queryClient.invalidateQueries({ queryKey: ["invitations"] });
-            setSubmitting(false);
-            setOpen(false);
+            invite.mutate(email.trim(), { onSuccess: () => setOpen(false) });
           }}
         >
           <DialogHeader>
@@ -307,7 +279,7 @@ function Invite({ organizationId }: { organizationId: string }) {
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                setError(undefined);
+                if (invite.isError) invite.reset();
               }}
             />
             {error && (
@@ -317,7 +289,7 @@ function Invite({ organizationId }: { organizationId: string }) {
             )}
           </div>
           <DialogFooter>
-            <Button type="submit" disabled={submitting || !email.trim()}>
+            <Button type="submit" disabled={invite.isPending || !email.trim()}>
               Send invitation
             </Button>
           </DialogFooter>

@@ -7,11 +7,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "./ui/AlertDialog.tsx";
-import { Button } from "./ui/Button.tsx";
+} from "@/components/ui/AlertDialog.tsx";
+import { Button } from "@/components/ui/Button.tsx";
 
-// Asks before an action that can't be taken back from the website. onConfirm resolves to an
-// error message to show, or nothing once it has done its work (the dialog then closes).
+// Asks before an action that can't be taken back from the website. The dialog closes once
+// onConfirm resolves, and shows `failure` if it rejects.
 export function ConfirmDialog({
   open,
   onOpenChange,
@@ -19,13 +19,15 @@ export function ConfirmDialog({
   description,
   action,
   onConfirm,
+  failure,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: ReactNode;
   description: ReactNode;
   action: string;
-  onConfirm: () => Promise<string | undefined>;
+  onConfirm: () => Promise<unknown>;
+  failure: string;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -57,10 +59,13 @@ export function ConfirmDialog({
             disabled={busy}
             onClick={async () => {
               setBusy(true);
-              const failure = await onConfirm();
+              try {
+                await onConfirm();
+                onOpenChange(false);
+              } catch {
+                setError(failure);
+              }
               setBusy(false);
-              if (failure) setError(failure);
-              else onOpenChange(false);
             }}
           >
             {action}

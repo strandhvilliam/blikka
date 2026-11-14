@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/react";
 import { StartClient } from "@tanstack/react-start/client";
 import { StrictMode, startTransition } from "react";
 import { hydrateRoot } from "react-dom/client";
-import { meta } from "./meta.ts";
+import { meta } from "@/lib/meta.ts";
 
 // Before hydration, so errors during it are caught too. An empty DSN (dev, or unset) disables it.
 Sentry.init({ dsn: meta("sentry-dsn"), environment: meta("sentry-environment") });

@@ -1,6 +1,6 @@
 import { IconCheck, IconChevronDown, IconPlus, IconSelector } from "@tabler/icons-react";
-import { useQuery } from "@tanstack/react-query";
-import { Link, Outlet, createFileRoute, notFound, useParams } from "@tanstack/react-router";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link, Outlet, createFileRoute, notFound, useNavigate, useParams } from "@tanstack/react-router";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -8,8 +8,8 @@ import {
   BreadcrumbList,
   BreadcrumbPage,
   BreadcrumbSeparator,
-} from "../../../components/ui/Breadcrumb.tsx";
-import { Button } from "../../../components/ui/Button.tsx";
+} from "@/components/ui/Breadcrumb.tsx";
+import { Button } from "@/components/ui/Button.tsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,11 +18,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "../../../components/ui/DropdownMenu.tsx";
-import { competitionQuery } from "../../../competitions.ts";
-import { invitedBy, receivedInvitationsQuery, useAcceptInvitation } from "../../../invitations.ts";
-import { organizationQuery, organizationsQuery } from "../../../organizations.ts";
-import { useSignOut } from "../../../session.ts";
+} from "@/components/ui/DropdownMenu.tsx";
+import { competitionQuery } from "@/api/competitions.ts";
+import { acceptInvitationMutation, invitedBy, receivedInvitationsQuery } from "@/api/invitations.ts";
+import { organizationQuery, organizationsQuery } from "@/api/organizations.ts";
+import { useSignOut } from "@/api/session.ts";
 
 // Loads the organization once for every page under it, which read it from their route context.
 export const Route = createFileRoute("/dashboard/$organizationId")({
@@ -43,7 +43,8 @@ function OrganizationLayout() {
   const { organization, session } = Route.useRouteContext();
   const { data: organizations } = useQuery(organizationsQuery);
   const { data: invitations } = useQuery(receivedInvitationsQuery);
-  const accept = useAcceptInvitation();
+  const accept = useMutation(acceptInvitationMutation);
+  const navigate = useNavigate();
   // On an event's page: its loader has already cached the competition, so this doesn't fetch.
   const { competitionId } = useParams({ strict: false });
   const { data: competition } = useQuery({ ...competitionQuery(competitionId ?? ""), enabled: !!competitionId });
@@ -86,7 +87,15 @@ function OrganizationLayout() {
                       <DropdownMenuGroup>
                         <DropdownMenuLabel>Invitations</DropdownMenuLabel>
                         {invitations.map((invitation) => (
-                          <DropdownMenuItem key={invitation.id} onClick={() => accept(invitation.id)}>
+                          <DropdownMenuItem
+                            key={invitation.id}
+                            onClick={() =>
+                              accept.mutate(invitation.id, {
+                                onSuccess: ({ organization_id }) =>
+                                  navigate({ to: "/dashboard/$organizationId", params: { organizationId: organization_id } }),
+                              })
+                            }
+                          >
                             <span className="flex min-w-0 flex-col">
                               <span className="truncate">{invitation.organization.name}</span>
                               <span className="text-xs wrap-anywhere text-muted-foreground">{invitedBy(invitation)}</span>

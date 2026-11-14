@@ -1,13 +1,18 @@
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useId, useState } from "react";
-import { api } from "../api.ts";
-import { authClient } from "../authClient.ts";
-import { Button } from "../components/ui/Button.tsx";
-import { Input } from "../components/ui/Input.tsx";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "../components/ui/Item.tsx";
-import { invitedBy, receivedInvitationsQuery, useAcceptInvitation, type ReceivedInvitations } from "../invitations.ts";
-import { sessionQuery, useSignOut } from "../session.ts";
+import { authClient } from "@/api/authClient.ts";
+import { Button } from "@/components/ui/Button.tsx";
+import { Input } from "@/components/ui/Input.tsx";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/Item.tsx";
+import {
+  acceptInvitationMutation,
+  invitedBy,
+  receivedInvitationsQuery,
+  type ReceivedInvitations,
+} from "@/api/invitations.ts";
+import { createOrganizationMutation } from "@/api/organizations.ts";
+import { sessionQuery, useSignOut } from "@/api/session.ts";
 
 export const Route = createFileRoute("/onboarding")({
   beforeLoad: ({ context }) => {
@@ -24,6 +29,7 @@ function Onboarding() {
   const { data: invitations } = useSuspenseQuery(receivedInvitationsQuery);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const createOrganization = useMutation(createOrganizationMutation);
   // Email-code sign-ups start with an empty name; Google sign-ups bring theirs and skip the step.
   const [asksName] = useState(!session.user.name.trim());
   const [invited] = useState(invitations.length > 0);
@@ -76,11 +82,12 @@ function Onboarding() {
             onChange={setOrganization}
             progress={asksName && !invited ? [2, 2] : undefined}
             back={invited ? () => setStep("invitations") : asksName ? () => setStep("name") : undefined}
-            submit={async () => {
-              const { data } = await api().POST("/organizations", { body: { name: organization.trim() } });
-              if (!data) return "Couldn't create your organization. Try again.";
-              await navigate({ to: "/dashboard/$organizationId", params: { organizationId: data.id } });
-            }}
+            submit={() =>
+              createOrganization.mutateAsync(organization.trim()).then(
+                (created) => navigate({ to: "/dashboard/$organizationId", params: { organizationId: created.id } }),
+                () => "Couldn't create your organization. Try again.",
+              )
+            }
           />
         )}
       </div>
@@ -125,19 +132,16 @@ function Invitations({
   back?: () => void;
   createOwn: () => void;
 }) {
-  const accept = useAcceptInvitation();
-  const [error, setError] = useState<string>();
-  // Stays set after success too, so a second click while moving on can't join twice.
-  const [joining, setJoining] = useState<string>();
+  const accept = useMutation(acceptInvitationMutation);
+  const navigate = useNavigate();
+  // isSuccess too, so a second click while moving on can't join twice.
+  const joining = accept.isPending || accept.isSuccess;
 
-  const join = async (id: string) => {
-    setJoining(id);
-    setError(undefined);
-    if (!(await accept(id))) {
-      setError("That invitation is no longer open.");
-      setJoining(undefined);
-    }
-  };
+  const join = (id: string) =>
+    accept.mutate(id, {
+      onSuccess: ({ organization_id }) =>
+        navigate({ to: "/dashboard/$organizationId", params: { organizationId: organization_id } }),
+    });
 
   return (
     <div className="flex w-full max-w-sm animate-in flex-col gap-6 text-center duration-200 fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
@@ -155,7 +159,7 @@ function Invitations({
               <ItemDescription className="wrap-anywhere">{invitedBy(invitation)}</ItemDescription>
             </ItemContent>
             <ItemActions>
-              <Button disabled={joining !== undefined} onClick={() => join(invitation.id)}>
+              <Button disabled={joining} onClick={() => join(invitation.id)}>
                 Join
               </Button>
             </ItemActions>
@@ -163,18 +167,18 @@ function Invitations({
         ))}
       </ItemGroup>
       <div className="flex flex-col gap-2">
-        <Button variant="ghost" disabled={joining !== undefined} onClick={createOwn}>
+        <Button variant="ghost" disabled={joining} onClick={createOwn}>
           Create my own organization instead
         </Button>
         {back && (
-          <Button variant="ghost" disabled={joining !== undefined} onClick={back}>
+          <Button variant="ghost" disabled={joining} onClick={back}>
             Back
           </Button>
         )}
       </div>
-      {error && (
+      {accept.isError && (
         <p role="alert" className="text-sm text-destructive">
-          {error}
+          That invitation is no longer open.
         </p>
       )}
     </div>

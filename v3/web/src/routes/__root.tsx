@@ -8,13 +8,13 @@ import {
 } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
-import { env } from "../env.ts";
+import { env } from "@/lib/env.ts";
 import appCss from "../styles.css?url";
-import { captureServerError } from "../sentry.ts";
-import { sessionQuery } from "../session.ts";
+import { captureServerError } from "@/lib/sentry.ts";
+import { sessionQuery } from "@/api/session.ts";
 
 // The browser's config comes from the server at runtime (read from these meta tags by
-// web/src/meta.ts), so one build serves every stage.
+// web/src/lib/meta.ts), so one build serves every stage.
 const getPublicConfig = createServerFn().handler(() => ({
   apiUrl: env.API_URL,
   sentryDsn: env.SENTRY_DSN,

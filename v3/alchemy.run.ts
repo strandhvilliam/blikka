@@ -9,7 +9,7 @@ import * as Option from "effect/Option";
 import { SentryDsn } from "./server/src/observability.ts";
 import { Hostnames } from "./domain.ts";
 import Api from "./server/src/api.ts";
-import type { WebsiteEnv } from "./web/src/env.ts";
+import type { WebsiteEnv } from "./web/src/lib/env.ts";
 
 export const Website = Cloudflare.Website.Vite(
   "Website",

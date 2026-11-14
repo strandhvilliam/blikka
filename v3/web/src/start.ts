@@ -1,5 +1,5 @@
 import { createMiddleware, createStart } from "@tanstack/react-start";
-import { captureServerError } from "./sentry.ts";
+import { captureServerError } from "@/lib/sentry.ts";
 
 // Sentry's `sentryGlobalFunctionMiddleware`, copied: @sentry/tanstackstart-react pulls in
 // @sentry/node, which doesn't run on Workers. A failed server function becomes an error response,

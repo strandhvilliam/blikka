@@ -1,12 +1,11 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation } from "@tanstack/react-query";
+import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useId, useState } from "react";
-import { api } from "../../../api.ts";
-import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
-import { Button } from "../../../components/ui/Button.tsx";
-import { Input } from "../../../components/ui/Input.tsx";
-import { Label } from "../../../components/ui/Label.tsx";
-import { useRefreshOrganization } from "../../../organizations.ts";
+import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
+import { Button } from "@/components/ui/Button.tsx";
+import { Input } from "@/components/ui/Input.tsx";
+import { Label } from "@/components/ui/Label.tsx";
+import { deleteOrganizationMutation, renameOrganizationMutation } from "@/api/organizations.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/settings")({
   component: Settings,
@@ -31,25 +30,17 @@ function Settings() {
 
 function Rename({ organization, canWrite }: { organization: { id: string; name: string }; canWrite: boolean }) {
   const id = useId();
-  const refreshOrganization = useRefreshOrganization();
+  const router = useRouter();
+  const rename = useMutation(renameOrganizationMutation(organization.id));
   const [name, setName] = useState(organization.name);
-  const [error, setError] = useState<string>();
-  const [saving, setSaving] = useState(false);
   const unchanged = name.trim() === organization.name;
 
   return (
     <form
       className="grid max-w-md gap-3"
-      onSubmit={async (e) => {
+      onSubmit={(e) => {
         e.preventDefault();
-        setSaving(true);
-        const { data } = await api().PATCH("/organizations/{id}", {
-          params: { path: { id: organization.id } },
-          body: { name: name.trim() },
-        });
-        if (data) await refreshOrganization(organization.id);
-        else setError("Couldn't save the name. Try again.");
-        setSaving(false);
+        rename.mutate(name.trim(), { onSuccess: () => router.invalidate() });
       }}
     >
       <Label htmlFor={id}>Organization name</Label>
@@ -61,16 +52,16 @@ function Rename({ organization, canWrite }: { organization: { id: string; name: 
         value={name}
         onChange={(e) => {
           setName(e.target.value);
-          setError(undefined);
+          if (rename.isError) rename.reset();
         }}
       />
-      {error && (
+      {rename.isError && (
         <p role="alert" className="text-sm text-destructive">
-          {error}
+          Couldn't save the name. Try again.
         </p>
       )}
       {canWrite && (
-        <Button type="submit" className="justify-self-start" disabled={saving || unchanged || !name.trim()}>
+        <Button type="submit" className="justify-self-start" disabled={rename.isPending || rename.isSuccess || unchanged || !name.trim()}>
           Save
         </Button>
       )}
@@ -79,7 +70,7 @@ function Rename({ organization, canWrite }: { organization: { id: string; name: 
 }
 
 function Delete({ organization }: { organization: { id: string; name: string } }) {
-  const queryClient = useQueryClient();
+  const remove = useMutation(deleteOrganizationMutation(organization.id));
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
@@ -98,14 +89,8 @@ function Delete({ organization }: { organization: { id: string; name: string } }
         title={`Delete ${organization.name}?`}
         description="Its events go with it, and no member can reach it any more. This can't be undone here."
         action="Delete organization"
-        onConfirm={async () => {
-          const { response } = await api().DELETE("/organizations/{id}", {
-            params: { path: { id: organization.id } },
-          });
-          if (!response.ok) return "Couldn't delete the organization. Try again.";
-          queryClient.removeQueries({ queryKey: ["organizations", organization.id] });
-          await navigate({ to: "/dashboard" });
-        }}
+        onConfirm={() => remove.mutateAsync().then(() => navigate({ to: "/dashboard" }))}
+        failure="Couldn't delete the organization. Try again."
       />
     </section>
   );

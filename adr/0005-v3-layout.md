@@ -39,7 +39,7 @@ v3/
   (`containers/<name>/`) are added next to it and reuse the same modules. The domain is organised
   by folder, not by package.
 - **`web` is the website.** It declares no dependency on `server`, and calls it only through
-  the generated OpenAPI types (ADR-0002). Its runtime env type is declared in `web/src/env.ts`;
+  the generated OpenAPI types (ADR-0002). Its runtime env type is declared in `web/src/lib/env.ts`;
   `alchemy.run.ts` checks that the Website provides every key, so the website never imports the
   stack file (which imports the server).
 - Stack-level config shared by both (`domain.ts`, `sentry-project.ts`) and dev tooling

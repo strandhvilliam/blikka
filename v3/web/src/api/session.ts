@@ -1,6 +1,6 @@
 import { queryOptions, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { api } from "./api.ts";
+import { api, unwrap } from "./client.ts";
 import { authClient } from "./authClient.ts";
 
 // The signed-in user, or null. Sign-in and sign-out invalidate it; the staleTime only bounds how
@@ -8,10 +8,9 @@ import { authClient } from "./authClient.ts";
 export const sessionQuery = queryOptions({
   queryKey: ["session"],
   queryFn: async () => {
-    const { data, response } = await api().GET("/me");
-    if (response.status === 401) return null;
-    if (!data) throw new Error(`Could not get the session: ${response.status}`);
-    return data;
+    const result = await api().GET("/me");
+    if (result.response.status === 401) return null;
+    return unwrap(result);
   },
   staleTime: 5 * 60 * 1000,
 });

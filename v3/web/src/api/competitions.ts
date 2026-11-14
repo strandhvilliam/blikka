@@ -1,0 +1,31 @@
+import { mutationOptions, queryOptions } from "@tanstack/react-query";
+import { api, unwrap } from "./client.ts";
+
+// An organization's competitions, oldest first. The Api returns [] for an organization the caller
+// can't read, so the organization layout is what 404s.
+export const competitionsQuery = (organizationId: string) =>
+  queryOptions({
+    queryKey: ["competitions", { organizationId }],
+    queryFn: () => unwrap(api().GET("/competitions", { params: { query: { organization_id: organizationId } } })),
+  });
+
+// The competition, or null when it doesn't exist or the caller can't read it (the Api can't tell them apart).
+export const competitionQuery = (id: string) =>
+  queryOptions({
+    queryKey: ["competitions", id],
+    queryFn: async () => {
+      const result = await api().GET("/competitions/{id}", { params: { path: { id } } });
+      // 400 is a malformed id, which can't name a competition either.
+      if (result.response.status === 404 || result.response.status === 400) return null;
+      return unwrap(result);
+    },
+  });
+
+// Rejects with a 409 when the name is taken in the organization.
+export const createCompetitionMutation = (organizationId: string) =>
+  mutationOptions({
+    mutationFn: (name: string) =>
+      unwrap(api().POST("/competitions", { body: { organization_id: organizationId, name } })),
+    onSuccess: (_data, _name, _result, { client }) =>
+      client.invalidateQueries({ queryKey: competitionsQuery(organizationId).queryKey }),
+  });

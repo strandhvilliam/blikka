@@ -1,9 +1,9 @@
 import { IconLink, IconPlus } from "@tabler/icons-react";
-import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
+import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useId, useState } from "react";
-import { api } from "../../../api.ts";
-import { Button } from "../../../components/ui/Button.tsx";
+import { ApiError } from "@/api/client.ts";
+import { Button } from "@/components/ui/Button.tsx";
 import {
   Dialog,
   DialogContent,
@@ -12,13 +12,13 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "../../../components/ui/Dialog.tsx";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../../../components/ui/Empty.tsx";
-import { Input } from "../../../components/ui/Input.tsx";
-import { Item, ItemContent, ItemGroup, ItemTitle } from "../../../components/ui/Item.tsx";
-import { Label } from "../../../components/ui/Label.tsx";
-import { competitionsQuery } from "../../../competitions.ts";
-import { slugOf } from "../../../slug.ts";
+} from "@/components/ui/Dialog.tsx";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/Empty.tsx";
+import { Input } from "@/components/ui/Input.tsx";
+import { Item, ItemContent, ItemGroup, ItemTitle } from "@/components/ui/Item.tsx";
+import { Label } from "@/components/ui/Label.tsx";
+import { competitionsQuery, createCompetitionMutation } from "@/api/competitions.ts";
+import { slugOf } from "@/lib/slug.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(competitionsQuery(params.organizationId)),
@@ -70,11 +70,15 @@ function Dashboard() {
 function NewEvent({ organizationId }: { organizationId: string }) {
   const id = useId();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const create = useMutation(createCompetitionMutation(organizationId));
   const [name, setName] = useState("");
-  const [error, setError] = useState<string>();
-  // Stays set after success too, so a second click while moving on can't create twice.
-  const [submitting, setSubmitting] = useState(false);
+  // isSuccess too, so a second click while moving on can't create twice.
+  const submitting = create.isPending || create.isSuccess;
+  const error =
+    create.error &&
+    (create.error instanceof ApiError && create.error.status === 409
+      ? "That name is taken."
+      : "Couldn't create the event. Try again.");
 
   return (
     <Dialog>
@@ -85,21 +89,14 @@ function NewEvent({ organizationId }: { organizationId: string }) {
       <DialogContent>
         <form
           className="grid gap-6"
-          onSubmit={async (e) => {
+          onSubmit={(e) => {
             e.preventDefault();
-            setSubmitting(true);
-            const { data, response } = await api().POST("/competitions", {
-              body: { organization_id: organizationId, name: name.trim() },
-            });
-            if (!data) {
-              setError(response.status === 409 ? "That name is taken." : "Couldn't create the event. Try again.");
-              setSubmitting(false);
-              return;
-            }
-            await queryClient.invalidateQueries({ queryKey: ["competitions"] });
-            await navigate({
-              to: "/dashboard/$organizationId/events/$competitionId",
-              params: { organizationId, competitionId: data.id },
+            create.mutate(name.trim(), {
+              onSuccess: (competition) =>
+                navigate({
+                  to: "/dashboard/$organizationId/events/$competitionId",
+                  params: { organizationId, competitionId: competition.id },
+                }),
             });
           }}
         >
@@ -120,7 +117,7 @@ function NewEvent({ organizationId }: { organizationId: string }) {
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                setError(undefined);
+                if (create.isError) create.reset();
               }}
             />
             {error && (

@@ -21,7 +21,7 @@ comfortably.
 
 Two things already go against this and are cheap to fix now, while there are only two routes:
 
-- `getSession` (`web/src/session.ts`) is a server function. After the first load, every
+- `getSession` (`web/src/api/session.ts`) is a server function. After the first load, every
   navigation goes browser → website Worker → Api, and the root `beforeLoad` runs it on every
   navigation.
 - Api routes are added with `HttpRouter.add`, so nothing describes them for a client to use.

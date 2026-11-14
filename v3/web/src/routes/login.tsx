@@ -1,12 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { authClient } from "../authClient.ts";
-import { Button } from "../components/ui/Button.tsx";
-import { FieldSeparator } from "../components/ui/Field.tsx";
-import { Input } from "../components/ui/Input.tsx";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "../components/ui/InputOtp.tsx";
-import { sessionQuery } from "../session.ts";
+import { authClient } from "@/api/authClient.ts";
+import { Button } from "@/components/ui/Button.tsx";
+import { FieldSeparator } from "@/components/ui/Field.tsx";
+import { Input } from "@/components/ui/Input.tsx";
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/InputOtp.tsx";
+import { sessionQuery } from "@/api/session.ts";
 
 // Better Auth's emailOTP default.
 const OTP_LENGTH = 6;

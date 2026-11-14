@@ -1,5 +1,5 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { organizationsQuery } from "../../organizations.ts";
+import { organizationsQuery } from "@/api/organizations.ts";
 
 // The gate: the one place that decides where a signed-in organizer goes (v3/plan.md).
 export const Route = createFileRoute("/dashboard/")({

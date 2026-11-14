@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "../../../../components/ui/Empty.tsx";
-import { competitionQuery } from "../../../../competitions.ts";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/Empty.tsx";
+import { competitionQuery } from "@/api/competitions.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/events/$competitionId")({
   loader: async ({ context, params }) => {
