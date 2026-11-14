@@ -17,6 +17,7 @@ import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardOrganizationIdRouteRouteImport } from './routes/dashboard/$organizationId/route'
 import { Route as DashboardOrganizationIdIndexRouteImport } from './routes/dashboard/$organizationId/index'
 import { Route as DashboardOrganizationIdMembersRouteImport } from './routes/dashboard/$organizationId/members'
+import { Route as DashboardOrganizationIdSettingsRouteImport } from './routes/dashboard/$organizationId/settings'
 import { Route as DashboardOrganizationIdEventsCompetitionIdRouteImport } from './routes/dashboard/$organizationId/events/$competitionId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -62,6 +63,12 @@ const DashboardOrganizationIdMembersRoute =
     path: '/members',
     getParentRoute: () => DashboardOrganizationIdRouteRoute,
   } as any)
+const DashboardOrganizationIdSettingsRoute =
+  DashboardOrganizationIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => DashboardOrganizationIdRouteRoute,
+  } as any)
 const DashboardOrganizationIdEventsCompetitionIdRoute =
   DashboardOrganizationIdEventsCompetitionIdRouteImport.update({
     id: '/events/$competitionId',
@@ -77,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/$organizationId': typeof DashboardOrganizationIdRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$organizationId/members': typeof DashboardOrganizationIdMembersRoute
+  '/dashboard/$organizationId/settings': typeof DashboardOrganizationIdSettingsRoute
   '/dashboard/$organizationId/': typeof DashboardOrganizationIdIndexRoute
   '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRoute
 }
@@ -86,6 +94,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/$organizationId/members': typeof DashboardOrganizationIdMembersRoute
+  '/dashboard/$organizationId/settings': typeof DashboardOrganizationIdSettingsRoute
   '/dashboard/$organizationId': typeof DashboardOrganizationIdIndexRoute
   '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRoute
 }
@@ -98,6 +107,7 @@ export interface FileRoutesById {
   '/dashboard/$organizationId': typeof DashboardOrganizationIdRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$organizationId/members': typeof DashboardOrganizationIdMembersRoute
+  '/dashboard/$organizationId/settings': typeof DashboardOrganizationIdSettingsRoute
   '/dashboard/$organizationId/': typeof DashboardOrganizationIdIndexRoute
   '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRoute
 }
@@ -111,6 +121,7 @@ export interface FileRouteTypes {
     | '/dashboard/$organizationId'
     | '/dashboard/'
     | '/dashboard/$organizationId/members'
+    | '/dashboard/$organizationId/settings'
     | '/dashboard/$organizationId/'
     | '/dashboard/$organizationId/events/$competitionId'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/onboarding'
     | '/dashboard'
     | '/dashboard/$organizationId/members'
+    | '/dashboard/$organizationId/settings'
     | '/dashboard/$organizationId'
     | '/dashboard/$organizationId/events/$competitionId'
   id:
@@ -131,6 +143,7 @@ export interface FileRouteTypes {
     | '/dashboard/$organizationId'
     | '/dashboard/'
     | '/dashboard/$organizationId/members'
+    | '/dashboard/$organizationId/settings'
     | '/dashboard/$organizationId/'
     | '/dashboard/$organizationId/events/$competitionId'
   fileRoutesById: FileRoutesById
@@ -200,6 +213,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrganizationIdMembersRouteImport
       parentRoute: typeof DashboardOrganizationIdRouteRoute
     }
+    '/dashboard/$organizationId/settings': {
+      id: '/dashboard/$organizationId/settings'
+      path: '/settings'
+      fullPath: '/dashboard/$organizationId/settings'
+      preLoaderRoute: typeof DashboardOrganizationIdSettingsRouteImport
+      parentRoute: typeof DashboardOrganizationIdRouteRoute
+    }
     '/dashboard/$organizationId/events/$competitionId': {
       id: '/dashboard/$organizationId/events/$competitionId'
       path: '/events/$competitionId'
@@ -212,6 +232,7 @@ declare module '@tanstack/react-router' {
 
 interface DashboardOrganizationIdRouteRouteChildren {
   DashboardOrganizationIdMembersRoute: typeof DashboardOrganizationIdMembersRoute
+  DashboardOrganizationIdSettingsRoute: typeof DashboardOrganizationIdSettingsRoute
   DashboardOrganizationIdIndexRoute: typeof DashboardOrganizationIdIndexRoute
   DashboardOrganizationIdEventsCompetitionIdRoute: typeof DashboardOrganizationIdEventsCompetitionIdRoute
 }
@@ -219,6 +240,7 @@ interface DashboardOrganizationIdRouteRouteChildren {
 const DashboardOrganizationIdRouteRouteChildren: DashboardOrganizationIdRouteRouteChildren =
   {
     DashboardOrganizationIdMembersRoute: DashboardOrganizationIdMembersRoute,
+    DashboardOrganizationIdSettingsRoute: DashboardOrganizationIdSettingsRoute,
     DashboardOrganizationIdIndexRoute: DashboardOrganizationIdIndexRoute,
     DashboardOrganizationIdEventsCompetitionIdRoute:
       DashboardOrganizationIdEventsCompetitionIdRoute,

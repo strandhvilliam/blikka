@@ -29,4 +29,20 @@ export class OrganizationsApi extends HttpApiGroup.make("organizations")
       error: [HttpApiError.BadRequestNoContent, OrganizationNotFound, PermissionDenied],
     }),
   )
+  .add(
+    HttpApiEndpoint.patch("update", "/organizations/:id", {
+      params,
+      payload: Schema.Struct({ name: OrganizationName }),
+      success: Organization,
+      error: [HttpApiError.BadRequestNoContent, OrganizationNotFound, PermissionDenied],
+    }),
+  )
+  .add(
+    // Owner only.
+    HttpApiEndpoint.delete("remove", "/organizations/:id", {
+      params,
+      success: HttpApiSchema.NoContent,
+      error: [HttpApiError.BadRequestNoContent, OrganizationNotFound, PermissionDenied],
+    }),
+  )
   .middleware(Authenticated) {}

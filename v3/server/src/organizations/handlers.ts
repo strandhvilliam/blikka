@@ -27,5 +27,19 @@ export const OrganizationsHandlers = HttpApiBuilder.group(Api, "organizations", 
         const user = yield* CurrentUser;
         return yield* organizations.get(user, params.id);
       }),
+    )
+    .handle("update", ({ params, payload }) =>
+      Effect.gen(function* () {
+        const organizations = yield* OrganizationsService;
+        const user = yield* CurrentUser;
+        return yield* organizations.update(user, params.id, payload.name);
+      }),
+    )
+    .handle("remove", ({ params }) =>
+      Effect.gen(function* () {
+        const organizations = yield* OrganizationsService;
+        const user = yield* CurrentUser;
+        return yield* organizations.remove(user, params.id);
+      }),
     ),
 );

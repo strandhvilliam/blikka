@@ -34,6 +34,11 @@ export const Route = createFileRoute("/dashboard/$organizationId")({
   component: OrganizationLayout,
 });
 
+const pages = [
+  { to: "/dashboard/$organizationId/members", label: "Members" },
+  { to: "/dashboard/$organizationId/settings", label: "Settings" },
+] as const;
+
 function OrganizationLayout() {
   const { organization, session } = Route.useRouteContext();
   const { data: organizations } = useQuery(organizationsQuery);
@@ -53,7 +58,7 @@ function OrganizationLayout() {
             <BreadcrumbSeparator className="max-sm:hidden">/</BreadcrumbSeparator>
             <BreadcrumbItem className="min-w-0">
               <DropdownMenu>
-                <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="min-w-0" />}>
+                <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="min-w-0 shrink" />}>
                   <span className="truncate">{organization.name}</span>
                   {invitations?.length ? (
                     <span className="size-1.5 shrink-0 rounded-full bg-primary">
@@ -118,24 +123,39 @@ function OrganizationLayout() {
             )}
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="flex shrink-0 items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            render={<Link to="/dashboard/$organizationId/members" params={{ organizationId: organization.id }} />}
-          >
-            Members
-          </Button>
+        <div className="flex min-w-0 items-center gap-1">
+          {pages.map((page) => (
+            <Button
+              key={page.to}
+              variant="ghost"
+              size="sm"
+              className="max-sm:hidden"
+              render={<Link to={page.to} params={{ organizationId: organization.id }} />}
+            >
+              {page.label}
+            </Button>
+          ))}
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
-              {session.user.name || session.user.email}
+            <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="min-w-0 shrink max-sm:max-w-40" />}>
+              <span className="truncate">{session.user.name || session.user.email}</span>
               <IconChevronDown className="text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
               <DropdownMenuGroup>
-                <DropdownMenuLabel>{session.user.email}</DropdownMenuLabel>
+                <DropdownMenuLabel className="wrap-anywhere">{session.user.email}</DropdownMenuLabel>
               </DropdownMenuGroup>
               <DropdownMenuSeparator />
+              {/* On phones the header has no room for the pages, so they live here. */}
+              {pages.map((page) => (
+                <DropdownMenuItem
+                  key={page.to}
+                  className="sm:hidden"
+                  render={<Link to={page.to} params={{ organizationId: organization.id }} />}
+                >
+                  {page.label}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator className="sm:hidden" />
               <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

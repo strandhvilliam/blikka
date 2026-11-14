@@ -19,6 +19,25 @@ test("get returns the caller's role with their permissions", () =>
     expect(await run((s) => s.get(admin, organizationId))).toMatchObject({ id: organizationId, role: "admin" });
   }));
 
+test("an admin renames the organization; an outsider can't", () =>
+  rolledBack(async (tx) => {
+    const { run, fails, admin, organizationId } = await setup(tx);
+    expect(await run((s) => s.update(admin, organizationId, "Camera Club"))).toEqual({ id: organizationId, name: "Camera Club" });
+    const stranger = await createUser(tx, "Stranger");
+    expect(await fails((s) => s.update(stranger, organizationId, "Mine"))).toBe("OrganizationNotFound");
+  }));
+
+test("only the owner deletes the organization, and then nobody reaches it", () =>
+  rolledBack(async (tx) => {
+    const { run, fails, owner, admin, organizationId } = await setup(tx);
+    expect(await fails((s) => s.remove(admin, organizationId))).toBe("PermissionDenied");
+    await run((s) => s.remove(owner, organizationId));
+    expect(await fails((s) => s.get(owner, organizationId))).toBe("OrganizationNotFound");
+    expect(await fails((s) => s.update(admin, organizationId, "Back"))).toBe("OrganizationNotFound");
+    expect(await fails((s) => s.remove(owner, organizationId))).toBe("OrganizationNotFound");
+    expect(await run((s) => s.list(owner))).toEqual([]);
+  }));
+
 test("a removed member gets nothing from the organization", () =>
   rolledBack(async (tx) => {
     const { run, fails, admin, organizationId } = await setup(tx);

@@ -46,10 +46,10 @@ export interface paths {
         get: operations["organizations.get"];
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["organizations.remove"];
         options?: never;
         head?: never;
-        patch?: never;
+        patch: operations["organizations.update"];
         trace?: never;
     };
     "/competitions": {
@@ -370,6 +370,121 @@ export interface operations {
                         /** @enum {string} */
                         role: "owner" | "admin";
                         permissions: ("organization:read" | "organization:write" | "members:read" | "members:write" | "competitions:read" | "competitions:write" | "participants:read" | "participants:write" | "submissions:read" | "submissions:write" | "jury:read" | "jury:write" | "jury:rate")[];
+                    };
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description OrganizationNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "organizations.remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description <No Content> */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description OrganizationNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrganizationNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "organizations.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        name: string;
                     };
                 };
             };

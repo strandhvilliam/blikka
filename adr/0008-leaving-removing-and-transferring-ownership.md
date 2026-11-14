@@ -1,4 +1,4 @@
-# ADR-0008: Members leave or are removed by a soft delete, and only the owner transfers ownership
+# ADR-0008: Members leave or are removed by a soft delete, and only the owner transfers ownership or deletes the organization
 
 - **Status**: Proposed
 - **Area**: API (`v3`)
@@ -8,7 +8,7 @@
 
 ADR-0007 lets people join an organization, but nobody could leave one, an admin couldn't remove
 anyone, and the owner invariants in ADR-0001 named a transfer that didn't exist. That left an
-owner stuck in their organization for good.
+owner stuck in their organization for good. An organization also couldn't be renamed or deleted.
 
 Owner and admin have the same permissions (ADR-0001), so "only the owner may do this" can't be
 written as a permission.
@@ -42,16 +42,24 @@ the meantime the transaction rolls back, so the organization never loses its own
 unique index (`organization_members_one_owner`) enforces one owner per organization in the
 database too.
 
-`authorize` returns the caller's role with their permissions, so the owner check doesn't query
+### Rename and delete
+
+`PATCH /organizations/:id { name }` needs `organization:write`. `DELETE /organizations/:id` needs
+`organization:write` and the owner role, checked like the transfer. It sets
+`organizations.deleted_at`. Everything under the organization drops out with it, because every
+read already skips a deleted organization.
+
+`authorize` returns the caller's role with their permissions, so these owner checks don't query
 again, and `GET /organizations/:id` returns the role so the website can hide what only the owner
 can do.
 
 ## Consequences
 
 - An owner who wants to leave hands ownership to another member first. A sole member can't
-  leave.
+  leave, but they can delete the organization.
 - Any admin can remove any other admin. With a single admin role there's nothing finer to
   express. A future role that can't manage members gets that from its permission set.
+- Deleting an organization can only be undone in the database. The website asks before doing it.
 - Every new query on `organization_members` has to filter on `deleted_at`. The service tests
   cover the existing ones.
 
@@ -61,3 +69,5 @@ can do.
   contradicts ADR-0001's soft deletes.
 - **`POST /organizations/:id/transfer`.** Says what it does, but it's a one-off endpoint for
   what is a role change.
+- **Any admin deletes the organization.** Every admin is invited with full control (ADR-0007), so
+  any one of them could remove everything. The owner is the one person accountable for it.

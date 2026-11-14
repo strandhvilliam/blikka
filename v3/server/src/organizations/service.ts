@@ -1,11 +1,13 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import type { User } from "../contract.ts";
 import { Db } from "../db/Db.ts";
 import * as model from "../db/model.ts";
+import { PermissionDenied } from "../permissions/permissions.ts";
 import { PermissionsService } from "../permissions/service.ts";
+import { OrganizationNotFound } from "./schemas.ts";
 
 const columns = { id: model.organizations.id, name: model.organizations.name };
 
@@ -57,7 +59,33 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
       return { ...organization!, role, permissions };
     });
 
-    return { list, create, get };
+    const update = Effect.fn("OrganizationsService.update")(function* (caller: User, id: string, name: string) {
+      yield* authorize(caller, "organization:write", id);
+      const [organization] = yield* Effect.promise(() =>
+        db
+          .update(model.organizations)
+          .set({ name, updatedAt: sql`now()` })
+          .where(and(eq(model.organizations.id, id), isNull(model.organizations.deletedAt)))
+          .returning(columns),
+      );
+      // Deleted since the check.
+      if (!organization) return yield* new OrganizationNotFound();
+      return organization;
+    });
+
+    // Only the owner deletes (adr/0008). Everything under the organization goes with it, since reads skip it.
+    const remove = Effect.fn("OrganizationsService.remove")(function* (caller: User, id: string) {
+      const { role } = yield* authorize(caller, "organization:write", id);
+      if (role !== "owner") return yield* new PermissionDenied();
+      yield* Effect.promise(() =>
+        db
+          .update(model.organizations)
+          .set({ deletedAt: sql`now()` })
+          .where(and(eq(model.organizations.id, id), isNull(model.organizations.deletedAt))),
+      );
+    });
+
+    return { list, create, get, update, remove };
   }),
 }) {
   static readonly layer = Layer.effect(OrganizationsService, OrganizationsService.make);
