@@ -16,6 +16,7 @@ import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardOrganizationIdRouteRouteImport } from './routes/dashboard/$organizationId/route'
 import { Route as DashboardOrganizationIdIndexRouteImport } from './routes/dashboard/$organizationId/index'
+import { Route as DashboardOrganizationIdEventsCompetitionIdRouteImport } from './routes/dashboard/$organizationId/events/$competitionId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -54,6 +55,12 @@ const DashboardOrganizationIdIndexRoute =
     path: '/',
     getParentRoute: () => DashboardOrganizationIdRouteRoute,
   } as any)
+const DashboardOrganizationIdEventsCompetitionIdRoute =
+  DashboardOrganizationIdEventsCompetitionIdRouteImport.update({
+    id: '/events/$competitionId',
+    path: '/events/$competitionId',
+    getParentRoute: () => DashboardOrganizationIdRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -63,6 +70,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/$organizationId': typeof DashboardOrganizationIdRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$organizationId/': typeof DashboardOrganizationIdIndexRoute
+  '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +78,7 @@ export interface FileRoutesByTo {
   '/onboarding': typeof OnboardingRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/$organizationId': typeof DashboardOrganizationIdIndexRoute
+  '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +89,7 @@ export interface FileRoutesById {
   '/dashboard/$organizationId': typeof DashboardOrganizationIdRouteRouteWithChildren
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$organizationId/': typeof DashboardOrganizationIdIndexRoute
+  '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,9 +101,15 @@ export interface FileRouteTypes {
     | '/dashboard/$organizationId'
     | '/dashboard/'
     | '/dashboard/$organizationId/'
+    | '/dashboard/$organizationId/events/$competitionId'
   fileRoutesByTo: FileRoutesByTo
   to:
-    '/' | '/login' | '/onboarding' | '/dashboard' | '/dashboard/$organizationId'
+    | '/'
+    | '/login'
+    | '/onboarding'
+    | '/dashboard'
+    | '/dashboard/$organizationId'
+    | '/dashboard/$organizationId/events/$competitionId'
   id:
     | '__root__'
     | '/'
@@ -103,6 +119,7 @@ export interface FileRouteTypes {
     | '/dashboard/$organizationId'
     | '/dashboard/'
     | '/dashboard/$organizationId/'
+    | '/dashboard/$organizationId/events/$competitionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -163,16 +180,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardOrganizationIdIndexRouteImport
       parentRoute: typeof DashboardOrganizationIdRouteRoute
     }
+    '/dashboard/$organizationId/events/$competitionId': {
+      id: '/dashboard/$organizationId/events/$competitionId'
+      path: '/events/$competitionId'
+      fullPath: '/dashboard/$organizationId/events/$competitionId'
+      preLoaderRoute: typeof DashboardOrganizationIdEventsCompetitionIdRouteImport
+      parentRoute: typeof DashboardOrganizationIdRouteRoute
+    }
   }
 }
 
 interface DashboardOrganizationIdRouteRouteChildren {
   DashboardOrganizationIdIndexRoute: typeof DashboardOrganizationIdIndexRoute
+  DashboardOrganizationIdEventsCompetitionIdRoute: typeof DashboardOrganizationIdEventsCompetitionIdRoute
 }
 
 const DashboardOrganizationIdRouteRouteChildren: DashboardOrganizationIdRouteRouteChildren =
   {
     DashboardOrganizationIdIndexRoute: DashboardOrganizationIdIndexRoute,
+    DashboardOrganizationIdEventsCompetitionIdRoute:
+      DashboardOrganizationIdEventsCompetitionIdRoute,
   }
 
 const DashboardOrganizationIdRouteRouteWithChildren =

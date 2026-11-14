@@ -1,7 +1,14 @@
 import { IconCheck, IconChevronDown, IconPlus, IconSelector } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
-import { Link, Outlet, createFileRoute, notFound } from "@tanstack/react-router";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbSeparator } from "../../../components/ui/Breadcrumb.tsx";
+import { Link, Outlet, createFileRoute, notFound, useParams } from "@tanstack/react-router";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "../../../components/ui/Breadcrumb.tsx";
 import { Button } from "../../../components/ui/Button.tsx";
 import {
   DropdownMenu,
@@ -12,6 +19,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../../components/ui/DropdownMenu.tsx";
+import { competitionQuery } from "../../../competitions.ts";
 import { organizationQuery, organizationsQuery } from "../../../organizations.ts";
 import { useSignOut } from "../../../session.ts";
 
@@ -28,6 +36,9 @@ export const Route = createFileRoute("/dashboard/$organizationId")({
 function OrganizationLayout() {
   const { organization, session } = Route.useRouteContext();
   const { data: organizations } = useQuery(organizationsQuery);
+  // On an event's page: its loader has already cached the competition, so this doesn't fetch.
+  const { competitionId } = useParams({ strict: false });
+  const { data: competition } = useQuery({ ...competitionQuery(competitionId ?? ""), enabled: !!competitionId });
   const signOut = useSignOut();
 
   return (
@@ -64,6 +75,22 @@ function OrganizationLayout() {
                 </DropdownMenuContent>
               </DropdownMenu>
             </BreadcrumbItem>
+            {competition && (
+              <>
+                <BreadcrumbSeparator>/</BreadcrumbSeparator>
+                <BreadcrumbItem>
+                  <BreadcrumbLink
+                    render={<Link to="/dashboard/$organizationId" params={{ organizationId: organization.id }} />}
+                  >
+                    Events
+                  </BreadcrumbLink>
+                </BreadcrumbItem>
+                <BreadcrumbSeparator>/</BreadcrumbSeparator>
+                <BreadcrumbItem>
+                  <BreadcrumbPage>{competition.name}</BreadcrumbPage>
+                </BreadcrumbItem>
+              </>
+            )}
           </BreadcrumbList>
         </Breadcrumb>
         <DropdownMenu>

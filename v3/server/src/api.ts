@@ -10,11 +10,13 @@ import * as HttpServer from "effect/http/HttpServer";
 import { Hostnames } from "../../domain.ts";
 import { Auth, AuthConfig, AuthenticatedLive, AuthLive } from "./auth/Auth.ts";
 import { CurrentUser } from "./auth/CurrentUser.ts";
+import { CompetitionsHandlers } from "./competitions/handlers.ts";
+import { CompetitionsService } from "./competitions/service.ts";
 import { Api as Contract } from "./contract.ts";
 import { Database, DbLive } from "./db/Db.ts";
 import { OrganizationsHandlers } from "./organizations/handlers.ts";
-import { Organizations } from "./organizations/service.ts";
-import { Permissions } from "./permissions/service.ts";
+import { OrganizationsService } from "./organizations/service.ts";
+import { PermissionsService } from "./permissions/service.ts";
 import { SentryDsn, SentrySourceMaps, Telemetry } from "./observability.ts";
 import { withSentry } from "./sentry/SentryScope.ts";
 
@@ -33,7 +35,7 @@ const Routes = Layer.mergeAll(
   ),
   HttpApiBuilder.layer(Contract, { openapiPath: "/openapi.json" }).pipe(
     Layer.provide(
-      Layer.mergeAll(UsersHandlers, OrganizationsHandlers).pipe(Layer.provide(AuthenticatedLive)),
+      Layer.mergeAll(UsersHandlers, OrganizationsHandlers, CompetitionsHandlers).pipe(Layer.provide(AuthenticatedLive)),
     ),
     Layer.provide(HttpServer.layerServices),
   ),
@@ -62,8 +64,8 @@ export default class Api extends Cloudflare.Worker<Api>()(
     return {
       fetch: handler.pipe(
         Effect.provide(
-          Layer.mergeAll(AuthLive(authConfig, cookieDomain), Organizations.layer).pipe(
-            Layer.provide(Permissions.layer),
+          Layer.mergeAll(AuthLive(authConfig, cookieDomain), OrganizationsService.layer, CompetitionsService.layer).pipe(
+            Layer.provide(PermissionsService.layer),
             Layer.provide(DbLive(hyperdrive)),
           ),
         ),
