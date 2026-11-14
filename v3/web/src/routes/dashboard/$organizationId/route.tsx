@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "../../../components/ui/DropdownMenu.tsx";
 import { competitionQuery } from "../../../competitions.ts";
+import { receivedInvitationsQuery, useAcceptInvitation } from "../../../invitations.ts";
 import { organizationQuery, organizationsQuery } from "../../../organizations.ts";
 import { useSignOut } from "../../../session.ts";
 
@@ -36,6 +37,8 @@ export const Route = createFileRoute("/dashboard/$organizationId")({
 function OrganizationLayout() {
   const { organization, session } = Route.useRouteContext();
   const { data: organizations } = useQuery(organizationsQuery);
+  const { data: invitations } = useQuery(receivedInvitationsQuery);
+  const accept = useAcceptInvitation();
   // On an event's page: its loader has already cached the competition, so this doesn't fetch.
   const { competitionId } = useParams({ strict: false });
   const { data: competition } = useQuery({ ...competitionQuery(competitionId ?? ""), enabled: !!competitionId });
@@ -52,6 +55,11 @@ function OrganizationLayout() {
               <DropdownMenu>
                 <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="min-w-0" />}>
                   <span className="truncate">{organization.name}</span>
+                  {invitations?.length ? (
+                    <span className="size-1.5 shrink-0 rounded-full bg-primary">
+                      <span className="sr-only">, you have invitations</span>
+                    </span>
+                  ) : null}
                   <IconSelector className="text-muted-foreground" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64">
@@ -67,6 +75,25 @@ function OrganizationLayout() {
                       </DropdownMenuItem>
                     ))}
                   </DropdownMenuGroup>
+                  {invitations?.length ? (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuGroup>
+                        <DropdownMenuLabel>Invitations</DropdownMenuLabel>
+                        {invitations.map((invitation) => (
+                          <DropdownMenuItem key={invitation.id} onClick={() => accept(invitation.id)}>
+                            <span className="flex min-w-0 flex-col">
+                              <span className="truncate">{invitation.organization.name}</span>
+                              <span className="text-xs text-muted-foreground">
+                                Invited by {invitation.invited_by.name || "a member"}
+                              </span>
+                            </span>
+                            <span className="ml-auto font-medium">Join</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuGroup>
+                    </>
+                  ) : null}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem render={<Link to="/onboarding" />}>
                     <IconPlus />

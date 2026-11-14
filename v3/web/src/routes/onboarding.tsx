@@ -6,7 +6,7 @@ import { authClient } from "../authClient.ts";
 import { Button } from "../components/ui/Button.tsx";
 import { Input } from "../components/ui/Input.tsx";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "../components/ui/Item.tsx";
-import { receivedInvitationsQuery, type ReceivedInvitations } from "../invitations.ts";
+import { receivedInvitationsQuery, useAcceptInvitation, type ReceivedInvitations } from "../invitations.ts";
 import { sessionQuery, useSignOut } from "../session.ts";
 
 export const Route = createFileRoute("/onboarding")({
@@ -125,8 +125,7 @@ function Invitations({
   back?: () => void;
   createOwn: () => void;
 }) {
-  const navigate = useNavigate();
-  const queryClient = useQueryClient();
+  const accept = useAcceptInvitation();
   const [error, setError] = useState<string>();
   // Stays set after success too, so a second click while moving on can't join twice.
   const [joining, setJoining] = useState<string>();
@@ -134,15 +133,10 @@ function Invitations({
   const join = async (id: string) => {
     setJoining(id);
     setError(undefined);
-    const { data } = await api().POST("/invitations/{id}/accept", { params: { path: { id } } });
-    await queryClient.invalidateQueries({ queryKey: ["invitations"] });
-    if (!data) {
+    if (!(await accept(id))) {
       setError("That invitation is no longer open.");
       setJoining(undefined);
-      return;
     }
-    await queryClient.invalidateQueries({ queryKey: ["organizations"] });
-    await navigate({ to: "/dashboard/$organizationId", params: { organizationId: data.organization_id } });
   };
 
   return (
