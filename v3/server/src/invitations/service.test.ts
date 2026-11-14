@@ -80,6 +80,23 @@ test("only the invited person can accept, once, and it makes them an admin", () 
     expect(await fails((s) => s.create(owner, organizationId, invitee.email))).toBe("AlreadyMember");
   }));
 
+test("someone removed can be invited again and rejoins as an admin", () =>
+  rolledBack(async (tx) => {
+    const { run, owner, invitee, organizationId } = await setup(tx);
+    const membership = eq(model.organizationMembers.userId, invitee.id);
+    const first = await run((s) => s.create(owner, organizationId, invitee.email));
+    await run((s) => s.accept(invitee, first.id));
+    await tx.update(model.organizationMembers).set({ deletedAt: new Date() }).where(membership);
+
+    const { id } = await run((s) => s.create(owner, organizationId, invitee.email));
+    await run((s) => s.accept(invitee, id));
+    const rows = await tx
+      .select({ role: model.organizationMembers.role, deletedAt: model.organizationMembers.deletedAt })
+      .from(model.organizationMembers)
+      .where(membership);
+    expect(rows).toEqual([{ role: "admin", deletedAt: null }]);
+  }));
+
 test("admins list their organization's open invitations, expired included, and nobody else's", () =>
   rolledBack(async (tx) => {
     const { run, owner, invitee, organizationId } = await setup(tx);

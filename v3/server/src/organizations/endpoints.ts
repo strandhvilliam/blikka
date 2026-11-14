@@ -7,6 +7,9 @@ import { Authenticated } from "../auth/Authenticated.ts";
 import { Permission, PermissionDenied, Role } from "../permissions/permissions.ts";
 import { Organization, OrganizationName, OrganizationNotFound } from "./schemas.ts";
 
+// A malformed id is a 400 here rather than a Postgres error (500).
+const params = { id: Schema.String.check(Schema.isUUID()) };
+
 export class OrganizationsApi extends HttpApiGroup.make("organizations")
   .add(
     HttpApiEndpoint.get("list", "/organizations", {
@@ -21,9 +24,8 @@ export class OrganizationsApi extends HttpApiGroup.make("organizations")
   )
   .add(
     HttpApiEndpoint.get("get", "/organizations/:id", {
-      // A malformed id is a 400 here rather than a Postgres error (500).
-      params: { id: Schema.String.check(Schema.isUUID()) },
-      success: Schema.Struct({ ...Organization.fields, permissions: Schema.Array(Permission) }),
+      params,
+      success: Schema.Struct({ ...Organization.fields, role: Role, permissions: Schema.Array(Permission) }),
       error: [HttpApiError.BadRequestNoContent, OrganizationNotFound, PermissionDenied],
     }),
   )

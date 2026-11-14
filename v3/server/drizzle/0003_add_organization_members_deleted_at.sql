@@ -1,0 +1,2 @@
+ALTER TABLE "organization_members" ADD COLUMN "deleted_at" timestamp;--> statement-breakpoint
+CREATE UNIQUE INDEX "organization_members_one_owner" ON "organization_members" USING btree ("organization_id") WHERE "organization_members"."role" = 'owner' and "organization_members"."deleted_at" is null;

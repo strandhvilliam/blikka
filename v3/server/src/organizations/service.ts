@@ -24,7 +24,13 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
             model.organizationMembers,
             eq(model.organizationMembers.organizationId, model.organizations.id),
           )
-          .where(and(eq(model.organizationMembers.userId, caller.id), isNull(model.organizations.deletedAt)))
+          .where(
+            and(
+              eq(model.organizationMembers.userId, caller.id),
+              isNull(model.organizationMembers.deletedAt),
+              isNull(model.organizations.deletedAt),
+            ),
+          )
           // uuidv7 ids sort by creation time.
           .orderBy(model.organizations.id),
       );
@@ -44,11 +50,11 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
     });
 
     const get = Effect.fn("OrganizationsService.get")(function* (caller: User, id: string) {
-      const permissions = yield* authorize(caller, "organization:read", id);
+      const { role, permissions } = yield* authorize(caller, "organization:read", id);
       const [organization] = yield* Effect.promise(() =>
         db.select(columns).from(model.organizations).where(eq(model.organizations.id, id)),
       );
-      return { ...organization!, permissions };
+      return { ...organization!, role, permissions };
     });
 
     return { list, create, get };

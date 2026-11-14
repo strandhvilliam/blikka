@@ -164,13 +164,37 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/members/{user_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["members.remove"];
+        options?: never;
+        head?: never;
+        patch: operations["members.update"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        OwnerCannotBeRemovedEncoded: {
+            /** @enum {string} */
+            _tag: "OwnerCannotBeRemoved";
+        };
         PermissionDeniedEncoded: {
             /** @enum {string} */
             _tag: "PermissionDenied";
+        };
+        MemberNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "MemberNotFound";
         };
         InvitationNotFoundEncoded: {
             /** @enum {string} */
@@ -343,6 +367,8 @@ export interface operations {
                     "application/json": {
                         id: string;
                         name: string;
+                        /** @enum {string} */
+                        role: "owner" | "admin";
                         permissions: ("organization:read" | "organization:write" | "members:read" | "members:write" | "competitions:read" | "competitions:write" | "participants:read" | "participants:write" | "submissions:read" | "submissions:write" | "jury:read" | "jury:write" | "jury:rate")[];
                     };
                 };
@@ -866,6 +892,139 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    "members.remove": {
+        parameters: {
+            query: {
+                organization_id: string;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description <No Content> */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description MemberNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberNotFoundEncoded"];
+                };
+            };
+            /** @description OwnerCannotBeRemoved */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OwnerCannotBeRemovedEncoded"];
+                };
+            };
+        };
+    };
+    "members.update": {
+        parameters: {
+            query: {
+                organization_id: string;
+            };
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** @enum {string} */
+                    role: "owner";
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        user_id: string;
+                        organization_id: string;
+                        name: string;
+                        email: string;
+                        /** @enum {string} */
+                        role: "owner" | "admin";
+                    };
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description MemberNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MemberNotFoundEncoded"];
+                };
             };
         };
     };

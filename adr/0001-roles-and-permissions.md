@@ -104,8 +104,8 @@ These are separate rules, applied after `authorize` passes:
 ### Invariants
 
 - Every organization has exactly one owner.
-- Nobody can remove or demote the owner. Ownership changes only through a transfer, which is
-  not built yet.
+- Nobody can remove or demote the owner. Ownership changes only through a transfer, which the
+  owner makes (ADR-0008).
 - Nobody can change their own role.
 - Nobody can grant a permission they don't have.
 - `superadmin` is never set or changed through the API.

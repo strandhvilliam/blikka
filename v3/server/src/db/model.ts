@@ -117,10 +117,16 @@ export const organizationMembers = pgTable(
       .references(() => user.id),
     role: text().$type<'owner' | 'admin'>().notNull().default('admin'),
     createdAt: timestamp().notNull().defaultNow(),
+    // Removed or left. Joining again clears it (adr/0008).
+    deletedAt: timestamp(),
   },
   (table) => [
     primaryKey({ columns: [table.organizationId, table.userId] }),
     index('organization_members_user_id_idx').on(table.userId),
+    // Exactly one owner (adr/0001); a transfer demotes before it promotes.
+    uniqueIndex('organization_members_one_owner')
+      .on(table.organizationId)
+      .where(sql`${table.role} = 'owner' and ${table.deletedAt} is null`),
   ],
 )
 

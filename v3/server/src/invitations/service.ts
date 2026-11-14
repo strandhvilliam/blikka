@@ -1,4 +1,4 @@
-import { and, eq, gt, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -58,7 +58,13 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           .select({ userId: model.organizationMembers.userId })
           .from(model.organizationMembers)
           .innerJoin(model.user, eq(model.user.id, model.organizationMembers.userId))
-          .where(and(eq(model.organizationMembers.organizationId, organizationId), eq(sql`lower(${model.user.email})`, email))),
+          .where(
+            and(
+              eq(model.organizationMembers.organizationId, organizationId),
+              isNull(model.organizationMembers.deletedAt),
+              eq(sql`lower(${model.user.email})`, email),
+            ),
+          ),
       );
       if (member) return yield* new AlreadyMember();
       const expiresAt = sql`now() + interval '7 days'`;
@@ -109,7 +115,12 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           await tx
             .insert(model.organizationMembers)
             .values({ organizationId: invitation.organizationId, userId: caller.id, role: "admin" })
-            .onConflictDoNothing();
+            // Someone removed earlier joins again; an active member is left as they are.
+            .onConflictDoUpdate({
+              target: [model.organizationMembers.organizationId, model.organizationMembers.userId],
+              set: { role: "admin", deletedAt: null, createdAt: sql`now()` },
+              setWhere: isNotNull(model.organizationMembers.deletedAt),
+            });
           return invitation.organizationId;
         }),
       );

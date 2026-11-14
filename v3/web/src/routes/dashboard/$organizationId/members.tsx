@@ -1,6 +1,6 @@
-import { IconUserPlus } from "@tabler/icons-react";
+import { IconDots, IconUserPlus } from "@tabler/icons-react";
 import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { useId, useState } from "react";
 import { api } from "../../../api.ts";
@@ -25,8 +25,16 @@ import {
   ItemTitle,
 } from "../../../components/ui/Item.tsx";
 import { Label } from "../../../components/ui/Label.tsx";
+import { ConfirmDialog } from "../../../components/ConfirmDialog.tsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "../../../components/ui/DropdownMenu.tsx";
 import { invitationsQuery } from "../../../invitations.ts";
 import { membersQuery } from "../../../members.ts";
+import { useRefreshOrganization } from "../../../organizations.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/members")({
   loader: ({ context, params }) =>
@@ -64,6 +72,12 @@ function Members() {
             </ItemContent>
             <ItemActions>
               <Badge variant="secondary">{roles[member.role]}</Badge>
+              <MemberActions
+                member={member}
+                organization={organization}
+                isSelf={member.user_id === session?.user.id}
+                canManage={canManage}
+              />
             </ItemActions>
           </Item>
         ))}
@@ -82,6 +96,96 @@ function Members() {
         </section>
       )}
     </main>
+  );
+}
+
+type Action = "transfer" | "remove" | "leave";
+
+// What the caller may do to this member. Cosmetic like canManage: the Api enforces the same rules (adr/0001).
+function MemberActions({
+  member,
+  organization,
+  isSelf,
+  canManage,
+}: {
+  member: { user_id: string; name: string; email: string; role: "owner" | "admin" };
+  organization: { id: string; name: string; role: "owner" | "admin" };
+  isSelf: boolean;
+  canManage: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const refreshOrganization = useRefreshOrganization();
+  const [action, setAction] = useState<Action>();
+  const actions: Array<Action> = [];
+  if (organization.role === "owner" && !isSelf) actions.push("transfer");
+  if (canManage && !isSelf && member.role !== "owner") actions.push("remove");
+  if (isSelf && member.role !== "owner") actions.push("leave");
+  if (actions.length === 0) return null;
+
+  const who = member.name || member.email;
+  const path = { params: { path: { user_id: member.user_id }, query: { organization_id: organization.id } } };
+  const dialogs = {
+    transfer: {
+      label: "Make owner",
+      title: `Make ${who} the owner?`,
+      description: "An organization has one owner. You'll become an admin, and only the new owner can hand it back.",
+      confirm: async () => {
+        const { response } = await api().PATCH("/members/{user_id}", { ...path, body: { role: "owner" } });
+        if (!response.ok) return "Couldn't hand over ownership. Try again.";
+        await queryClient.invalidateQueries({ queryKey: ["members"] });
+        await refreshOrganization(organization.id);
+      },
+    },
+    remove: {
+      label: "Remove",
+      title: `Remove ${who}?`,
+      description: `They lose access to ${organization.name} and its events. You can invite them again later.`,
+      confirm: async () => {
+        const { response } = await api().DELETE("/members/{user_id}", path);
+        // 404: removed by someone else meanwhile, which is what was asked for.
+        if (!response.ok && response.status !== 404) return "Couldn't remove them. Try again.";
+        await queryClient.invalidateQueries({ queryKey: ["members"] });
+      },
+    },
+    leave: {
+      label: "Leave organization",
+      title: `Leave ${organization.name}?`,
+      description: "You lose access to it and its events. An admin can invite you again.",
+      confirm: async () => {
+        const { response } = await api().DELETE("/members/{user_id}", path);
+        if (!response.ok && response.status !== 404) return "Couldn't leave the organization. Try again.";
+        queryClient.removeQueries({ queryKey: ["organizations", organization.id] });
+        await navigate({ to: "/dashboard" });
+      },
+    },
+  };
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${who}`} />}>
+          <IconDots />
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          {actions.map((a) => (
+            <DropdownMenuItem key={a} variant={a === "transfer" ? "default" : "destructive"} onClick={() => setAction(a)}>
+              {dialogs[a].label}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+      {action && (
+        <ConfirmDialog
+          open
+          onOpenChange={(open) => !open && setAction(undefined)}
+          title={dialogs[action].title}
+          description={dialogs[action].description}
+          action={dialogs[action].label}
+          onConfirm={dialogs[action].confirm}
+        />
+      )}
+    </>
   );
 }
 
