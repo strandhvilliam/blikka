@@ -6,6 +6,20 @@ import { InvitationsService } from "./service.ts";
 
 export const InvitationsHandlers = HttpApiBuilder.group(Api, "invitations", (handlers) =>
   handlers
+    .handle("list", ({ query }) =>
+      Effect.gen(function* () {
+        const invitations = yield* InvitationsService;
+        const user = yield* CurrentUser;
+        return yield* invitations.list(user, query.organization_id);
+      }),
+    )
+    .handle("revoke", ({ params }) =>
+      Effect.gen(function* () {
+        const invitations = yield* InvitationsService;
+        const user = yield* CurrentUser;
+        return yield* invitations.revoke(user, params.id);
+      }),
+    )
     .handle("create", ({ payload }) =>
       Effect.gen(function* () {
         const invitations = yield* InvitationsService;

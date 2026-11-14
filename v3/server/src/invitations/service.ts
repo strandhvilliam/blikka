@@ -22,7 +22,11 @@ const open = and(isNull(invitations.acceptedAt), isNull(invitations.revokedAt));
 export class InvitationsService extends Context.Service<InvitationsService>()("blikka/invitations/InvitationsService", {
   make: Effect.gen(function* () {
     const db = yield* Db;
-    const { authorize } = yield* PermissionsService;
+    const { authorize, selectAccessibleOrganizationIds } = yield* PermissionsService;
+
+    // Expired ones included, so an admin sees who to invite again.
+    const manageable = (caller: User) =>
+      and(inArray(invitations.organizationId, selectAccessibleOrganizationIds(caller, "members:read")), open);
 
     // Only a verified email proves the address is the caller's (adr/0007).
     const addressedToCaller = (caller: User) =>
@@ -113,7 +117,40 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
       return { organization_id: organizationId };
     });
 
-    return { create, received, accept };
+    const list = Effect.fn("InvitationsService.list")(function* (caller: User, organizationId?: string) {
+      return yield* Effect.promise(() =>
+        db
+          .select(columns)
+          .from(invitations)
+          .where(and(manageable(caller), organizationId ? eq(invitations.organizationId, organizationId) : undefined))
+          .orderBy(invitations.id),
+      );
+    });
+
+    const revoke = Effect.fn("InvitationsService.revoke")(function* (caller: User, id: string) {
+      const [invitation] = yield* Effect.promise(() =>
+        db
+          .select({ organizationId: invitations.organizationId })
+          .from(invitations)
+          .where(and(manageable(caller), eq(invitations.id, id))),
+      );
+      if (!invitation) return yield* new InvitationNotFound();
+      // Not a member any more since the read: the invitation is out of reach, like any other.
+      yield* authorize(caller, "members:write", invitation.organizationId).pipe(
+        Effect.catchTag("OrganizationNotFound", () => Effect.fail(new InvitationNotFound())),
+      );
+      const [revoked] = yield* Effect.promise(() =>
+        db
+          .update(invitations)
+          .set({ revokedAt: sql`now()` })
+          .where(and(eq(invitations.id, id), open))
+          .returning({ id: invitations.id }),
+      );
+      // Accepted or revoked by someone else since the read.
+      if (!revoked) return yield* new InvitationNotFound();
+    });
+
+    return { create, received, accept, list, revoke };
   }),
 }) {
   static readonly layer = Layer.effect(InvitationsService, InvitationsService.make);

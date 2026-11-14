@@ -91,7 +91,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["invitations.list"];
         put?: never;
         post: operations["invitations.create"];
         delete?: never;
@@ -132,10 +132,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/invitations/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["invitations.revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["members.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        PermissionDeniedEncoded: {
+            /** @enum {string} */
+            _tag: "PermissionDenied";
+        };
         InvitationNotFoundEncoded: {
             /** @enum {string} */
             _tag: "InvitationNotFound";
@@ -143,10 +179,6 @@ export interface components {
         AlreadyMemberEncoded: {
             /** @enum {string} */
             _tag: "AlreadyMember";
-        };
-        PermissionDeniedEncoded: {
-            /** @enum {string} */
-            _tag: "PermissionDenied";
         };
         OrganizationNotFoundEncoded: {
             /** @enum {string} */
@@ -521,6 +553,54 @@ export interface operations {
             };
         };
     };
+    "invitations.list": {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        organization_id: string;
+                        email: string;
+                        expires_at: string;
+                    }[];
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     "invitations.create": {
         parameters: {
             query?: never;
@@ -683,6 +763,108 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["InvitationNotFoundEncoded"];
                 };
+            };
+        };
+    };
+    "invitations.revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description <No Content> */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description InvitationNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "members.list": {
+        parameters: {
+            query?: {
+                organization_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        user_id: string;
+                        organization_id: string;
+                        name: string;
+                        email: string;
+                        /** @enum {string} */
+                        role: "owner" | "admin";
+                    }[];
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -12,6 +12,13 @@ const Id = Schema.String.check(Schema.isUUID());
 
 export class InvitationsApi extends HttpApiGroup.make("invitations")
   .add(
+    HttpApiEndpoint.get("list", "/invitations", {
+      query: { organization_id: Schema.optionalKey(Id) },
+      success: Schema.Array(Invitation),
+      error: HttpApiError.BadRequestNoContent,
+    }),
+  )
+  .add(
     HttpApiEndpoint.post("create", "/invitations", {
       payload: Schema.Struct({ organization_id: Id, email: InvitationEmail }),
       success: HttpApiSchema.status(201)(Invitation),
@@ -28,6 +35,13 @@ export class InvitationsApi extends HttpApiGroup.make("invitations")
       params: { id: Id },
       success: Schema.Struct({ organization_id: Schema.String }),
       error: [HttpApiError.BadRequestNoContent, InvitationNotFound],
+    }),
+  )
+  .add(
+    HttpApiEndpoint.delete("revoke", "/invitations/:id", {
+      params: { id: Id },
+      success: HttpApiSchema.NoContent,
+      error: [HttpApiError.BadRequestNoContent, InvitationNotFound, PermissionDenied],
     }),
   )
   .middleware(Authenticated) {}

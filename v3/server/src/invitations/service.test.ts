@@ -55,10 +55,8 @@ test("an unverified email, an expired or a revoked invitation can't be seen or a
     expect(await run((s) => s.received(invitee))).toEqual([]);
     expect(await fails((s) => s.accept(invitee, id))).toBe("InvitationNotFound");
 
-    await tx
-      .update(model.organizationInvitations)
-      .set({ expiresAt: sql`now() + interval '1 day'`, revokedAt: sql`now()` })
-      .where(invitation);
+    await tx.update(model.organizationInvitations).set({ expiresAt: sql`now() + interval '1 day'` }).where(invitation);
+    await run((s) => s.revoke(owner, id));
     expect(await run((s) => s.received(invitee))).toEqual([]);
     expect(await fails((s) => s.accept(invitee, id))).toBe("InvitationNotFound");
   }));
@@ -80,4 +78,41 @@ test("only the invited person can accept, once, and it makes them an admin", () 
     expect(await run((s) => s.received(invitee))).toEqual([]);
     expect(await fails((s) => s.accept(invitee, id))).toBe("InvitationNotFound");
     expect(await fails((s) => s.create(owner, organizationId, invitee.email))).toBe("AlreadyMember");
+  }));
+
+test("admins list their organization's open invitations, expired included, and nobody else's", () =>
+  rolledBack(async (tx) => {
+    const { run, owner, invitee, organizationId } = await setup(tx);
+    const open = await run((s) => s.create(owner, organizationId, invitee.email));
+    const expired = await run((s) => s.create(owner, organizationId, "expired@blikka.test"));
+    await tx
+      .update(model.organizationInvitations)
+      .set({ expiresAt: sql`now() - interval '1 second'` })
+      .where(eq(model.organizationInvitations.id, expired.id));
+    const revoked = await run((s) => s.create(owner, organizationId, "revoked@blikka.test"));
+    await run((s) => s.revoke(owner, revoked.id));
+
+    const otherOwner = await createUser(tx, "Other");
+    const otherOrganizationId = await createOrganization(tx, otherOwner);
+    await run((s) => s.create(otherOwner, otherOrganizationId, "theirs@blikka.test"));
+
+    const ids = (list: ReadonlyArray<{ id: string }>) => list.map((i) => i.id);
+    expect(ids(await run((s) => s.list(owner, organizationId)))).toEqual([open.id, expired.id]);
+    expect(ids(await run((s) => s.list(owner)))).toEqual([open.id, expired.id]);
+    expect(await run((s) => s.list(owner, otherOrganizationId))).toEqual([]);
+  }));
+
+test("only an admin of the invitation's organization can revoke it, and only while it's open", () =>
+  rolledBack(async (tx) => {
+    const { run, fails, owner, invitee, organizationId } = await setup(tx);
+    const { id } = await run((s) => s.create(owner, organizationId, invitee.email));
+    const stranger = await createUser(tx, "Stranger");
+    expect(await fails((s) => s.revoke(stranger, id))).toBe("InvitationNotFound");
+    expect(await fails((s) => s.revoke(invitee, id))).toBe("InvitationNotFound");
+
+    await run((s) => s.revoke(owner, id));
+    expect(await fails((s) => s.revoke(owner, id))).toBe("InvitationNotFound");
+    // A revoked invitation frees the address to be invited again, as a new invitation.
+    const again = await run((s) => s.create(owner, organizationId, invitee.email));
+    expect(again.id).not.toBe(id);
   }));

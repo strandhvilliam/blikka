@@ -44,14 +44,14 @@ function OrganizationLayout() {
   return (
     <div className="min-h-svh">
       <header className="flex h-14 items-center justify-between gap-4 border-b px-4">
-        <Breadcrumb>
+        <Breadcrumb className="min-w-0">
           <BreadcrumbList>
             <BreadcrumbItem className="font-semibold text-foreground max-sm:hidden">Blikka</BreadcrumbItem>
             <BreadcrumbSeparator className="max-sm:hidden">/</BreadcrumbSeparator>
-            <BreadcrumbItem>
+            <BreadcrumbItem className="min-w-0">
               <DropdownMenu>
-                <DropdownMenuTrigger render={<Button variant="ghost" size="sm" />}>
-                  {organization.name}
+                <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="min-w-0" />}>
+                  <span className="truncate">{organization.name}</span>
                   <IconSelector className="text-muted-foreground" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-64">
@@ -93,7 +93,7 @@ function OrganizationLayout() {
             )}
           </BreadcrumbList>
         </Breadcrumb>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-1">
           <Button
             variant="ghost"
             size="sm"

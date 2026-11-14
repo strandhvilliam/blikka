@@ -1,8 +1,10 @@
 import { IconUserPlus } from "@tabler/icons-react";
+import { useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { formatDistanceToNow } from "date-fns";
 import { useId, useState } from "react";
 import { api } from "../../../api.ts";
-import { Alert, AlertDescription } from "../../../components/ui/Alert.tsx";
+import { Badge } from "../../../components/ui/Badge.tsx";
 import { Button } from "../../../components/ui/Button.tsx";
 import {
   Dialog,
@@ -14,38 +16,139 @@ import {
   DialogTrigger,
 } from "../../../components/ui/Dialog.tsx";
 import { Input } from "../../../components/ui/Input.tsx";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemGroup,
+  ItemTitle,
+} from "../../../components/ui/Item.tsx";
 import { Label } from "../../../components/ui/Label.tsx";
+import { invitationsQuery } from "../../../invitations.ts";
+import { membersQuery } from "../../../members.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/members")({
+  loader: ({ context, params }) =>
+    Promise.all([
+      context.queryClient.ensureQueryData(membersQuery(params.organizationId)),
+      context.queryClient.ensureQueryData(invitationsQuery(params.organizationId)),
+    ]),
   component: Members,
 });
 
+const roles = { owner: "Owner", admin: "Admin" };
+
 function Members() {
-  const { organization } = Route.useRouteContext();
-  const [invited, setInvited] = useState<string>();
+  const { organization, session } = Route.useRouteContext();
+  const { data: members } = useSuspenseQuery(membersQuery(organization.id));
+  const { data: invitations } = useSuspenseQuery(invitationsQuery(organization.id));
+  // Cosmetic: the Api refuses these without the permission either way.
+  const canManage = organization.permissions.includes("members:write");
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between gap-4">
         <h1 className="text-2xl font-semibold">Members</h1>
-        {/* Cosmetic: the Api refuses the invite without this permission either way. */}
-        {organization.permissions.includes("members:write") && (
-          <Invite organizationId={organization.id} onInvited={setInvited} />
-        )}
+        {canManage && <Invite organizationId={organization.id} />}
       </div>
-      {invited && (
-        <Alert>
-          <AlertDescription>
-            Invited {invited}. They join by signing in to Blikka with that address.
-          </AlertDescription>
-        </Alert>
+      <ItemGroup>
+        {members.map((member) => (
+          <Item key={member.user_id} variant="outline">
+            <ItemContent>
+              <ItemTitle>
+                {member.name || member.email}
+                {member.user_id === session?.user.id && <span className="text-muted-foreground">(you)</span>}
+              </ItemTitle>
+              {member.name && <ItemDescription>{member.email}</ItemDescription>}
+            </ItemContent>
+            <ItemActions>
+              <Badge variant="secondary">{roles[member.role]}</Badge>
+            </ItemActions>
+          </Item>
+        ))}
+      </ItemGroup>
+      {invitations.length > 0 && (
+        <section className="flex flex-col gap-3">
+          <div>
+            <h2 className="font-medium">Invited</h2>
+            <p className="text-sm text-muted-foreground">They join by signing in to Blikka with the invited address.</p>
+          </div>
+          <ItemGroup>
+            {invitations.map((invitation) => (
+              <PendingInvitation key={invitation.id} invitation={invitation} canManage={canManage} />
+            ))}
+          </ItemGroup>
+        </section>
       )}
     </main>
   );
 }
 
-function Invite({ organizationId, onInvited }: { organizationId: string; onInvited: (email: string) => void }) {
+function PendingInvitation({
+  invitation,
+  canManage,
+}: {
+  invitation: { id: string; organization_id: string; email: string; expires_at: string };
+  canManage: boolean;
+}) {
+  const queryClient = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const expiresAt = new Date(invitation.expires_at);
+  const expired = expiresAt <= new Date();
+
+  // Refetches either way: a failure means it was accepted or revoked elsewhere.
+  const act = async (request: () => Promise<unknown>) => {
+    setBusy(true);
+    await request();
+    await queryClient.invalidateQueries({ queryKey: ["invitations"] });
+    await queryClient.invalidateQueries({ queryKey: ["members"] });
+    setBusy(false);
+  };
+
+  return (
+    <Item variant="outline">
+      <ItemContent>
+        <ItemTitle>{invitation.email}</ItemTitle>
+        <ItemDescription>
+          {expired ? "Expired" : `Expires ${formatDistanceToNow(expiresAt, { addSuffix: true })}`}
+        </ItemDescription>
+      </ItemContent>
+      {canManage && (
+        <ItemActions>
+          {expired && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() =>
+                act(() =>
+                  api().POST("/invitations", {
+                    body: { organization_id: invitation.organization_id, email: invitation.email },
+                  }),
+                )
+              }
+            >
+              Invite again
+            </Button>
+          )}
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={busy}
+            onClick={() => act(() => api().DELETE("/invitations/{id}", { params: { path: { id: invitation.id } } }))}
+          >
+            Revoke
+          </Button>
+        </ItemActions>
+      )}
+    </Item>
+  );
+}
+
+function Invite({ organizationId }: { organizationId: string }) {
   const id = useId();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [error, setError] = useState<string>();
@@ -73,12 +176,13 @@ function Invite({ organizationId, onInvited }: { organizationId: string; onInvit
             const { data, response } = await api().POST("/invitations", {
               body: { organization_id: organizationId, email: email.trim() },
             });
-            setSubmitting(false);
             if (!data) {
+              setSubmitting(false);
               setError(response.status === 409 ? "They're already a member." : "Couldn't send the invitation. Try again.");
               return;
             }
-            onInvited(data.email);
+            await queryClient.invalidateQueries({ queryKey: ["invitations"] });
+            setSubmitting(false);
             setOpen(false);
           }}
         >

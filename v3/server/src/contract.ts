@@ -5,6 +5,7 @@ import * as HttpApiGroup from "effect/http-api/HttpApiGroup";
 import { Authenticated } from "./auth/Authenticated.ts";
 import { CompetitionsApi } from "./competitions/endpoints.ts";
 import { InvitationsApi } from "./invitations/endpoints.ts";
+import { MembersApi } from "./members/endpoints.ts";
 import { OrganizationsApi } from "./organizations/endpoints.ts";
 
 // Schemas only, so clients can import it without pulling in the database, Better Auth or secrets.
@@ -26,4 +27,5 @@ export class Api extends HttpApi.make("blikka")
   .add(UsersApi)
   .add(OrganizationsApi)
   .add(CompetitionsApi)
-  .add(InvitationsApi) {}
+  .add(InvitationsApi)
+  .add(MembersApi) {}
