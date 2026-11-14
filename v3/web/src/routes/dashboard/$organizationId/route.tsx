@@ -20,7 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "../../../components/ui/DropdownMenu.tsx";
 import { competitionQuery } from "../../../competitions.ts";
-import { receivedInvitationsQuery, useAcceptInvitation } from "../../../invitations.ts";
+import { invitedBy, receivedInvitationsQuery, useAcceptInvitation } from "../../../invitations.ts";
 import { organizationQuery, organizationsQuery } from "../../../organizations.ts";
 import { useSignOut } from "../../../session.ts";
 
@@ -84,9 +84,7 @@ function OrganizationLayout() {
                           <DropdownMenuItem key={invitation.id} onClick={() => accept(invitation.id)}>
                             <span className="flex min-w-0 flex-col">
                               <span className="truncate">{invitation.organization.name}</span>
-                              <span className="text-xs text-muted-foreground">
-                                Invited by {invitation.invited_by.name || "a member"}
-                              </span>
+                              <span className="text-xs wrap-anywhere text-muted-foreground">{invitedBy(invitation)}</span>
                             </span>
                             <span className="ml-auto font-medium">Join</span>
                           </DropdownMenuItem>

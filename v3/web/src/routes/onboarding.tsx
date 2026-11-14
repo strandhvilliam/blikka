@@ -6,7 +6,7 @@ import { authClient } from "../authClient.ts";
 import { Button } from "../components/ui/Button.tsx";
 import { Input } from "../components/ui/Input.tsx";
 import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "../components/ui/Item.tsx";
-import { receivedInvitationsQuery, useAcceptInvitation, type ReceivedInvitations } from "../invitations.ts";
+import { invitedBy, receivedInvitationsQuery, useAcceptInvitation, type ReceivedInvitations } from "../invitations.ts";
 import { sessionQuery, useSignOut } from "../session.ts";
 
 export const Route = createFileRoute("/onboarding")({
@@ -152,7 +152,7 @@ function Invitations({
           <Item key={invitation.id} variant="outline" className="text-left">
             <ItemContent>
               <ItemTitle>{invitation.organization.name}</ItemTitle>
-              <ItemDescription>Invited by {invitation.invited_by.name || "a member"}</ItemDescription>
+              <ItemDescription className="wrap-anywhere">{invitedBy(invitation)}</ItemDescription>
             </ItemContent>
             <ItemActions>
               <Button disabled={joining !== undefined} onClick={() => join(invitation.id)}>

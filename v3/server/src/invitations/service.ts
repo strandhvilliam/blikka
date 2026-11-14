@@ -86,7 +86,7 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           .select({
             id: invitations.id,
             organization: { id: model.organizations.id, name: model.organizations.name },
-            invited_by: { name: model.user.name },
+            invited_by: { name: model.user.name, email: model.user.email },
             expires_at: invitations.expiresAt,
           })
           .from(invitations)

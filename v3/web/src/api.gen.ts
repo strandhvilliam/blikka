@@ -691,6 +691,7 @@ export interface operations {
                         };
                         invited_by: {
                             name: string;
+                            email: string;
                         };
                         expires_at: string;
                     }[];

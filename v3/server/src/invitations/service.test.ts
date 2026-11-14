@@ -35,7 +35,7 @@ test("the invited person sees the invitation, with the organization and who sent
     const { id } = await run((s) => s.create(owner, organizationId, invitee.email));
     const received = await run((s) => s.received(invitee));
     expect(received.map(({ expires_at: _, ...rest }) => rest)).toEqual([
-      { id, organization: { id: organizationId, name: "Photo Club" }, invited_by: { name: "Owner" } },
+      { id, organization: { id: organizationId, name: "Photo Club" }, invited_by: { name: "Owner", email: owner.email } },
     ]);
     expect(await run((s) => s.received(owner))).toEqual([]);
   }));

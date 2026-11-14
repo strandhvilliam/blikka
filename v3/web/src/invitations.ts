@@ -27,6 +27,10 @@ export const receivedInvitationsQuery = queryOptions({
   },
 });
 
+// Always with the address: the name is free text, so it alone doesn't say who is inviting.
+export const invitedBy = ({ invited_by: { name, email } }: ReceivedInvitations[number]) =>
+  `Invited by ${name ? `${name} (${email})` : email}`;
+
 // Joins and opens the organization. False when the invitation was revoked or expired meanwhile,
 // and the refetch has dropped it.
 export function useAcceptInvitation() {
