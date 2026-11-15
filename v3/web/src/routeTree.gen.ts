@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardOrganizationIdRouteRouteImport } from './routes/dashboard/$organizationId/route'
+import { Route as ESlugRouteImport } from './routes/e/$slug'
 import { Route as DashboardOrganizationIdIndexRouteImport } from './routes/dashboard/$organizationId/index'
 import { Route as DashboardOrganizationIdMembersRouteImport } from './routes/dashboard/$organizationId/members'
 import { Route as DashboardOrganizationIdSettingsRouteImport } from './routes/dashboard/$organizationId/settings'
@@ -54,6 +55,11 @@ const DashboardOrganizationIdRouteRoute =
     path: '/$organizationId',
     getParentRoute: () => DashboardRouteRoute,
   } as any)
+const ESlugRoute = ESlugRouteImport.update({
+  id: '/e/$slug',
+  path: '/e/$slug',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DashboardOrganizationIdIndexRoute =
   DashboardOrganizationIdIndexRouteImport.update({
     id: '/',
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/dashboard/$organizationId': typeof DashboardOrganizationIdRouteRouteWithChildren
+  '/e/$slug': typeof ESlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$organizationId/members': typeof DashboardOrganizationIdMembersRoute
   '/dashboard/$organizationId/settings': typeof DashboardOrganizationIdSettingsRoute
@@ -116,6 +123,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/e/$slug': typeof ESlugRoute
   '/dashboard': typeof DashboardIndexRoute
   '/dashboard/$organizationId/members': typeof DashboardOrganizationIdMembersRoute
   '/dashboard/$organizationId/settings': typeof DashboardOrganizationIdSettingsRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/dashboard/$organizationId': typeof DashboardOrganizationIdRouteRouteWithChildren
+  '/e/$slug': typeof ESlugRoute
   '/dashboard/': typeof DashboardIndexRoute
   '/dashboard/$organizationId/members': typeof DashboardOrganizationIdMembersRoute
   '/dashboard/$organizationId/settings': typeof DashboardOrganizationIdSettingsRoute
@@ -148,6 +157,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/dashboard/$organizationId'
+    | '/e/$slug'
     | '/dashboard/'
     | '/dashboard/$organizationId/members'
     | '/dashboard/$organizationId/settings'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/onboarding'
+    | '/e/$slug'
     | '/dashboard'
     | '/dashboard/$organizationId/members'
     | '/dashboard/$organizationId/settings'
@@ -175,6 +186,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/dashboard/$organizationId'
+    | '/e/$slug'
     | '/dashboard/'
     | '/dashboard/$organizationId/members'
     | '/dashboard/$organizationId/settings'
@@ -190,6 +202,7 @@ export interface RootRouteChildren {
   DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
+  ESlugRoute: typeof ESlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -235,6 +248,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/dashboard/$organizationId'
       preLoaderRoute: typeof DashboardOrganizationIdRouteRouteImport
       parentRoute: typeof DashboardRouteRoute
+    }
+    '/e/$slug': {
+      id: '/e/$slug'
+      path: '/e/$slug'
+      fullPath: '/e/$slug'
+      preLoaderRoute: typeof ESlugRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/dashboard/$organizationId/': {
       id: '/dashboard/$organizationId/'
@@ -350,6 +370,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRouteRoute: DashboardRouteRouteWithChildren,
   LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
+  ESlugRoute: ESlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -222,15 +222,18 @@ export const participants = pgTable(
     // Copied from the account on entry, so guests and users read the same.
     name: text().notNull(),
     email: text().notNull(),
-    reference: text().notNull(),
-    status: text().notNull().default('initialized'),
+    // SHA-256 of the guest token (adr/0004). Null once a user owns the entry.
+    guestTokenHash: text(),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
     deletedAt: timestamp(),
   },
   (table) => [
     unique('participants_competition_id_email_unique').on(table.competitionId, table.email),
-    unique('participants_competition_id_reference_unique').on(table.competitionId, table.reference),
+    // One entry per user per competition, even if their account email changed in between.
+    uniqueIndex('participants_competition_id_user_id_unique')
+      .on(table.competitionId, table.userId)
+      .where(sql`${table.userId} is not null`),
     index('participants_user_id_idx').on(table.userId),
     index('participants_email_idx').on(table.email),
   ],

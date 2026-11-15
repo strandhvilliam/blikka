@@ -8,10 +8,13 @@ import * as HttpEffect from "effect/http/HttpEffect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServer from "effect/http/HttpServer";
 import { Hostnames } from "../../domain.ts";
-import { Auth, AuthConfig, AuthenticatedLive, AuthLive } from "./auth/Auth.ts";
+import { Auth, AuthConfig, AuthenticatedLive, AuthLive, EntrySessionLive } from "./auth/Auth.ts";
 import { CurrentUser } from "./auth/CurrentUser.ts";
 import { CompetitionsHandlers } from "./competitions/handlers.ts";
 import { CompetitionsService } from "./competitions/service.ts";
+import { EntryHandlers } from "./entry/handlers.ts";
+import { ParticipantsHandlers } from "./participants/handlers.ts";
+import { ParticipantsService } from "./participants/service.ts";
 import { TopicsHandlers } from "./topics/handlers.ts";
 import { TopicsService } from "./topics/service.ts";
 import { Api as Contract } from "./contract.ts";
@@ -46,9 +49,11 @@ const Routes = Layer.mergeAll(
         OrganizationsHandlers,
         CompetitionsHandlers,
         TopicsHandlers,
+        EntryHandlers,
+        ParticipantsHandlers,
         InvitationsHandlers,
         MembersHandlers,
-      ).pipe(Layer.provide(AuthenticatedLive)),
+      ).pipe(Layer.provide(Layer.mergeAll(AuthenticatedLive, EntrySessionLive))),
     ),
     Layer.provide(HttpServer.layerServices),
   ),
@@ -78,7 +83,8 @@ export default class Api extends Cloudflare.Worker<Api>()(
       fetch: handler.pipe(
         Effect.provide(
           Layer.mergeAll(
-            AuthLive(authConfig, cookieDomain),
+            // Auth claims guest entries on sign-in (adr/0004), through ParticipantsService.
+            AuthLive(authConfig, cookieDomain).pipe(Layer.provideMerge(ParticipantsService.layer)),
             OrganizationsService.layer,
             CompetitionsService.layer,
             TopicsService.layer,

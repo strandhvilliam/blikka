@@ -33,20 +33,47 @@ in. The only fork is at entry:
 | Proves ownership with | The session | The guest token returned on entry |
 
 Emails are stored lowercased, so the unique `(competition_id, email)` cannot be bypassed by
-case.
+case. A user has at most one entry per competition, and an entry belongs to one competition: a
+participant who comes back to the next event is a new entry under the same user.
+
+### When an event can be entered
+
+Only a published competition can be entered (ADR-0009), from `published_at` until `closes_at`, or
+for as long as `closes_at` is null. Participants open it at `/e/<slug>`. A draft answers the same
+404 as an event that doesn't exist. Once anyone has entered, the competition can't be unpublished,
+so nobody loses an event they joined.
+
+### Participants have their own routes, under `/entry`
+
+Participants call the same flat resources as organizers (ADR-0006), under `/entry`, with their own
+response shapes:
+
+```
+GET  /entry/competitions/:slug               a published competition
+POST /entry/participants                     enter
+GET  /entry/participants?competition_id=…    the caller's own entries
+GET  /entry/participants/:id                 one of them
+```
+
+Submissions follow as `/entry/submissions`. A path never means one thing to an organizer and
+another to a participant, and the two views of the same rows can grow apart.
 
 ### Ownership is checked in one place
 
-Every participant route after entry calls one helper, `requireParticipantOwner(participantId)`.
-It passes when the session user is the row's `user_id`, or when the request carries the row's
-guest token. Phase rules from ADR-0001 (uploads only while the competition is open) still apply
-after it.
+Every `/entry` route reads through one scope: the rows whose `user_id` is the session's user, or
+whose `guest_token_hash` matches the request's guest token. A caller with neither owns nothing.
+`requireParticipantOwner(caller, participantId)` is that scope for one row, and a 404 otherwise.
+Phase rules from ADR-0001 (uploads only while the competition is open) still apply after it.
 
-- The guest token is random, returned once on entry and kept by the website in the browser on
-  that device. Only its SHA-256 hash is stored, in a nullable `participants.guest_token_hash`
-  column. Revoking it sets the column to null.
-- It is sent in its own `X-Participant-Token` header. `Authorization: Bearer` is already the
-  Better Auth session token (README, Auth), and the two must not be confused.
+Listing the caller's entries in a competition replaces remembering an entry id, so a signed-in
+participant finds their entry on any device.
+
+- The guest token is random, prefixed `blikka_pgt_`, returned once on entry and kept by the
+  website in the browser on that device. Only its SHA-256 hash is stored, in a nullable
+  `participants.guest_token_hash` column. Revoking it sets the column to null.
+- It is sent as `Authorization: Bearer blikka_pgt_…`. The `/entry` routes pick it out by its
+  prefix and keep it from Better Auth, which reads the same header for its session tokens
+  (README, Auth). The website sends its session as a cookie, so one request can carry both.
 
 ### A verified email takes over a guest entry
 
@@ -55,20 +82,34 @@ with their verified email already exists, they do not get "email already taken".
 that row:
 
 1. `user_id` is set to the user.
-2. `guest_token_hash` is set to null, so whoever holds the guest token loses access.
-3. Uploads already on the row stay. The user keeps or replaces them.
+2. `name` is set to the account's name, unless the account has none.
+3. `guest_token_hash` is set to null, so whoever holds the guest token loses access.
+4. Uploads already on the row stay. The user keeps or replaces them.
 
 Usually the guest and the user are the same person, who simply continues. If someone else
 entered with their email first, the real owner gets the entry back and replaces the uploads. An
 organizer can delete the entry when that is not enough.
 
-Google always provides a verified email, so this works for every signed-in participant.
+Google and the emailed sign-in code both give a verified email, so this works for every
+signed-in participant.
+
+### Guests are one-offs until they sign in
+
+A guest is never asked to confirm their email or make an account. Each entry stands alone, and a
+participant who comes back as a guest makes a new one each time.
+
+Whenever a session is created (Google or code), every guest entry with the user's verified email
+becomes theirs, in every competition, by the takeover above. Entering signed in applies the same
+claim, for a guest entry made after the session was. A competition where the user already has an
+entry is skipped. So a participant who entered as a guest several times with the same email gets
+all of those entries the first time they sign in, for example to see their history. Linking only
+ever follows a verified email, so typing someone's address never joins their history.
 
 ### Sign-in methods per audience
 
 | Audience | Shown | Why |
 |---|---|---|
-| Participants (`_public/` pages) | Google, and "continue as guest" | No code to wait for at the event. Anyone without Google enters as a guest, so nobody is locked out |
+| Participants (`/e/<slug>`) | Google, and "continue as guest" | No code to wait for at the event. Anyone without Google enters as a guest, so nobody is locked out. They get an account, with their guest entries, whenever they sign in later |
 | Organizers (`/login`) | Google, with email OTP as fallback | Many clubs and municipalities use Microsoft or their own domain. Without OTP they cannot sign in at all |
 | Jury | Neither | Invite token, as in ADR-0001 |
 | Local dev | Email OTP, Google optional | The code is logged in the terminal, so dev needs no Google credentials |
@@ -84,14 +125,16 @@ entry as a new guest.
 
 ## Consequences
 
-- Upload, submission and status logic exist once. Adding a sign-in method touches entry and
-  `requireParticipantOwner`, nothing else.
-- A guest who clears their browser or changes phone loses access to their entry until they
-  sign in with Google using the same email (which takes it over) or ask the organizer.
-- Someone can block a person's email in a competition by entering with it first. The takeover
-  undoes it once the owner signs in. A guest-only owner has to ask the organizer.
-- Participants without Google stay guests. They retype their details on a new device and have no
-  history across competitions.
+- Upload, submission and status logic exist once. Adding a sign-in method touches entry and the
+  `/entry` scope, nothing else.
+- A guest who clears their browser or changes phone loses access to their entry until they sign
+  in with the same email (which takes it over) or ask the organizer.
+- Signing in anywhere while an event is running takes over that event's guest entry, so the
+  browser that entered as a guest loses it. It is the same person, now signed in elsewhere.
+- Someone can block a person's email in a competition by entering with it first. The owner gets
+  the entry back by signing in.
+- Participants without Google get an account, and their history across competitions, by signing
+  in with an emailed code. Until they do, they are guests.
 
 ## Alternatives considered
 
@@ -101,8 +144,16 @@ entry as a new guest.
   spam in front of every participant at the event, to stop something rare and low-stakes.
 - **Drop email OTP entirely.** Locks out organizers without Google, and local dev would need
   Google credentials again.
-- **Guest token as `Authorization: Bearer`.** Collides with the Better Auth session token, which
-  already uses that header.
+- **One `/participants` for organizers and participants.** One path answering under two
+  permission models: an organizer could list a row and then get a 404 for it, and both views of
+  the same rows would have to share one shape.
+- **Linking guest entries by email without confirming it.** Anyone typing your address would join
+  your history, or see it.
+- **Emailing every guest a sign-in link after entering.** Gives each guest an account straight
+  away, but adds a flow at the event that nobody needs there, and opening the link in another
+  browser takes the entry away from the one that entered. Linking can wait until someone signs in.
+- **Guest token in its own `X-Participant-Token` header.** A second credential header next to
+  `Authorization`, when the prefix already tells a guest token from a session token.
 
 ## Open questions
 
@@ -110,5 +161,3 @@ entry as a new guest.
   support requests show they want an account, not before.
 - A per-competition "require verified email" setting, for competitions with prizes where entering
   as someone else matters. Not needed yet.
-- Should signing in also take over guest entries in past competitions with the same verified
-  email, to give returning participants their history? This ADR only takes over on entry.

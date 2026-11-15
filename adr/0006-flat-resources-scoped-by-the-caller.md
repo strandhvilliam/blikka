@@ -76,5 +76,5 @@ database layer uses.
 
 ## Not covered
 
-Participants don't use this. A participant owns their entry and their routes check ownership
-(ADR-0004), in their own endpoints, separate from the organizer's.
+Participants don't use this scope. They call the same flat resources under `/entry`, with their own
+response shapes, scoped to the entries they own instead of to organizations (ADR-0004).

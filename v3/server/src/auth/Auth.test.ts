@@ -12,9 +12,10 @@ import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import { Api, User } from "../contract.ts";
 import type { Db } from "../db/Db.ts";
-import { Auth, AuthenticatedLive, disabledAuthPaths, makeAuth } from "./Auth.ts";
+import { Auth, AuthenticatedLive, disabledAuthPaths, EntrySessionLive, makeAuth } from "./Auth.ts";
 import { Authenticated } from "./Authenticated.ts";
 import { CurrentUser } from "./CurrentUser.ts";
+import { EntryCaller, EntrySession } from "./EntrySession.ts";
 
 const website = "https://blikka.test";
 const sessionUser = { id: "u1", email: "a@b.c", name: "A", platformRole: "superadmin" };
@@ -22,16 +23,20 @@ const sessionUser = { id: "u1", email: "a@b.c", name: "A", platformRole: "supera
 const FakeAuth = Layer.succeed(Auth)({
   options: { trustedOrigins: [website] },
   api: {
-    getSession: async ({ headers }: { headers: Headers }) =>
-      headers.get("cookie") === "session=ok" || headers.get("authorization") === "Bearer ok"
+    getSession: async ({ headers }: { headers: Headers }) => {
+      sessionLookups.push(headers.get("authorization"));
+      return headers.get("cookie") === "session=ok" || headers.get("authorization") === "Bearer ok"
         ? { user: sessionUser, session: {} }
-        : null,
+        : null;
+    },
   },
 } as unknown as Auth["Service"]);
 
 let handlerRuns = 0;
+let sessionLookups: Array<string | null> = [];
 beforeEach(() => {
   handlerRuns = 0;
+  sessionLookups = [];
 });
 
 const TestApi = HttpApi.make("test").add(
@@ -39,6 +44,15 @@ const TestApi = HttpApi.make("test").add(
     .add(HttpApiEndpoint.get("read", "/read", { success: User }))
     .add(HttpApiEndpoint.post("write", "/write", { payload: Schema.Struct({}), success: User }))
     .middleware(Authenticated),
+).add(
+  HttpApiGroup.make("guest")
+    .add(
+      HttpApiEndpoint.post("enter", "/enter", {
+        payload: Schema.Struct({}),
+        success: Schema.Struct({ user: Schema.NullOr(User), guest_token: Schema.NullOr(Schema.String) }),
+      }),
+    )
+    .middleware(EntrySession),
 );
 
 const returnCurrentUser = CurrentUser.useSync((user) => {
@@ -49,9 +63,19 @@ const returnCurrentUser = CurrentUser.useSync((user) => {
 const { handler } = HttpRouter.toWebHandler(
   HttpApiBuilder.layer(TestApi).pipe(
     Layer.provide(
-      HttpApiBuilder.group(TestApi, "probe", (handlers) =>
-        handlers.handle("read", () => returnCurrentUser).handle("write", () => returnCurrentUser),
-      ).pipe(Layer.provide(AuthenticatedLive)),
+      Layer.mergeAll(
+        HttpApiBuilder.group(TestApi, "probe", (handlers) =>
+          handlers.handle("read", () => returnCurrentUser).handle("write", () => returnCurrentUser),
+        ).pipe(Layer.provide(AuthenticatedLive)),
+        HttpApiBuilder.group(TestApi, "guest", (handlers) =>
+          handlers.handle("enter", () =>
+            EntryCaller.useSync(({ user, guestToken }) => {
+              handlerRuns++;
+              return { user, guest_token: guestToken };
+            }),
+          ),
+        ).pipe(Layer.provide(EntrySessionLive)),
+      ),
     ),
     Layer.provide(HttpServer.layerServices),
     Layer.provideMerge(FakeAuth),
@@ -98,6 +122,7 @@ test("the emailOTP endpoints the website doesn't use are 404, and the two it use
     {} as Db["Service"],
     { secret: Redacted.make("s".repeat(32)), baseURL: "https://api.blikka.test", websiteURL: website, google: Option.none() },
     undefined,
+    { claimGuestEntries: () => Effect.void },
   );
   const status = async (path: string) =>
     (await auth.handler(new Request(`https://api.blikka.test/auth${path}`, { method: "POST" }))).status;
@@ -107,9 +132,34 @@ test("the emailOTP endpoints the website doesn't use are 404, and the two it use
   expect(await status("/sign-in/email-otp")).not.toBe(404);
 });
 
+test("EntrySession lets a caller with nothing through, and a session as its user", async () => {
+  expect(await (await request("POST", "/enter", { origin: website })).json()).toEqual({ user: null, guest_token: null });
+  const response = await request("POST", "/enter", { cookie: "session=ok", origin: website });
+  expect(await response.json()).toEqual({ user: { id: "u1", email: "a@b.c", name: "A" }, guest_token: null });
+});
+
+test("EntrySession hands a prefixed bearer to the handler as a guest token, and keeps it from Better Auth", async () => {
+  const headers = { origin: website, cookie: "session=ok", authorization: "Bearer blikka_pgt_abc" };
+  expect(await (await request("POST", "/enter", headers)).json()).toEqual({
+    user: { id: "u1", email: "a@b.c", name: "A" },
+    guest_token: "blikka_pgt_abc",
+  });
+  expect(sessionLookups).toEqual([null]);
+  // Any other bearer is a session token.
+  const session = await request("POST", "/enter", { authorization: "Bearer ok" });
+  expect(await session.json()).toEqual({ user: { id: "u1", email: "a@b.c", name: "A" }, guest_token: null });
+});
+
+test("EntrySession refuses a cookie write from another origin, and the handler doesn't run", async () => {
+  const response = await request("POST", "/enter", { cookie: "session=ok", origin: "https://evil.blikka.test" });
+  expect(response.status).toBe(403);
+  expect(handlerRuns).toBe(0);
+});
+
 // Reading CurrentUser without the middleware doesn't compile, but a handler that never reads it would
 // silently be public. Add a deliberately public endpoint here as "group.endpoint".
-const publicEndpoints: ReadonlyArray<string> = [];
+// Participants enter and read their entry as guests too (adr/0004), behind EntrySession instead.
+const publicEndpoints: ReadonlyArray<string> = ["entry.competition", "entry.enter", "entry.list", "entry.get"];
 
 test("every contract endpoint is behind Authenticated", () => {
   const unauthenticated = Object.values(Api.groups).flatMap((group) =>

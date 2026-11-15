@@ -1,0 +1,2 @@
+ALTER TABLE "participants" ADD COLUMN "guest_token_hash" text;--> statement-breakpoint
+CREATE UNIQUE INDEX "participants_competition_id_user_id_unique" ON "participants" USING btree ("competition_id","user_id") WHERE "participants"."user_id" is not null;

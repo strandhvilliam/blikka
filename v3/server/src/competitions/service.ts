@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull, sql } from "drizzle-orm";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -154,7 +154,33 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
       );
     });
 
-    return { list, get, create, update, remove, writable, selectReadableIds };
+    // For participants, without a caller: only published competitions exist here (adr/0004).
+    const getPublished = Effect.fn("CompetitionsService.getPublished")(function* (slug: string) {
+      const [competition] = yield* Effect.promise(() =>
+        db
+          .select({
+            id: model.competitions.id,
+            slug: model.competitions.slug,
+            name: model.competitions.name,
+            description: model.competitions.description,
+            time_zone: model.competitions.timeZone,
+            opens_at: model.competitions.opensAt,
+            closes_at: model.competitions.closesAt,
+          })
+          .from(model.competitions)
+          .where(
+            and(
+              eq(model.competitions.slug, slug),
+              isNull(model.competitions.deletedAt),
+              isNotNull(model.competitions.publishedAt),
+            ),
+          ),
+      );
+      if (!competition) return yield* new CompetitionNotFound();
+      return competition;
+    });
+
+    return { list, get, create, update, remove, writable, selectReadableIds, getPublished };
   }),
 }) {
   static readonly layer = Layer.effect(CompetitionsService, CompetitionsService.make);

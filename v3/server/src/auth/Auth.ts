@@ -16,8 +16,10 @@ import type * as HttpServerResponse from "effect/http/HttpServerResponse";
 import type * as Types from "effect/Types";
 import { Db } from "../db/Db.ts";
 import * as model from "../db/model.ts";
+import { ParticipantsService } from "../participants/service.ts";
 import { Authenticated } from "./Authenticated.ts";
 import { CurrentUser } from "./CurrentUser.ts";
+import { EntryCaller, EntrySession, GUEST_TOKEN_PREFIX } from "./EntrySession.ts";
 
 const GoogleConfig = Config.all({
   clientId: Config.String("GOOGLE_CLIENT_ID"),
@@ -56,6 +58,7 @@ export const makeAuth = (
   db: Db["Service"],
   config: Config.Success<typeof AuthConfig>,
   cookieDomain: CookieDomain,
+  participants: Pick<ParticipantsService["Service"], "claimGuestEntries">,
 ) =>
   betterAuth({
     database: drizzleAdapter(db, { provider: "pg", schema: model }),
@@ -116,6 +119,18 @@ export const makeAuth = (
         },
       }),
     ],
+    databaseHooks: {
+      session: {
+        create: {
+          // A failed claim must not fail the sign-in; the entry can still be taken over by entering.
+          after: async (session) => {
+            await Effect.runPromise(participants.claimGuestEntries(session.userId)).catch((error) =>
+              console.error("[auth] claiming guest entries failed", error),
+            );
+          },
+        },
+      },
+    },
   });
 
 export class Auth extends Context.Service<Auth, ReturnType<typeof makeAuth>>()("blikka/auth/Auth") {}
@@ -124,31 +139,49 @@ export const AuthLive = (config: Config.Success<typeof AuthConfig>, cookieDomain
   Layer.effect(
     Auth,
     Effect.gen(function* () {
-      return makeAuth(yield* Db, config, cookieDomain);
+      return makeAuth(yield* Db, config, cookieDomain, yield* ParticipantsService);
     }),
   );
 
-export const getSession = Effect.fn("Auth.getSession")(function* () {
+export const getSession = Effect.fn("Auth.getSession")(function* (headers?: Headers) {
   const auth = yield* Auth;
   const request = yield* HttpServerRequest.HttpServerRequest;
-  return yield* Effect.promise(() => auth.api.getSession({ headers: new Headers(request.headers) }));
+  return yield* Effect.promise(() => auth.api.getSession({ headers: headers ?? new Headers(request.headers) }));
 });
 
-const authenticate = Effect.fn("Auth.authenticate")(function* (
-  httpEffect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled, CurrentUser>,
-) {
+// CSRF: the session cookie is SameSite=Lax, so any subdomain of the cookie domain can still send
+// it with a POST. Browsers always send Origin on those; non-browser clients send none.
+const checkOrigin = Effect.fn("Auth.checkOrigin")(function* () {
   const auth = yield* Auth;
   const request = yield* HttpServerRequest.HttpServerRequest;
-  // CSRF: the session cookie is SameSite=Lax, so any subdomain of the cookie domain can still send
-  // it with a POST. Browsers always send Origin on those; non-browser clients send none.
   const origin = request.headers["origin"];
   const safeMethod = request.method === "GET" || request.method === "HEAD";
   if (!safeMethod && origin !== undefined && !auth.options.trustedOrigins.includes(origin)) {
     return yield* new HttpApiError.Forbidden();
   }
+});
+
+const authenticate = Effect.fn("Auth.authenticate")(function* (
+  httpEffect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled, CurrentUser>,
+) {
+  yield* checkOrigin();
   const session = yield* getSession();
   if (!session) return yield* new HttpApiError.Unauthorized();
   return yield* Effect.provideService(httpEffect, CurrentUser, session.user);
+});
+
+const entrySession = Effect.fn("Auth.entrySession")(function* (
+  httpEffect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled, EntryCaller>,
+) {
+  yield* checkOrigin();
+  const request = yield* HttpServerRequest.HttpServerRequest;
+  const bearer = request.headers["authorization"]?.match(/^Bearer (\S+)$/)?.[1];
+  const guestToken = bearer?.startsWith(GUEST_TOKEN_PREFIX) ? bearer : null;
+  const headers = new Headers(request.headers);
+  // A guest token isn't a session, so Better Auth only sees the cookie.
+  if (guestToken) headers.delete("authorization");
+  const session = yield* getSession(headers);
+  return yield* Effect.provideService(httpEffect, EntryCaller, { user: session?.user ?? null, guestToken });
 });
 
 // The cast swaps Auth for its per-request marker (see Authenticated.ts). It holds because the
@@ -156,3 +189,5 @@ const authenticate = Effect.fn("Auth.authenticate")(function* (
 export const AuthenticatedLive = Layer.succeed(Authenticated)(
   authenticate as Authenticated["Service"],
 );
+
+export const EntrySessionLive = Layer.succeed(EntrySession)(entrySession as EntrySession["Service"]);
