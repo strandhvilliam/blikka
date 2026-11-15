@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { gt, isNotNull, sql } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -184,7 +184,7 @@ export const competitions = pgTable(
   (table) => [
     index("competitions_organization_id_idx").on(table.organizationId),
     // The service checks this first; the constraint catches two edits racing.
-    check("competitions_window_check", sql`${table.closesAt} > ${table.opensAt}`),
+    check("competitions_window_check", gt(table.closesAt, table.opensAt)),
   ],
 );
 
@@ -233,7 +233,7 @@ export const participants = pgTable(
     // One entry per user per competition, even if their account email changed in between.
     uniqueIndex("participants_competition_id_user_id_unique")
       .on(table.competitionId, table.userId)
-      .where(sql`${table.userId} is not null`),
+      .where(isNotNull(table.userId)),
     index("participants_user_id_idx").on(table.userId),
     index("participants_email_idx").on(table.email),
   ],

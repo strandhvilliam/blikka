@@ -1,4 +1,5 @@
-import { and, eq, inArray, isNull, not, sql } from "drizzle-orm";
+import { and, eq, exists, inArray, isNull, not, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -59,31 +60,47 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
       const claimGuestEntries = Effect.fn("ParticipantsService.claimGuestEntries")(function* (userId: string) {
         const { user } = model;
 
-        // A column of the user's account, null until its email is verified.
-        const verified = (column: typeof user.email | typeof user.name) =>
-          sql`(select ${column} from ${user} where ${user.id} = ${userId} and ${user.emailVerified})`;
+        const [account] = yield* Effect.promise(() =>
+          db
+            .select({ email: user.email, name: user.name })
+            .from(user)
+            .where(and(eq(user.id, userId), eq(user.emailVerified, true))),
+        );
 
-        const accountName = verified(user.name);
-        const accountEmail = verified(user.email);
+        // Nothing to claim until the email is verified.
+        if (!account) {
+          return;
+        }
 
-        const alreadyEntered = sql`exists (
-          select 1 from ${participants} as mine
-          where mine.competition_id = ${participants.competitionId} and mine.user_id = ${userId}
-        )`;
+        // Left undefined, the entry keeps the name it was made with.
+        let name: string | undefined;
+
+        if (account.name !== "") {
+          name = account.name;
+        }
+
+        const mine = alias(participants, "mine");
+
+        const alreadyEntered = exists(
+          db
+            .select({ id: mine.id })
+            .from(mine)
+            .where(and(eq(mine.competitionId, participants.competitionId), eq(mine.userId, userId))),
+        );
 
         yield* Effect.promise(() =>
           db
             .update(participants)
             .set({
               userId,
-              name: sql`coalesce(nullif(${accountName}, ''), ${participants.name})`,
+              name,
               guestTokenHash: null,
               updatedAt: sql`now()`,
             })
             .where(
               and(
                 isNull(participants.userId),
-                sql`${participants.email} = lower(${accountEmail})`,
+                eq(participants.email, account.email.toLowerCase()),
                 not(alreadyEntered),
               ),
             ),
