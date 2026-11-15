@@ -32,12 +32,21 @@ export const captureException = Effect.fn("Sentry.captureException")(function* (
   );
 });
 
+// Logs the cause and sends it to Sentry.
+export const reportCause = (cause: Cause.Cause<unknown>) =>
+  Effect.gen(function* () {
+    yield* Effect.logError(cause);
+    yield* captureException(Cause.squash(cause));
+  });
+
+// A defect, or a failure that isn't one of the Api's own error responses.
 const isUnexpected = (cause: Cause.Cause<unknown>) =>
-  cause.reasons.some((reason) =>
-    Cause.isFailReason(reason)
-      ? !HttpServerRespondable.isRespondable(reason.error)
-      : Cause.isDieReason(reason),
-  );
+  cause.reasons.some((reason) => {
+    if (Cause.isFailReason(reason)) {
+      return !HttpServerRespondable.isRespondable(reason.error);
+    }
+    return Cause.isDieReason(reason);
+  });
 
 export const withSentry = (options: Sentry.CloudflareOptions) => {
   // What `Sentry.withSentry` sets up for a plain handler: without it each request shares one scope.
@@ -45,32 +54,31 @@ export const withSentry = (options: Sentry.CloudflareOptions) => {
   return <E, R>(self: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) =>
     Effect.gen(function* () {
       const execution = yield* Cloudflare.WorkerExecutionContext;
-      const request = yield* HttpServerRequest.toWeb(
-        yield* HttpServerRequest.HttpServerRequest,
-      ).pipe(Effect.mapError((reason) => new HttpServerError.HttpServerError({ reason })));
+      const serverRequest = yield* HttpServerRequest.HttpServerRequest;
+      const request = yield* HttpServerRequest.toWeb(serverRequest).pipe(
+        Effect.mapError((reason) => new HttpServerError.HttpServerError({ reason })),
+      );
       const context = yield* Effect.context<Exclude<R, SentryScope>>();
-      const response = yield* Effect.promise((signal) =>
-        // captureErrors: false — reporting happens below, where expected errors can be told apart.
-        wrapRequestHandler({ options, request, context: execution.raw, captureErrors: false }, () =>
-          Effect.runPromiseWith(context)(
-            self.pipe(
-              Effect.tapCause((cause) =>
-                isUnexpected(cause)
-                  ? Effect.andThen(Effect.logError(cause), captureException(Cause.squash(cause)))
-                  : Effect.void,
-              ),
-              Effect.catchCause((cause) =>
-                Effect.map(HttpServerError.causeResponse(cause), ([response]) => response),
-              ),
-              Effect.map((response) => HttpServerResponse.toWeb(response, { context })),
-              Effect.provideService(SentryScope, {
-                isolationScope: Sentry.getIsolationScope(),
-                scope: Sentry.getCurrentScope(),
-              }),
-            ),
-            { signal },
-          ),
+
+      const handled = self.pipe(
+        Effect.tapCause((cause) => (isUnexpected(cause) ? reportCause(cause) : Effect.void)),
+        Effect.catchCause((cause) =>
+          Effect.map(HttpServerError.causeResponse(cause), ([response]) => response),
         ),
+        Effect.map((response) => HttpServerResponse.toWeb(response, { context })),
+      );
+
+      const response = yield* Effect.promise((signal) =>
+        // captureErrors: false — `handled` reports, where expected errors can be told apart.
+        wrapRequestHandler({ options, request, context: execution.raw, captureErrors: false }, () => {
+          // Read here, inside the handler, where Sentry has set up this request's scopes.
+          const scopes = {
+            isolationScope: Sentry.getIsolationScope(),
+            scope: Sentry.getCurrentScope(),
+          };
+          const run = Effect.runPromiseWith(context);
+          return run(Effect.provideService(handled, SentryScope, scopes), { signal });
+        }),
       );
       return HttpServerResponse.fromWeb(response);
     });

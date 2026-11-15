@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, type SQL, sql } from "drizzle-orm";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
@@ -45,13 +45,15 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
       db.select({ id: model.competitions.id }).from(model.competitions).where(readable(caller));
 
     const list = Effect.fn("CompetitionsService.list")(function* (caller: User, organizationId?: string) {
+      const filters = [readable(caller)];
+      if (organizationId) {
+        filters.push(eq(model.competitions.organizationId, organizationId));
+      }
       return yield* Effect.promise(() =>
         db
           .select(columns)
           .from(model.competitions)
-          .where(
-            and(readable(caller), organizationId ? eq(model.competitions.organizationId, organizationId) : undefined),
-          )
+          .where(and(...filters))
           // uuidv7 ids sort by creation time.
           .orderBy(model.competitions.id),
       );
@@ -64,7 +66,9 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
           .from(model.competitions)
           .where(and(readable(caller), eq(model.competitions.id, id))),
       );
-      if (!competition) return yield* new CompetitionNotFound();
+      if (!competition) {
+        return yield* new CompetitionNotFound();
+      }
       return competition;
     });
 
@@ -77,7 +81,9 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
           .onConflictDoNothing({ target: model.competitions.slug })
           .returning(columns),
       );
-      if (!competition) return yield* new CompetitionNameTaken();
+      if (!competition) {
+        return yield* new CompetitionNameTaken();
+      }
       return competition;
     });
 
@@ -94,12 +100,28 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
       const current = yield* writable(caller, id);
       const opensAt = patch.opens_at === undefined ? current.opens_at : patch.opens_at;
       const closesAt = patch.closes_at === undefined ? current.closes_at : patch.closes_at;
-      if (opensAt && closesAt && closesAt <= opensAt) return yield* new CompetitionWindowInvalid();
+      if (opensAt && closesAt && closesAt <= opensAt) {
+        return yield* new CompetitionWindowInvalid();
+      }
+
+      // Left undefined, published_at stays as it is.
+      let publishedAt: SQL | null | undefined;
+      if (patch.published === true) {
+        // Publishing again keeps the first published_at.
+        publishedAt = sql`coalesce(${model.competitions.publishedAt}, now())`;
+      } else if (patch.published === false) {
+        publishedAt = null;
+      }
+
       return yield* transaction(db, (tx) =>
         Effect.gen(function* () {
           // Topic deletes and entries lock this row too, so neither can slip past the checks below.
           yield* Effect.promise(() =>
-            tx.select({ id: model.competitions.id }).from(model.competitions).where(eq(model.competitions.id, id)).for("update"),
+            tx
+              .select({ id: model.competitions.id })
+              .from(model.competitions)
+              .where(eq(model.competitions.id, id))
+              .for("update"),
           );
           if (patch.published) {
             const [topic] = yield* Effect.promise(() =>
@@ -109,7 +131,9 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
                 .where(and(eq(model.topics.competitionId, id), isNull(model.topics.deletedAt)))
                 .limit(1),
             );
-            if (!topic) return yield* new CompetitionHasNoTopics();
+            if (!topic) {
+              return yield* new CompetitionHasNoTopics();
+            }
           }
           if (patch.published === false) {
             const [participant] = yield* Effect.promise(() =>
@@ -119,7 +143,9 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
                 .where(and(eq(model.participants.competitionId, id), isNull(model.participants.deletedAt)))
                 .limit(1),
             );
-            if (participant) return yield* new CompetitionHasParticipants();
+            if (participant) {
+              return yield* new CompetitionHasParticipants();
+            }
           }
           const [competition] = yield* Effect.promise(() =>
             tx
@@ -131,19 +157,16 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
                 timeZone: patch.time_zone,
                 opensAt: patch.opens_at,
                 closesAt: patch.closes_at,
-                publishedAt:
-                  patch.published === undefined
-                    ? undefined
-                    : patch.published
-                      ? sql`coalesce(${model.competitions.publishedAt}, now())`
-                      : null,
+                publishedAt,
                 updatedAt: sql`now()`,
               })
               .where(and(eq(model.competitions.id, id), isNull(model.competitions.deletedAt)))
               .returning(columns),
           );
           // Deleted since the check.
-          if (!competition) return yield* new CompetitionNotFound();
+          if (!competition) {
+            return yield* new CompetitionNotFound();
+          }
           return competition;
         }),
       );

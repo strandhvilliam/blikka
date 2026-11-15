@@ -29,22 +29,22 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
       and(inArray(invitations.organizationId, selectAccessibleOrganizationIds(caller, "members:read")), open);
 
     // Only a verified email proves the address is the caller's (adr/0007).
-    const addressedToCaller = (caller: User) =>
-      and(
-        inArray(
-          invitations.email,
-          db
-            .select({ email: sql<string>`lower(${model.user.email})` })
-            .from(model.user)
-            .where(and(eq(model.user.id, caller.id), eq(model.user.emailVerified, true))),
-        ),
+    const addressedToCaller = (caller: User) => {
+      const verifiedEmail = db
+        .select({ email: sql<string>`lower(${model.user.email})` })
+        .from(model.user)
+        .where(and(eq(model.user.id, caller.id), eq(model.user.emailVerified, true)));
+      const liveOrganizationIds = db
+        .select({ id: model.organizations.id })
+        .from(model.organizations)
+        .where(isNull(model.organizations.deletedAt));
+      return and(
+        inArray(invitations.email, verifiedEmail),
         open,
         gt(invitations.expiresAt, sql`now()`),
-        inArray(
-          invitations.organizationId,
-          db.select({ id: model.organizations.id }).from(model.organizations).where(isNull(model.organizations.deletedAt)),
-        ),
+        inArray(invitations.organizationId, liveOrganizationIds),
       );
+    };
 
     const create = Effect.fn("InvitationsService.create")(function* (
       caller: User,
@@ -66,7 +66,9 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
             ),
           ),
       );
-      if (member) return yield* new AlreadyMember();
+      if (member) {
+        return yield* new AlreadyMember();
+      }
       const expiresAt = sql`now() + interval '7 days'`;
       const [invitation] = yield* Effect.promise(() =>
         db
@@ -81,7 +83,8 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
       );
       // shortcut: logs instead of emailing, send it with the email service once there is one.
       yield* Effect.logInfo(
-        `[invitations] ${caller.email} invited ${email} to organization ${organizationId}. They join by signing in with ${email}.`,
+        `[invitations] ${caller.email} invited ${email} to organization ${organizationId}. ` +
+          `They join by signing in with ${email}.`,
       );
       return invitation!;
     });
@@ -113,7 +116,9 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
               .where(and(eq(invitations.id, id), addressedToCaller(caller)))
               .returning({ organizationId: invitations.organizationId }),
           );
-          if (!invitation) return yield* new InvitationNotFound();
+          if (!invitation) {
+            return yield* new InvitationNotFound();
+          }
           yield* Effect.promise(() =>
             tx
               .insert(model.organizationMembers)
@@ -130,12 +135,19 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
       );
     });
 
-    const list = Effect.fn("InvitationsService.list")(function* (caller: User, organizationId?: string) {
+    const list = Effect.fn("InvitationsService.list")(function* (
+      caller: User,
+      organizationId?: string,
+    ) {
+      const filters = [manageable(caller)];
+      if (organizationId) {
+        filters.push(eq(invitations.organizationId, organizationId));
+      }
       return yield* Effect.promise(() =>
         db
           .select(columns)
           .from(invitations)
-          .where(and(manageable(caller), organizationId ? eq(invitations.organizationId, organizationId) : undefined))
+          .where(and(...filters))
           .orderBy(invitations.id),
       );
     });
@@ -147,7 +159,9 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           .from(invitations)
           .where(and(manageable(caller), eq(invitations.id, id))),
       );
-      if (!invitation) return yield* new InvitationNotFound();
+      if (!invitation) {
+        return yield* new InvitationNotFound();
+      }
       // Not a member any more since the read: the invitation is out of reach, like any other.
       yield* authorize(caller, "members:write", invitation.organizationId).pipe(
         Effect.catchTag("OrganizationNotFound", () => Effect.fail(new InvitationNotFound())),
@@ -160,7 +174,9 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           .returning({ id: invitations.id }),
       );
       // Accepted or revoked by someone else since the read.
-      if (!revoked) return yield* new InvitationNotFound();
+      if (!revoked) {
+        return yield* new InvitationNotFound();
+      }
     });
 
     return { create, received, accept, list, revoke };

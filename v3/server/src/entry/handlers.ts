@@ -23,13 +23,15 @@ export const EntryHandlers = HttpApiBuilder.group(Api, "entry", (handlers) =>
     .handle("list", ({ query }) =>
       Effect.gen(function* () {
         const entry = yield* EntryService;
-        return yield* entry.listOwn(yield* EntryCaller, query.competition_id);
+        const caller = yield* EntryCaller;
+        return yield* entry.listOwn(caller, query.competition_id);
       }),
     )
     .handle("get", ({ params }) =>
       Effect.gen(function* () {
         const entry = yield* EntryService;
-        return yield* entry.requireParticipantOwner(yield* EntryCaller, params.id);
+        const caller = yield* EntryCaller;
+        return yield* entry.requireParticipantOwner(caller, params.id);
       }),
     ),
 );

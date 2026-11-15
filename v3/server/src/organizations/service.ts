@@ -46,7 +46,9 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
             tx.insert(model.organizations).values({ name }).returning(columns),
           );
           yield* Effect.promise(() =>
-            tx.insert(model.organizationMembers).values({ organizationId: organization!.id, userId: caller.id, role: "owner" }),
+            tx
+              .insert(model.organizationMembers)
+              .values({ organizationId: organization!.id, userId: caller.id, role: "owner" }),
           );
           return organization!;
         }),
@@ -71,14 +73,18 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
           .returning(columns),
       );
       // Deleted since the check.
-      if (!organization) return yield* new OrganizationNotFound();
+      if (!organization) {
+        return yield* new OrganizationNotFound();
+      }
       return organization;
     });
 
     // Only the owner deletes (adr/0008). Everything under the organization goes with it, since reads skip it.
     const remove = Effect.fn("OrganizationsService.remove")(function* (caller: User, id: string) {
       const { role } = yield* authorize(caller, "organization:write", id);
-      if (role !== "owner") return yield* new PermissionDenied();
+      if (role !== "owner") {
+        return yield* new PermissionDenied();
+      }
       yield* Effect.promise(() =>
         db
           .update(model.organizations)

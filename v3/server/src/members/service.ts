@@ -27,30 +27,43 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
     const db = yield* Db;
     const { authorize, selectAccessibleOrganizationIds } = yield* PermissionsService;
 
-    const select = (caller: User, where: ReturnType<typeof and>) =>
-      db
-        .select(columns)
-        .from(members)
-        .innerJoin(model.user, eq(model.user.id, members.userId))
-        .where(
-          and(
-            inArray(members.organizationId, selectAccessibleOrganizationIds(caller, "members:read")),
-            isNull(members.deletedAt),
-            where,
-          ),
-        );
+    // Every read starts here, so filters can only narrow what the caller may see.
+    const readable = (caller: User) =>
+      and(
+        inArray(members.organizationId, selectAccessibleOrganizationIds(caller, "members:read")),
+        isNull(members.deletedAt),
+      );
 
     const list = Effect.fn("MembersService.list")(function* (caller: User, organizationId?: string) {
+      const filters = [readable(caller)];
+      if (organizationId) {
+        filters.push(eq(members.organizationId, organizationId));
+      }
       return yield* Effect.promise(() =>
-        select(caller, organizationId ? eq(members.organizationId, organizationId) : undefined).orderBy(
-          members.createdAt,
-        ),
+        db
+          .select(columns)
+          .from(members)
+          .innerJoin(model.user, eq(model.user.id, members.userId))
+          .where(and(...filters))
+          .orderBy(members.createdAt),
       );
     });
 
-    const get = Effect.fn("MembersService.get")(function* (caller: User, organizationId: string, userId: string) {
-      const [member] = yield* Effect.promise(() => select(caller, membership(organizationId, userId)));
-      if (!member) return yield* new MemberNotFound();
+    const get = Effect.fn("MembersService.get")(function* (
+      caller: User,
+      organizationId: string,
+      userId: string,
+    ) {
+      const [member] = yield* Effect.promise(() =>
+        db
+          .select(columns)
+          .from(members)
+          .innerJoin(model.user, eq(model.user.id, members.userId))
+          .where(and(readable(caller), membership(organizationId, userId))),
+      );
+      if (!member) {
+        return yield* new MemberNotFound();
+      }
       return member;
     });
 
@@ -63,8 +76,12 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
     // Removing yourself is leaving, which needs no permission.
     const remove = Effect.fn("MembersService.remove")(function* (caller: User, organizationId: string, userId: string) {
       const member = yield* get(caller, organizationId, userId);
-      if (member.role === "owner") return yield* new OwnerCannotBeRemoved();
-      if (userId !== caller.id) yield* authorizeWrite(caller, organizationId);
+      if (member.role === "owner") {
+        return yield* new OwnerCannotBeRemoved();
+      }
+      if (userId !== caller.id) {
+        yield* authorizeWrite(caller, organizationId);
+      }
       const [removed] = yield* Effect.promise(() =>
         db
           .update(members)
@@ -73,7 +90,9 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
           .where(and(membership(organizationId, userId), ne(members.role, "owner")))
           .returning({ userId: members.userId }),
       );
-      if (!removed) return yield* new MemberNotFound();
+      if (!removed) {
+        return yield* new MemberNotFound();
+      }
     });
 
     // The owner hands ownership to another member and becomes an admin. Nobody changes their own role (adr/0001).
@@ -84,7 +103,9 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
     ) {
       yield* get(caller, organizationId, userId);
       const { role } = yield* authorizeWrite(caller, organizationId);
-      if (role !== "owner" || userId === caller.id) return yield* new PermissionDenied();
+      if (role !== "owner" || userId === caller.id) {
+        return yield* new PermissionDenied();
+      }
       yield* transaction(db, (tx) =>
         Effect.gen(function* () {
           // Demote first: the index allows one owner at a time.
@@ -95,7 +116,9 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
               .where(and(membership(organizationId, caller.id), eq(members.role, "owner")))
               .returning({ userId: members.userId }),
           );
-          if (!demoted) return yield* new PermissionDenied();
+          if (!demoted) {
+            return yield* new PermissionDenied();
+          }
           const [promoted] = yield* Effect.promise(() =>
             tx
               .update(members)
@@ -104,7 +127,9 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
               .returning({ userId: members.userId }),
           );
           // Removed since the read: failing undoes the demotion, so the organization keeps its owner.
-          if (!promoted) return yield* new MemberNotFound();
+          if (!promoted) {
+            return yield* new MemberNotFound();
+          }
         }),
       );
       return yield* get(caller, organizationId, userId);

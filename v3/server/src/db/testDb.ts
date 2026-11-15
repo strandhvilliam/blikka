@@ -25,7 +25,9 @@ export const rolledBack = (body: (tx: Tx) => Promise<void>) =>
       tx.rollback();
     })
     .catch((error) => {
-      if (error?.constructor?.name !== "TransactionRollbackError") throw error;
+      if (error?.constructor?.name !== "TransactionRollbackError") {
+        throw error;
+      }
     });
 
 // Runs a domain service against the transaction, the way api.ts provides it per request.

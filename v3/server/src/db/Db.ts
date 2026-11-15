@@ -55,7 +55,9 @@ export const transaction = <A, E, R>(db: Db["Service"], body: (tx: Tx) => Effect
           return exit;
         });
       } catch (error) {
-        if (failure && error instanceof TransactionRollbackError) return failure;
+        if (failure && error instanceof TransactionRollbackError) {
+          return failure;
+        }
         throw error; // a database error stays a defect
       }
     });

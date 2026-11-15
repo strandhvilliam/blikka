@@ -27,8 +27,9 @@ export const Logs = Axiom.Dataset("Logs", { name: LOGS, kind: "otel:logs:v1" }).
 );
 
 export const Ingest = Effect.gen(function* () {
+  const stage = yield* Stage;
   return yield* Axiom.ApiToken("Ingest", {
-    name: `blikka-ingest-${yield* Stage}`,
+    name: `blikka-ingest-${stage}`,
     datasetCapabilities: {
       [TRACES]: { ingest: ["create"] },
       [LOGS]: { ingest: ["create"] },
@@ -38,7 +39,9 @@ export const Ingest = Effect.gen(function* () {
 
 export const Telemetry = Layer.unwrap(
   Effect.gen(function* () {
-    if (yield* ALCHEMY_DEV) return Layer.empty;
+    if (yield* ALCHEMY_DEV) {
+      return Layer.empty;
+    }
     return Axiom.Telemetry({ token: Ingest, traces: Traces, logs: Logs });
   }),
 );

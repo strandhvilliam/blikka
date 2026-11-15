@@ -18,7 +18,7 @@ import type * as Types from "effect/Types";
 import { Db } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { ParticipantsService } from "../participants/service.ts";
-import { captureException, SentryScope } from "../sentry/SentryScope.ts";
+import { reportCause, SentryScope } from "../sentry/SentryScope.ts";
 import { Authenticated } from "./Authenticated.ts";
 import { CurrentUser } from "./CurrentUser.ts";
 import { EntryCaller, EntrySession, GUEST_TOKEN_PREFIX } from "./EntrySession.ts";
@@ -75,7 +75,9 @@ export const makeAuth = (
       // someone else's. Counted per email, not per IP, so it holds against any number of IPs.
       before: createAuthMiddleware(async (ctx) => {
         const email = ctx.body?.email;
-        if (ctx.path !== "/email-otp/send-verification-otp" || typeof email !== "string") return;
+        if (ctx.path !== "/email-otp/send-verification-otp" || typeof email !== "string") {
+          return;
+        }
         const { otpSends } = model;
         const expired = sql`${otpSends.windowStart} < now() - interval '1 hour'`;
         // One statement, so parallel requests can't each read the same count.
@@ -91,7 +93,9 @@ export const makeAuth = (
           })
           .returning({ count: otpSends.count });
         if (sent!.count > MAX_CODES_PER_HOUR) {
-          throw new APIError("TOO_MANY_REQUESTS", { message: "Too many codes requested. Try again in an hour." });
+          throw new APIError("TOO_MANY_REQUESTS", {
+            message: "Too many codes requested. Try again in an hour.",
+          });
         }
       }),
     },
@@ -141,20 +145,20 @@ export const AuthLive = (config: Config.Success<typeof AuthConfig>, cookieDomain
       // Better Auth calls back outside Effect, so the claim runs with this request's context: its
       // trace, logger and Sentry scope. Built per request (api.ts), so the context is the request's.
       const run = Effect.runPromiseWith(yield* Effect.context<SentryScope>());
-      const claimGuestEntries = (userId: string) =>
-        run(
-          participants.claimGuestEntries(userId).pipe(
-            Effect.catchCause((cause) => Effect.andThen(Effect.logError(cause), captureException(Cause.squash(cause)))),
-          ),
-        );
-      return makeAuth(yield* Db, config, cookieDomain, claimGuestEntries);
+      const claimGuestEntries = (userId: string) => {
+        const claim = participants.claimGuestEntries(userId);
+        return run(Effect.catchCause(claim, reportCause));
+      };
+      const db = yield* Db;
+      return makeAuth(db, config, cookieDomain, claimGuestEntries);
     }),
   );
 
 export const getSession = Effect.fn("Auth.getSession")(function* (headers?: Headers) {
   const auth = yield* Auth;
   const request = yield* HttpServerRequest.HttpServerRequest;
-  return yield* Effect.promise(() => auth.api.getSession({ headers: headers ?? new Headers(request.headers) }));
+  const sessionHeaders = headers ?? new Headers(request.headers);
+  return yield* Effect.promise(() => auth.api.getSession({ headers: sessionHeaders }));
 });
 
 // CSRF: the session cookie is SameSite=Lax, so any subdomain of the cookie domain can still send
@@ -174,7 +178,9 @@ const authenticate = Effect.fn("Auth.authenticate")(function* (
 ) {
   yield* checkOrigin();
   const session = yield* getSession();
-  if (!session) return yield* new HttpApiError.Unauthorized();
+  if (!session) {
+    return yield* new HttpApiError.Unauthorized();
+  }
   return yield* Effect.provideService(httpEffect, CurrentUser, session.user);
 });
 
@@ -183,13 +189,19 @@ const entrySession = Effect.fn("Auth.entrySession")(function* (
 ) {
   yield* checkOrigin();
   const request = yield* HttpServerRequest.HttpServerRequest;
-  const bearer = request.headers["authorization"]?.match(/^Bearer (\S+)$/)?.[1];
+  const bearerMatch = request.headers["authorization"]?.match(/^Bearer (\S+)$/);
+  const bearer = bearerMatch?.[1];
   const guestToken = bearer?.startsWith(GUEST_TOKEN_PREFIX) ? bearer : null;
+
   const headers = new Headers(request.headers);
   // A guest token isn't a session, so Better Auth only sees the cookie.
-  if (guestToken) headers.delete("authorization");
+  if (guestToken) {
+    headers.delete("authorization");
+  }
   const session = yield* getSession(headers);
-  return yield* Effect.provideService(httpEffect, EntryCaller, { user: session?.user ?? null, guestToken });
+
+  const caller = { user: session?.user ?? null, guestToken };
+  return yield* Effect.provideService(httpEffect, EntryCaller, caller);
 });
 
 // The cast swaps Auth for its per-request marker (see Authenticated.ts). It holds because the

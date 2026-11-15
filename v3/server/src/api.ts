@@ -34,31 +34,32 @@ const UsersHandlers = HttpApiBuilder.group(Contract, "users", (handlers) =>
   handlers.handle("me", () => CurrentUser.useSync((user) => ({ user }))),
 );
 
-const Routes = Layer.mergeAll(
-  HttpRouter.add(
-    "*",
-    "/auth/*",
-    Effect.gen(function* () {
-      const auth = yield* Auth;
-      return yield* HttpEffect.fromWebHandler(auth.handler);
-    }),
-  ),
-  HttpApiBuilder.layer(Contract, { openapiPath: "/openapi.json" }).pipe(
-    Layer.provide(
-      Layer.mergeAll(
-        UsersHandlers,
-        OrganizationsHandlers,
-        CompetitionsHandlers,
-        TopicsHandlers,
-        EntryHandlers,
-        ParticipantsHandlers,
-        InvitationsHandlers,
-        MembersHandlers,
-      ).pipe(Layer.provide(Layer.mergeAll(AuthenticatedLive, EntrySessionLive))),
-    ),
-    Layer.provide(HttpServer.layerServices),
-  ),
+const Handlers = Layer.mergeAll(
+  UsersHandlers,
+  OrganizationsHandlers,
+  CompetitionsHandlers,
+  TopicsHandlers,
+  EntryHandlers,
+  ParticipantsHandlers,
+  InvitationsHandlers,
+  MembersHandlers,
+).pipe(Layer.provide(Layer.mergeAll(AuthenticatedLive, EntrySessionLive)));
+
+const AuthRoute = HttpRouter.add(
+  "*",
+  "/auth/*",
+  Effect.gen(function* () {
+    const auth = yield* Auth;
+    return yield* HttpEffect.fromWebHandler(auth.handler);
+  }),
 );
+
+const ApiRoutes = HttpApiBuilder.layer(Contract, { openapiPath: "/openapi.json" }).pipe(
+  Layer.provide(Handlers),
+  Layer.provide(HttpServer.layerServices),
+);
+
+const Routes = Layer.mergeAll(AuthRoute, ApiRoutes);
 
 export default class Api extends Cloudflare.Worker<Api>()(
   "Api",
@@ -70,33 +71,32 @@ export default class Api extends Cloudflare.Worker<Api>()(
     };
   }),
   Effect.gen(function* () {
-    const hyperdrive = yield* Cloudflare.Hyperdrive.Connect(yield* Database);
+    const database = yield* Database;
+    const hyperdrive = yield* Cloudflare.Hyperdrive.Connect(database);
     const authConfig = yield* AuthConfig;
-    const cookieDomain = (yield* Hostnames)?.website;
-    const sentry = { dsn: Option.getOrUndefined(yield* SentryDsn), environment: yield* Stage };
-    const handler = yield* HttpRouter.toHttpEffect(
-      Layer.mergeAll(
-        Routes,
-        HttpRouter.cors({ allowedOrigins: [authConfig.websiteURL], credentials: true }),
-      ),
-    );
+    const hostnames = yield* Hostnames;
+    const cookieDomain = hostnames?.website;
+    const sentryDsn = yield* SentryDsn;
+    const sentry = { dsn: Option.getOrUndefined(sentryDsn), environment: yield* Stage };
+
+    const cors = HttpRouter.cors({ allowedOrigins: [authConfig.websiteURL], credentials: true });
+    const handler = yield* HttpRouter.toHttpEffect(Layer.mergeAll(Routes, cors));
+
+    // Built per request, like the Db they read.
+    const services = Layer.mergeAll(
+      // Auth claims guest entries on sign-in (adr/0004), through ParticipantsService.
+      AuthLive(authConfig, cookieDomain).pipe(Layer.provideMerge(ParticipantsService.layer)),
+      OrganizationsService.layer,
+      CompetitionsService.layer,
+      TopicsService.layer,
+      EntryService.layer,
+      InvitationsService.layer,
+      MembersService.layer,
+    ).pipe(Layer.provide(PermissionsService.layer), Layer.provide(DbLive(hyperdrive)));
+
     return {
       fetch: handler.pipe(
-        Effect.provide(
-          Layer.mergeAll(
-            // Auth claims guest entries on sign-in (adr/0004), through ParticipantsService.
-            AuthLive(authConfig, cookieDomain).pipe(Layer.provideMerge(ParticipantsService.layer)),
-            OrganizationsService.layer,
-            CompetitionsService.layer,
-            TopicsService.layer,
-            EntryService.layer,
-            InvitationsService.layer,
-            MembersService.layer,
-          ).pipe(
-            Layer.provide(PermissionsService.layer),
-            Layer.provide(DbLive(hyperdrive)),
-          ),
-        ),
+        Effect.provide(services),
         withSentry(sentry),
         Effect.withSpan("Api.fetch"),
       ),
