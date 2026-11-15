@@ -13,6 +13,7 @@ import { CurrentUser } from "./auth/CurrentUser.ts";
 import { CompetitionsHandlers } from "./competitions/handlers.ts";
 import { CompetitionsService } from "./competitions/service.ts";
 import { EntryHandlers } from "./entry/handlers.ts";
+import { EntryService } from "./entry/service.ts";
 import { ParticipantsHandlers } from "./participants/handlers.ts";
 import { ParticipantsService } from "./participants/service.ts";
 import { TopicsHandlers } from "./topics/handlers.ts";
@@ -88,6 +89,7 @@ export default class Api extends Cloudflare.Worker<Api>()(
             OrganizationsService.layer,
             CompetitionsService.layer,
             TopicsService.layer,
+            EntryService.layer,
             InvitationsService.layer,
             MembersService.layer,
           ).pipe(

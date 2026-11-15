@@ -5,8 +5,16 @@ import * as HttpApiGroup from "effect/http-api/HttpApiGroup";
 import * as HttpApiSchema from "effect/http-api/HttpApiSchema";
 import { EntrySession } from "../auth/EntrySession.ts";
 import { CompetitionNotFound } from "../competitions/schemas.ts";
-import { AlreadyEntered, EntryClosed, GuestDetailsRequired, ParticipantNotFound } from "../participants/schemas.ts";
-import { EntryCompetition, EntryParticipant, ParticipantEmail, ParticipantName } from "./schemas.ts";
+import {
+  AlreadyEntered,
+  EntryClosed,
+  EntryCompetition,
+  EntryParticipant,
+  GuestDetailsRequired,
+  ParticipantEmail,
+  ParticipantName,
+  ParticipantNotFound,
+} from "./schemas.ts";
 
 const Id = Schema.String.check(Schema.isUUID());
 
