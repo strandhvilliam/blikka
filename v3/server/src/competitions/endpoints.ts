@@ -8,9 +8,13 @@ import { OrganizationNotFound } from '../organizations/schemas.ts'
 import { PermissionDenied } from '../permissions/permissions.ts'
 import {
   Competition,
+  CompetitionHasNoTopics,
+  CompetitionHasParticipants,
   CompetitionName,
   CompetitionNameTaken,
   CompetitionNotFound,
+  CompetitionUpdate,
+  CompetitionWindowInvalid,
 } from './schemas.ts'
 
 // A malformed id is a 400 here rather than a Postgres error (500).
@@ -37,6 +41,28 @@ export class CompetitionsApi extends HttpApiGroup.make('competitions')
       params: { id: Id },
       success: Competition,
       error: [HttpApiError.BadRequestNoContent, CompetitionNotFound],
+    }),
+  )
+  .add(
+    HttpApiEndpoint.patch('update', '/competitions/:id', {
+      params: { id: Id },
+      payload: CompetitionUpdate,
+      success: Competition,
+      error: [
+        HttpApiError.BadRequestNoContent,
+        CompetitionNotFound,
+        PermissionDenied,
+        CompetitionWindowInvalid,
+        CompetitionHasNoTopics,
+        CompetitionHasParticipants,
+      ],
+    }),
+  )
+  .add(
+    HttpApiEndpoint.delete('remove', '/competitions/:id', {
+      params: { id: Id },
+      success: HttpApiSchema.NoContent,
+      error: [HttpApiError.BadRequestNoContent, CompetitionNotFound, PermissionDenied],
     }),
   )
   .middleware(Authenticated) {}

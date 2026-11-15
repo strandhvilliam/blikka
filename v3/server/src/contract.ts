@@ -7,6 +7,7 @@ import { CompetitionsApi } from "./competitions/endpoints.ts";
 import { InvitationsApi } from "./invitations/endpoints.ts";
 import { MembersApi } from "./members/endpoints.ts";
 import { OrganizationsApi } from "./organizations/endpoints.ts";
+import { TopicsApi } from "./topics/endpoints.ts";
 
 // Schemas only, so clients can import it without pulling in the database, Better Auth or secrets.
 // A group's `.middleware(Authenticated)` covers only the endpoints added before it.
@@ -27,5 +28,6 @@ export class Api extends HttpApi.make("blikka")
   .add(UsersApi)
   .add(OrganizationsApi)
   .add(CompetitionsApi)
+  .add(TopicsApi)
   .add(InvitationsApi)
   .add(MembersApi) {}

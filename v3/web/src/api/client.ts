@@ -16,20 +16,24 @@ export const api = createIsomorphicFn()
   })
   .client(() => createClient<paths>({ baseUrl: meta("api-url"), credentials: "include" }));
 
-// A response the Api refused. Carries the status so a page can word a 409 differently from a 500.
+// A response the Api refused. Carries the status so a page can word a 409 differently from a 500,
+// and the error's _tag for when one status has several causes.
 export class ApiError extends Error {
   readonly status: number;
-  constructor(response: Response) {
+  readonly tag: string | undefined;
+  constructor(response: Response, body?: unknown) {
     super(`The Api responded ${response.status} to ${response.url}`);
     this.status = response.status;
+    const tag = (body as { _tag?: unknown } | undefined)?._tag;
+    this.tag = typeof tag === "string" ? tag : undefined;
   }
 }
 
 // The response's data, or an ApiError. Checks `ok`, not `data`, since a 204 has no body.
 export async function unwrap<T>(result: Result<T> | Promise<Result<T>>): Promise<T> {
-  const { data, response } = await result;
-  if (!response.ok) throw new ApiError(response);
+  const { data, error, response } = await result;
+  if (!response.ok) throw new ApiError(response, error);
   return data as T;
 }
 
-type Result<T> = { data?: T; response: Response };
+type Result<T> = { data?: T; error?: unknown; response: Response };

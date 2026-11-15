@@ -42,8 +42,10 @@ values, and code never asks which format a competition is.
   in the competition's zone.
 - `published_at`. Null is a draft that participants can't see or enter.
 - `opens_at` and `closes_at`, the window in which photos can be submitted. A topic without its own
-  window uses this one. Entering is allowed from `published_at` until `closes_at`, so a marathon
-  can take sign-ups weeks before the day.
+  window uses this one. A null `opens_at` means not open yet and a null `closes_at` means no
+  deadline, so an organizer can open and close submissions by hand, which sets the field to now.
+  Entering is allowed from `published_at` until `closes_at`, so a marathon can take sign-ups weeks
+  before the day.
 - `max_photos_per_topic`, default 1.
 - `topics_in_sequence`, default false. When true, a participant's next topic unlocks once they
   have submitted to the previous one.
@@ -51,8 +53,9 @@ values, and code never asks which format a competition is.
   the participant.
 
 `topics` has `competition_id`, `name`, `position` and a nullable `opens_at` and `closes_at`. A null
-window means the competition's. Every competition has at least one topic, and an event without a
-theme gets a single one, such as "Open". Topics are a flat resource (ADR-0006).
+window means the competition's. A competition needs at least one topic to be published, and its
+last topic can't be deleted while it is published. An event without a theme gets a single one,
+such as "Open". Topics are a flat resource (ADR-0006).
 
 `classes` is optional. A class has a `name`, a `description` and a range of topics (first position
 and count). A participant picks one on entry. A competition without classes gives every

@@ -18,7 +18,10 @@ import { Route as DashboardOrganizationIdRouteRouteImport } from './routes/dashb
 import { Route as DashboardOrganizationIdIndexRouteImport } from './routes/dashboard/$organizationId/index'
 import { Route as DashboardOrganizationIdMembersRouteImport } from './routes/dashboard/$organizationId/members'
 import { Route as DashboardOrganizationIdSettingsRouteImport } from './routes/dashboard/$organizationId/settings'
-import { Route as DashboardOrganizationIdEventsCompetitionIdRouteImport } from './routes/dashboard/$organizationId/events/$competitionId'
+import { Route as DashboardOrganizationIdEventsCompetitionIdRouteRouteImport } from './routes/dashboard/$organizationId/events/$competitionId/route'
+import { Route as DashboardOrganizationIdEventsCompetitionIdIndexRouteImport } from './routes/dashboard/$organizationId/events/$competitionId/index'
+import { Route as DashboardOrganizationIdEventsCompetitionIdSettingsRouteImport } from './routes/dashboard/$organizationId/events/$competitionId/settings'
+import { Route as DashboardOrganizationIdEventsCompetitionIdTopicsRouteImport } from './routes/dashboard/$organizationId/events/$competitionId/topics'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -69,11 +72,29 @@ const DashboardOrganizationIdSettingsRoute =
     path: '/settings',
     getParentRoute: () => DashboardOrganizationIdRouteRoute,
   } as any)
-const DashboardOrganizationIdEventsCompetitionIdRoute =
-  DashboardOrganizationIdEventsCompetitionIdRouteImport.update({
+const DashboardOrganizationIdEventsCompetitionIdRouteRoute =
+  DashboardOrganizationIdEventsCompetitionIdRouteRouteImport.update({
     id: '/events/$competitionId',
     path: '/events/$competitionId',
     getParentRoute: () => DashboardOrganizationIdRouteRoute,
+  } as any)
+const DashboardOrganizationIdEventsCompetitionIdIndexRoute =
+  DashboardOrganizationIdEventsCompetitionIdIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => DashboardOrganizationIdEventsCompetitionIdRouteRoute,
+  } as any)
+const DashboardOrganizationIdEventsCompetitionIdSettingsRoute =
+  DashboardOrganizationIdEventsCompetitionIdSettingsRouteImport.update({
+    id: '/settings',
+    path: '/settings',
+    getParentRoute: () => DashboardOrganizationIdEventsCompetitionIdRouteRoute,
+  } as any)
+const DashboardOrganizationIdEventsCompetitionIdTopicsRoute =
+  DashboardOrganizationIdEventsCompetitionIdTopicsRouteImport.update({
+    id: '/topics',
+    path: '/topics',
+    getParentRoute: () => DashboardOrganizationIdEventsCompetitionIdRouteRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -86,7 +107,10 @@ export interface FileRoutesByFullPath {
   '/dashboard/$organizationId/members': typeof DashboardOrganizationIdMembersRoute
   '/dashboard/$organizationId/settings': typeof DashboardOrganizationIdSettingsRoute
   '/dashboard/$organizationId/': typeof DashboardOrganizationIdIndexRoute
-  '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRoute
+  '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRouteRouteWithChildren
+  '/dashboard/$organizationId/events/$competitionId/settings': typeof DashboardOrganizationIdEventsCompetitionIdSettingsRoute
+  '/dashboard/$organizationId/events/$competitionId/topics': typeof DashboardOrganizationIdEventsCompetitionIdTopicsRoute
+  '/dashboard/$organizationId/events/$competitionId/': typeof DashboardOrganizationIdEventsCompetitionIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -96,7 +120,9 @@ export interface FileRoutesByTo {
   '/dashboard/$organizationId/members': typeof DashboardOrganizationIdMembersRoute
   '/dashboard/$organizationId/settings': typeof DashboardOrganizationIdSettingsRoute
   '/dashboard/$organizationId': typeof DashboardOrganizationIdIndexRoute
-  '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRoute
+  '/dashboard/$organizationId/events/$competitionId/settings': typeof DashboardOrganizationIdEventsCompetitionIdSettingsRoute
+  '/dashboard/$organizationId/events/$competitionId/topics': typeof DashboardOrganizationIdEventsCompetitionIdTopicsRoute
+  '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -109,7 +135,10 @@ export interface FileRoutesById {
   '/dashboard/$organizationId/members': typeof DashboardOrganizationIdMembersRoute
   '/dashboard/$organizationId/settings': typeof DashboardOrganizationIdSettingsRoute
   '/dashboard/$organizationId/': typeof DashboardOrganizationIdIndexRoute
-  '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRoute
+  '/dashboard/$organizationId/events/$competitionId': typeof DashboardOrganizationIdEventsCompetitionIdRouteRouteWithChildren
+  '/dashboard/$organizationId/events/$competitionId/settings': typeof DashboardOrganizationIdEventsCompetitionIdSettingsRoute
+  '/dashboard/$organizationId/events/$competitionId/topics': typeof DashboardOrganizationIdEventsCompetitionIdTopicsRoute
+  '/dashboard/$organizationId/events/$competitionId/': typeof DashboardOrganizationIdEventsCompetitionIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -124,6 +153,9 @@ export interface FileRouteTypes {
     | '/dashboard/$organizationId/settings'
     | '/dashboard/$organizationId/'
     | '/dashboard/$organizationId/events/$competitionId'
+    | '/dashboard/$organizationId/events/$competitionId/settings'
+    | '/dashboard/$organizationId/events/$competitionId/topics'
+    | '/dashboard/$organizationId/events/$competitionId/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +165,8 @@ export interface FileRouteTypes {
     | '/dashboard/$organizationId/members'
     | '/dashboard/$organizationId/settings'
     | '/dashboard/$organizationId'
+    | '/dashboard/$organizationId/events/$competitionId/settings'
+    | '/dashboard/$organizationId/events/$competitionId/topics'
     | '/dashboard/$organizationId/events/$competitionId'
   id:
     | '__root__'
@@ -146,6 +180,9 @@ export interface FileRouteTypes {
     | '/dashboard/$organizationId/settings'
     | '/dashboard/$organizationId/'
     | '/dashboard/$organizationId/events/$competitionId'
+    | '/dashboard/$organizationId/events/$competitionId/settings'
+    | '/dashboard/$organizationId/events/$competitionId/topics'
+    | '/dashboard/$organizationId/events/$competitionId/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -224,17 +261,59 @@ declare module '@tanstack/react-router' {
       id: '/dashboard/$organizationId/events/$competitionId'
       path: '/events/$competitionId'
       fullPath: '/dashboard/$organizationId/events/$competitionId'
-      preLoaderRoute: typeof DashboardOrganizationIdEventsCompetitionIdRouteImport
+      preLoaderRoute: typeof DashboardOrganizationIdEventsCompetitionIdRouteRouteImport
       parentRoute: typeof DashboardOrganizationIdRouteRoute
+    }
+    '/dashboard/$organizationId/events/$competitionId/': {
+      id: '/dashboard/$organizationId/events/$competitionId/'
+      path: '/'
+      fullPath: '/dashboard/$organizationId/events/$competitionId/'
+      preLoaderRoute: typeof DashboardOrganizationIdEventsCompetitionIdIndexRouteImport
+      parentRoute: typeof DashboardOrganizationIdEventsCompetitionIdRouteRoute
+    }
+    '/dashboard/$organizationId/events/$competitionId/settings': {
+      id: '/dashboard/$organizationId/events/$competitionId/settings'
+      path: '/settings'
+      fullPath: '/dashboard/$organizationId/events/$competitionId/settings'
+      preLoaderRoute: typeof DashboardOrganizationIdEventsCompetitionIdSettingsRouteImport
+      parentRoute: typeof DashboardOrganizationIdEventsCompetitionIdRouteRoute
+    }
+    '/dashboard/$organizationId/events/$competitionId/topics': {
+      id: '/dashboard/$organizationId/events/$competitionId/topics'
+      path: '/topics'
+      fullPath: '/dashboard/$organizationId/events/$competitionId/topics'
+      preLoaderRoute: typeof DashboardOrganizationIdEventsCompetitionIdTopicsRouteImport
+      parentRoute: typeof DashboardOrganizationIdEventsCompetitionIdRouteRoute
     }
   }
 }
+
+interface DashboardOrganizationIdEventsCompetitionIdRouteRouteChildren {
+  DashboardOrganizationIdEventsCompetitionIdSettingsRoute: typeof DashboardOrganizationIdEventsCompetitionIdSettingsRoute
+  DashboardOrganizationIdEventsCompetitionIdTopicsRoute: typeof DashboardOrganizationIdEventsCompetitionIdTopicsRoute
+  DashboardOrganizationIdEventsCompetitionIdIndexRoute: typeof DashboardOrganizationIdEventsCompetitionIdIndexRoute
+}
+
+const DashboardOrganizationIdEventsCompetitionIdRouteRouteChildren: DashboardOrganizationIdEventsCompetitionIdRouteRouteChildren =
+  {
+    DashboardOrganizationIdEventsCompetitionIdSettingsRoute:
+      DashboardOrganizationIdEventsCompetitionIdSettingsRoute,
+    DashboardOrganizationIdEventsCompetitionIdTopicsRoute:
+      DashboardOrganizationIdEventsCompetitionIdTopicsRoute,
+    DashboardOrganizationIdEventsCompetitionIdIndexRoute:
+      DashboardOrganizationIdEventsCompetitionIdIndexRoute,
+  }
+
+const DashboardOrganizationIdEventsCompetitionIdRouteRouteWithChildren =
+  DashboardOrganizationIdEventsCompetitionIdRouteRoute._addFileChildren(
+    DashboardOrganizationIdEventsCompetitionIdRouteRouteChildren,
+  )
 
 interface DashboardOrganizationIdRouteRouteChildren {
   DashboardOrganizationIdMembersRoute: typeof DashboardOrganizationIdMembersRoute
   DashboardOrganizationIdSettingsRoute: typeof DashboardOrganizationIdSettingsRoute
   DashboardOrganizationIdIndexRoute: typeof DashboardOrganizationIdIndexRoute
-  DashboardOrganizationIdEventsCompetitionIdRoute: typeof DashboardOrganizationIdEventsCompetitionIdRoute
+  DashboardOrganizationIdEventsCompetitionIdRouteRoute: typeof DashboardOrganizationIdEventsCompetitionIdRouteRouteWithChildren
 }
 
 const DashboardOrganizationIdRouteRouteChildren: DashboardOrganizationIdRouteRouteChildren =
@@ -242,8 +321,8 @@ const DashboardOrganizationIdRouteRouteChildren: DashboardOrganizationIdRouteRou
     DashboardOrganizationIdMembersRoute: DashboardOrganizationIdMembersRoute,
     DashboardOrganizationIdSettingsRoute: DashboardOrganizationIdSettingsRoute,
     DashboardOrganizationIdIndexRoute: DashboardOrganizationIdIndexRoute,
-    DashboardOrganizationIdEventsCompetitionIdRoute:
-      DashboardOrganizationIdEventsCompetitionIdRoute,
+    DashboardOrganizationIdEventsCompetitionIdRouteRoute:
+      DashboardOrganizationIdEventsCompetitionIdRouteRouteWithChildren,
   }
 
 const DashboardOrganizationIdRouteRouteWithChildren =

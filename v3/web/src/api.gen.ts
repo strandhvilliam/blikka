@@ -78,10 +78,42 @@ export interface paths {
         get: operations["competitions.get"];
         put?: never;
         post?: never;
+        delete: operations["competitions.remove"];
+        options?: never;
+        head?: never;
+        patch: operations["competitions.update"];
+        trace?: never;
+    };
+    "/topics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["topics.list"];
+        put?: never;
+        post: operations["topics.create"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/topics/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["topics.remove"];
+        options?: never;
+        head?: never;
+        patch: operations["topics.update"];
         trace?: never;
     };
     "/invitations": {
@@ -208,9 +240,29 @@ export interface components {
             /** @enum {string} */
             _tag: "OrganizationNotFound";
         };
+        LastTopicEncoded: {
+            /** @enum {string} */
+            _tag: "LastTopic";
+        };
+        TopicNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "TopicNotFound";
+        };
         CompetitionNotFoundEncoded: {
             /** @enum {string} */
             _tag: "CompetitionNotFound";
+        };
+        CompetitionHasParticipantsEncoded: {
+            /** @enum {string} */
+            _tag: "CompetitionHasParticipants";
+        };
+        CompetitionHasNoTopicsEncoded: {
+            /** @enum {string} */
+            _tag: "CompetitionHasNoTopics";
+        };
+        CompetitionWindowInvalidEncoded: {
+            /** @enum {string} */
+            _tag: "CompetitionWindowInvalid";
         };
         CompetitionNameTakenEncoded: {
             /** @enum {string} */
@@ -544,6 +596,11 @@ export interface operations {
                         organization_id: string;
                         slug: string;
                         name: string;
+                        description: string;
+                        time_zone: string;
+                        published_at: string | null;
+                        opens_at: string | null;
+                        closes_at: string | null;
                     }[];
                 };
             };
@@ -598,6 +655,11 @@ export interface operations {
                         organization_id: string;
                         slug: string;
                         name: string;
+                        description: string;
+                        time_zone: string;
+                        published_at: string | null;
+                        opens_at: string | null;
+                        closes_at: string | null;
                     };
                 };
             };
@@ -659,6 +721,11 @@ export interface operations {
                         organization_id: string;
                         slug: string;
                         name: string;
+                        description: string;
+                        time_zone: string;
+                        published_at: string | null;
+                        opens_at: string | null;
+                        closes_at: string | null;
                     };
                 };
             };
@@ -690,6 +757,377 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CompetitionNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "competitions.remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description <No Content> */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description CompetitionNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "competitions.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    description?: string;
+                    time_zone?: string;
+                    opens_at?: string | null;
+                    closes_at?: string | null;
+                    published?: boolean;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        organization_id: string;
+                        slug: string;
+                        name: string;
+                        description: string;
+                        time_zone: string;
+                        published_at: string | null;
+                        opens_at: string | null;
+                        closes_at: string | null;
+                    };
+                };
+            };
+            /** @description BadRequest | CompetitionWindowInvalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionWindowInvalidEncoded"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description CompetitionNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionNotFoundEncoded"];
+                };
+            };
+            /** @description CompetitionHasNoTopics | CompetitionHasParticipants */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionHasNoTopicsEncoded"] | components["schemas"]["CompetitionHasParticipantsEncoded"];
+                };
+            };
+        };
+    };
+    "topics.list": {
+        parameters: {
+            query?: {
+                competition_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        competition_id: string;
+                        name: string;
+                        position: number;
+                    }[];
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "topics.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    competition_id: string;
+                    name: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        competition_id: string;
+                        name: string;
+                        position: number;
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description CompetitionNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "topics.remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description <No Content> */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description TopicNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicNotFoundEncoded"];
+                };
+            };
+            /** @description LastTopic */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LastTopicEncoded"];
+                };
+            };
+        };
+    };
+    "topics.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    position?: number;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        competition_id: string;
+                        name: string;
+                        position: number;
+                    };
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description TopicNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicNotFoundEncoded"];
                 };
             };
         };

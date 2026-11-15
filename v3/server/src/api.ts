@@ -12,6 +12,8 @@ import { Auth, AuthConfig, AuthenticatedLive, AuthLive } from "./auth/Auth.ts";
 import { CurrentUser } from "./auth/CurrentUser.ts";
 import { CompetitionsHandlers } from "./competitions/handlers.ts";
 import { CompetitionsService } from "./competitions/service.ts";
+import { TopicsHandlers } from "./topics/handlers.ts";
+import { TopicsService } from "./topics/service.ts";
 import { Api as Contract } from "./contract.ts";
 import { Database, DbLive } from "./db/Db.ts";
 import { InvitationsHandlers } from "./invitations/handlers.ts";
@@ -43,6 +45,7 @@ const Routes = Layer.mergeAll(
         UsersHandlers,
         OrganizationsHandlers,
         CompetitionsHandlers,
+        TopicsHandlers,
         InvitationsHandlers,
         MembersHandlers,
       ).pipe(Layer.provide(AuthenticatedLive)),
@@ -78,6 +81,7 @@ export default class Api extends Cloudflare.Worker<Api>()(
             AuthLive(authConfig, cookieDomain),
             OrganizationsService.layer,
             CompetitionsService.layer,
+            TopicsService.layer,
             InvitationsService.layer,
             MembersService.layer,
           ).pipe(

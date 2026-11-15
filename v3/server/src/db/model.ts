@@ -1,6 +1,7 @@
 import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   index,
   integer,
   pgTable,
@@ -169,11 +170,42 @@ export const competitions = pgTable(
       .references(() => organizations.id),
     slug: text().notNull().unique(),
     name: text().notNull(),
+    description: text().notNull().default(''),
+    timeZone: text().notNull().default('Europe/Stockholm'),
+    // Null is a draft participants can't see or enter (adr/0009).
+    publishedAt: timestamp({ withTimezone: true }),
+    // Null opensAt: not open yet. Null closesAt: no deadline.
+    opensAt: timestamp({ withTimezone: true }),
+    closesAt: timestamp({ withTimezone: true }),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
     deletedAt: timestamp(),
   },
-  (table) => [index('competitions_organization_id_idx').on(table.organizationId)],
+  (table) => [
+    index('competitions_organization_id_idx').on(table.organizationId),
+    // The service checks this first; the constraint catches two edits racing.
+    check('competitions_window_check', sql`${table.closesAt} > ${table.opensAt}`),
+  ],
+)
+
+export const topics = pgTable(
+  'topics',
+  {
+    id: uuid()
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    competitionId: uuid()
+      .notNull()
+      .references(() => competitions.id),
+    name: text().notNull(),
+    // 1..n among the competition's live topics, renumbered on delete and move. Not unique, since
+    // Postgres checks that per row while a move shifts its neighbours.
+    position: integer().notNull(),
+    createdAt: timestamp().notNull().defaultNow(),
+    updatedAt: timestamp().notNull().defaultNow(),
+    deletedAt: timestamp(),
+  },
+  (table) => [index('topics_competition_id_idx').on(table.competitionId)],
 )
 
 export const participants = pgTable(

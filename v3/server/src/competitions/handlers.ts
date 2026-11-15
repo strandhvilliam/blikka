@@ -27,5 +27,19 @@ export const CompetitionsHandlers = HttpApiBuilder.group(Api, 'competitions', (h
         const user = yield* CurrentUser
         return yield* competitions.get(user, params.id)
       }),
+    )
+    .handle('update', ({ params, payload }) =>
+      Effect.gen(function* () {
+        const competitions = yield* CompetitionsService
+        const user = yield* CurrentUser
+        return yield* competitions.update(user, params.id, payload)
+      }),
+    )
+    .handle('remove', ({ params }) =>
+      Effect.gen(function* () {
+        const competitions = yield* CompetitionsService
+        const user = yield* CurrentUser
+        return yield* competitions.remove(user, params.id)
+      }),
     ),
 )
