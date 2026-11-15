@@ -3,7 +3,7 @@ import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { useId, useState } from "react";
-import { ApiError } from "@/api/client.ts";
+import { isApiError } from "@/api/client.ts";
 import { Badge } from "@/components/ui/Badge.tsx";
 import { Button } from "@/components/ui/Button.tsx";
 import {
@@ -237,7 +237,7 @@ function Invite({ organizationId }: { organizationId: string }) {
   const [email, setEmail] = useState("");
   const error =
     invite.error &&
-    (invite.error instanceof ApiError && invite.error.status === 409
+    (isApiError(invite.error, "AlreadyMember")
       ? "They're already a member."
       : "Couldn't send the invitation. Try again.");
 

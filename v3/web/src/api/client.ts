@@ -1,7 +1,7 @@
 import { createIsomorphicFn } from "@tanstack/react-start";
 import { getRequestHeader } from "@tanstack/react-start/server";
 import createClient from "openapi-fetch";
-import type { paths } from "@/api.gen.ts";
+import type { components, paths } from "@/api.gen.ts";
 import { env } from "@/lib/env.ts";
 import { meta } from "@/lib/meta.ts";
 
@@ -28,6 +28,13 @@ export class ApiError extends Error {
     this.tag = typeof tag === "string" ? tag : undefined;
   }
 }
+
+// Every error the Api can answer with, by its _tag (the Schema.TaggedError classes on the server).
+type ErrorTag = Extract<components["schemas"][keyof components["schemas"]], { _tag: string }>["_tag"];
+
+// Branch on this rather than the status: one status can have several causes (a 400 is also a malformed request).
+export const isApiError = (error: unknown, tag: ErrorTag): error is ApiError =>
+  error instanceof ApiError && error.tag === tag;
 
 // The response's data, or an ApiError. Checks `ok`, not `data`, since a 204 has no body.
 export async function unwrap<T>(result: Result<T> | Promise<Result<T>>): Promise<T> {

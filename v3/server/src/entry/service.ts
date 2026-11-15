@@ -5,7 +5,7 @@ import * as Layer from "effect/Layer";
 import { type EntryCaller, GUEST_TOKEN_PREFIX } from "../auth/EntrySession.ts";
 import { CompetitionNotFound } from "../competitions/schemas.ts";
 import type { User } from "../contract.ts";
-import { Db } from "../db/Db.ts";
+import { Db, transaction } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { ParticipantsService } from "../participants/service.ts";
 import { AlreadyEntered, EntryClosed, GuestDetailsRequired, ParticipantNotFound } from "./schemas.ts";
@@ -74,57 +74,61 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       // by the same rule as at sign-in.
       if (user) yield* claimGuestEntries(user.id);
 
-      const result = yield* Effect.promise(() =>
-        db.transaction(async (tx) => {
+      return yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
           // Shared, so entries don't wait on each other, but an unpublish (FOR UPDATE) waits for them.
-          const [competition] = await tx
-            .select({ closed: sql<boolean>`${model.competitions.closesAt} <= now()` })
-            .from(model.competitions)
-            .where(
-              and(
-                eq(model.competitions.id, competitionId),
-                isNull(model.competitions.deletedAt),
-                isNotNull(model.competitions.publishedAt),
-              ),
-            )
-            .for("share");
-          if (!competition) return "not-found" as const;
-          if (competition.closed) return "closed" as const;
+          const [competition] = yield* Effect.promise(() =>
+            tx
+              .select({ closed: sql<boolean>`${model.competitions.closesAt} <= now()` })
+              .from(model.competitions)
+              .where(
+                and(
+                  eq(model.competitions.id, competitionId),
+                  isNull(model.competitions.deletedAt),
+                  isNotNull(model.competitions.publishedAt),
+                ),
+              )
+              .for("share"),
+          );
+          if (!competition) return yield* new CompetitionNotFound();
+          if (competition.closed) return yield* new EntryClosed();
 
           if (!user) {
-            const [created] = await tx
-              .insert(participants)
-              .values({ competitionId, name: guest.name!, email: guest.email!.toLowerCase(), guestTokenHash: tokenHash })
-              .onConflictDoNothing()
-              .returning(entryColumns);
-            return created ? { participant: created, guest_token: token } : ("taken" as const);
+            const [created] = yield* Effect.promise(() =>
+              tx
+                .insert(participants)
+                .values({ competitionId, name: guest.name!, email: guest.email!.toLowerCase(), guestTokenHash: tokenHash })
+                .onConflictDoNothing()
+                .returning(entryColumns),
+            );
+            if (!created) return yield* new AlreadyEntered();
+            return { participant: created, guest_token: token };
           }
 
-          const mine = () =>
+          const mine = Effect.promise(() =>
             tx
               .select(entryColumns)
               .from(participants)
-              .where(and(eq(participants.competitionId, competitionId), eq(participants.userId, user.id)))
-              .then(([row]) => row);
-          const existing = await mine();
+              .where(and(eq(participants.competitionId, competitionId), eq(participants.userId, user.id))),
+          ).pipe(Effect.map(([row]) => row));
+          const existing = yield* mine;
           if (existing) return { participant: existing, guest_token: null };
 
-          const [created] = await tx
-            .insert(participants)
-            // Accounts made with an emailed code have no name.
-            .values({ competitionId, userId: user.id, name: user.name || user.email, email: user.email.toLowerCase() })
-            .onConflictDoNothing()
-            .returning(entryColumns);
+          const [created] = yield* Effect.promise(() =>
+            tx
+              .insert(participants)
+              // Accounts made with an emailed code have no name.
+              .values({ competitionId, userId: user.id, name: user.name || user.email, email: user.email.toLowerCase() })
+              .onConflictDoNothing()
+              .returning(entryColumns),
+          );
           if (created) return { participant: created, guest_token: null };
           // The same user entering twice at once: the other request created it.
-          const raced = await mine();
-          return raced ? { participant: raced, guest_token: null } : ("taken" as const);
+          const raced = yield* mine;
+          if (!raced) return yield* new AlreadyEntered();
+          return { participant: raced, guest_token: null };
         }),
       );
-      if (result === "not-found") return yield* new CompetitionNotFound();
-      if (result === "closed") return yield* new EntryClosed();
-      if (result === "taken") return yield* new AlreadyEntered();
-      return result;
     });
 
     // Every entry route reads through this: the entries the session's user or the guest token owns.

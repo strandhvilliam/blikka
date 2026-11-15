@@ -3,7 +3,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import type { User } from "../contract.ts";
-import { Db } from "../db/Db.ts";
+import { Db, transaction } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { PermissionsService } from "../permissions/service.ts";
 import { AlreadyMember, InvitationNotFound } from "./schemas.ts";
@@ -104,28 +104,30 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
     });
 
     const accept = Effect.fn("InvitationsService.accept")(function* (caller: User, id: string) {
-      const organizationId = yield* Effect.promise(() =>
-        db.transaction(async (tx) => {
-          const [invitation] = await tx
-            .update(invitations)
-            .set({ acceptedAt: sql`now()` })
-            .where(and(eq(invitations.id, id), addressedToCaller(caller)))
-            .returning({ organizationId: invitations.organizationId });
-          if (!invitation) return undefined;
-          await tx
-            .insert(model.organizationMembers)
-            .values({ organizationId: invitation.organizationId, userId: caller.id, role: "admin" })
-            // Someone removed earlier joins again; an active member is left as they are.
-            .onConflictDoUpdate({
-              target: [model.organizationMembers.organizationId, model.organizationMembers.userId],
-              set: { role: "admin", deletedAt: null, createdAt: sql`now()` },
-              setWhere: isNotNull(model.organizationMembers.deletedAt),
-            });
-          return invitation.organizationId;
+      return yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
+          const [invitation] = yield* Effect.promise(() =>
+            tx
+              .update(invitations)
+              .set({ acceptedAt: sql`now()` })
+              .where(and(eq(invitations.id, id), addressedToCaller(caller)))
+              .returning({ organizationId: invitations.organizationId }),
+          );
+          if (!invitation) return yield* new InvitationNotFound();
+          yield* Effect.promise(() =>
+            tx
+              .insert(model.organizationMembers)
+              .values({ organizationId: invitation.organizationId, userId: caller.id, role: "admin" })
+              // Someone removed earlier joins again; an active member is left as they are.
+              .onConflictDoUpdate({
+                target: [model.organizationMembers.organizationId, model.organizationMembers.userId],
+                set: { role: "admin", deletedAt: null, createdAt: sql`now()` },
+                setWhere: isNotNull(model.organizationMembers.deletedAt),
+              }),
+          );
+          return { organization_id: invitation.organizationId };
         }),
       );
-      if (!organizationId) return yield* new InvitationNotFound();
-      return { organization_id: organizationId };
     });
 
     const list = Effect.fn("InvitationsService.list")(function* (caller: User, organizationId?: string) {

@@ -1,9 +1,9 @@
-import { TransactionRollbackError, and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import type { User } from "../contract.ts";
-import { Db } from "../db/Db.ts";
+import { Db, transaction } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { PermissionDenied } from "../permissions/permissions.ts";
 import { PermissionsService } from "../permissions/service.ts";
@@ -85,32 +85,28 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
       yield* get(caller, organizationId, userId);
       const { role } = yield* authorizeWrite(caller, organizationId);
       if (role !== "owner" || userId === caller.id) return yield* new PermissionDenied();
-      const outcome = yield* Effect.promise(() =>
-        db
-          .transaction(async (tx) => {
-            // Demote first: the index allows one owner at a time.
-            const [demoted] = await tx
+      yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
+          // Demote first: the index allows one owner at a time.
+          const [demoted] = yield* Effect.promise(() =>
+            tx
               .update(members)
               .set({ role: "admin" })
               .where(and(membership(organizationId, caller.id), eq(members.role, "owner")))
-              .returning({ userId: members.userId });
-            if (!demoted) return "denied" as const;
-            const [promoted] = await tx
+              .returning({ userId: members.userId }),
+          );
+          if (!demoted) return yield* new PermissionDenied();
+          const [promoted] = yield* Effect.promise(() =>
+            tx
               .update(members)
               .set({ role: "owner" })
               .where(membership(organizationId, userId))
-              .returning({ userId: members.userId });
-            // Removed since the read: undo the demotion, so the organization keeps its owner.
-            if (!promoted) tx.rollback();
-            return "done" as const;
-          })
-          .catch((error) => {
-            if (error instanceof TransactionRollbackError) return "gone" as const;
-            throw error;
-          }),
+              .returning({ userId: members.userId }),
+          );
+          // Removed since the read: failing undoes the demotion, so the organization keeps its owner.
+          if (!promoted) return yield* new MemberNotFound();
+        }),
       );
-      if (outcome === "denied") return yield* new PermissionDenied();
-      if (outcome === "gone") return yield* new MemberNotFound();
       return yield* get(caller, organizationId, userId);
     });
 

@@ -37,6 +37,14 @@ On the domain, the Api sets its session cookie for `<domain>` and every subdomai
 
 The Api's endpoints are defined in `server/src/contract.ts` (Effect `HttpApi`, Schemas only), which adds each domain folder's group. A domain folder (`server/src/organizations/`) holds its schemas and errors (`schemas.ts`), its endpoints (`endpoints.ts`), its operations (`service.ts`, also for jobs) and thin handlers (`handlers.ts`); `server/src/api.ts` serves them. The Api serves the spec at `/openapi.json`. After changing the contract, run `bun run api:generate`: it writes the spec to `server/openapi.json` and the website's types to `web/src/api.gen.ts`. The website calls the Api with `openapi-fetch` and those types (`web/src/api/client.ts`), never through server functions, and runs no Effect code. See `adr/0002-website-and-api-boundary.md`.
 
+### Errors
+
+- An outcome a caller reacts to (a taken name, a closed event) is a `Schema.TaggedError` with an `httpApiStatus`, in the domain's `schemas.ts`, and listed in its endpoint's `error`. That one class gives the status, the spec and the `_tag` the website sees, and the compiler refuses a handler that can fail with an error its endpoint doesn't list. It carries no message: the website words it.
+- Where an outsider mustn't learn that something exists, the access check turns the parent's not-found into the resource's (`Effect.catchTag("OrganizationNotFound", ...)` in a service's `writable`).
+- A database or library failure is a defect: queries run in `Effect.promise`, so it becomes a 500 and goes to Sentry. Don't give it a typed error; nothing recovers from it, and every endpoint would have to list it.
+- A transaction is `transaction(db, (tx) => Effect.gen(...))` (`server/src/db/Db.ts`). Its body fails with the same typed errors as the rest of the service, and any failure rolls it back.
+- The website branches on the tag, with `isApiError(error, "EntryClosed")`, not on the status.
+
 ## Auth
 
 Better Auth runs in the `Api` worker (`server/src/auth/Auth.ts`) under `/auth/*`. The browser calls it directly with credentials; the Api allows CORS from `WEBSITE_URL` only.

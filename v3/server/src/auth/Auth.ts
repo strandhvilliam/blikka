@@ -4,6 +4,7 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { bearer, emailOTP } from "better-auth/plugins";
 import { sql } from "drizzle-orm";
 import { ALCHEMY_DEV } from "alchemy/Phase";
+import * as Cause from "effect/Cause";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
@@ -17,6 +18,7 @@ import type * as Types from "effect/Types";
 import { Db } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { ParticipantsService } from "../participants/service.ts";
+import { captureException, SentryScope } from "../sentry/SentryScope.ts";
 import { Authenticated } from "./Authenticated.ts";
 import { CurrentUser } from "./CurrentUser.ts";
 import { EntryCaller, EntrySession, GUEST_TOKEN_PREFIX } from "./EntrySession.ts";
@@ -58,7 +60,8 @@ export const makeAuth = (
   db: Db["Service"],
   config: Config.Success<typeof AuthConfig>,
   cookieDomain: CookieDomain,
-  participants: Pick<ParticipantsService["Service"], "claimGuestEntries">,
+  // Never rejects: a failed claim must not fail the sign-in; the entry can still be taken over by entering.
+  claimGuestEntries: (userId: string) => Promise<void>,
 ) =>
   betterAuth({
     database: drizzleAdapter(db, { provider: "pg", schema: model }),
@@ -122,12 +125,7 @@ export const makeAuth = (
     databaseHooks: {
       session: {
         create: {
-          // A failed claim must not fail the sign-in; the entry can still be taken over by entering.
-          after: async (session) => {
-            await Effect.runPromise(participants.claimGuestEntries(session.userId)).catch((error) =>
-              console.error("[auth] claiming guest entries failed", error),
-            );
-          },
+          after: (session) => claimGuestEntries(session.userId),
         },
       },
     },
@@ -139,7 +137,17 @@ export const AuthLive = (config: Config.Success<typeof AuthConfig>, cookieDomain
   Layer.effect(
     Auth,
     Effect.gen(function* () {
-      return makeAuth(yield* Db, config, cookieDomain, yield* ParticipantsService);
+      const participants = yield* ParticipantsService;
+      // Better Auth calls back outside Effect, so the claim runs with this request's context: its
+      // trace, logger and Sentry scope. Built per request (api.ts), so the context is the request's.
+      const run = Effect.runPromiseWith(yield* Effect.context<SentryScope>());
+      const claimGuestEntries = (userId: string) =>
+        run(
+          participants.claimGuestEntries(userId).pipe(
+            Effect.catchCause((cause) => Effect.andThen(Effect.logError(cause), captureException(Cause.squash(cause)))),
+          ),
+        );
+      return makeAuth(yield* Db, config, cookieDomain, claimGuestEntries);
     }),
   );
 

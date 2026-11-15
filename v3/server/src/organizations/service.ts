@@ -3,7 +3,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import type { User } from "../contract.ts";
-import { Db } from "../db/Db.ts";
+import { Db, transaction } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { PermissionDenied } from "../permissions/permissions.ts";
 import { PermissionsService } from "../permissions/service.ts";
@@ -40,12 +40,14 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
 
     // Any signed-in user may create an organization; Authenticated already guarantees that.
     const create = Effect.fn("OrganizationsService.create")(function* (caller: User, name: string) {
-      return yield* Effect.promise(() =>
-        db.transaction(async (tx) => {
-          const [organization] = await tx.insert(model.organizations).values({ name }).returning(columns);
-          await tx
-            .insert(model.organizationMembers)
-            .values({ organizationId: organization!.id, userId: caller.id, role: "owner" });
+      return yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
+          const [organization] = yield* Effect.promise(() =>
+            tx.insert(model.organizations).values({ name }).returning(columns),
+          );
+          yield* Effect.promise(() =>
+            tx.insert(model.organizationMembers).values({ organizationId: organization!.id, userId: caller.id, role: "owner" }),
+          );
           return organization!;
         }),
       );

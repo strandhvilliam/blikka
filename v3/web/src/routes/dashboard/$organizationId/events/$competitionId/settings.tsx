@@ -1,7 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useId, useState } from "react";
-import { ApiError } from "@/api/client.ts";
+import { isApiError } from "@/api/client.ts";
 import {
   type CompetitionUpdate,
   deleteCompetitionMutation,
@@ -190,7 +190,7 @@ function Window({ competition, canWrite }: { competition: Competition; canWrite:
         </div>
         {update.isError && (
           <p role="alert" className="text-sm text-destructive">
-            {update.error instanceof ApiError && update.error.status === 400
+            {isApiError(update.error, "CompetitionWindowInvalid")
               ? "Submissions have to close after they open."
               : "Couldn't save the times. Try again."}
           </p>
@@ -230,11 +230,11 @@ function Publishing({ competition, canWrite }: { competition: Competition; canWr
       )}
       {update.isError && (
         <p role="alert" className="text-sm text-destructive">
-          {update.error instanceof ApiError && update.error.status === 409
-            ? published
-              ? "People have entered, so it can't be unpublished."
-              : "Add a topic before publishing."
-            : `Couldn't ${published ? "unpublish" : "publish"} the event. Try again.`}
+          {isApiError(update.error, "CompetitionHasParticipants")
+            ? "People have entered, so it can't be unpublished."
+            : isApiError(update.error, "CompetitionHasNoTopics")
+              ? "Add a topic before publishing."
+              : `Couldn't ${published ? "unpublish" : "publish"} the event. Try again.`}
         </p>
       )}
     </section>

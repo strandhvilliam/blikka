@@ -2,7 +2,7 @@ import { IconLink, IconPlus } from "@tabler/icons-react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useId, useState } from "react";
-import { ApiError } from "@/api/client.ts";
+import { isApiError } from "@/api/client.ts";
 import { Button } from "@/components/ui/Button.tsx";
 import {
   Dialog,
@@ -76,7 +76,7 @@ function NewEvent({ organizationId }: { organizationId: string }) {
   const submitting = create.isPending || create.isSuccess;
   const error =
     create.error &&
-    (create.error instanceof ApiError && create.error.status === 409
+    (isApiError(create.error, "CompetitionNameTaken")
       ? "That name is taken."
       : "Couldn't create the event. Try again.");
 

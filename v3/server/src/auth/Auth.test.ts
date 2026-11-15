@@ -1,5 +1,4 @@
 import { beforeEach, expect, test } from "bun:test";
-import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import * as HttpApi from "effect/http-api/HttpApi";
@@ -122,7 +121,7 @@ test("the emailOTP endpoints the website doesn't use are 404, and the two it use
     {} as Db["Service"],
     { secret: Redacted.make("s".repeat(32)), baseURL: "https://api.blikka.test", websiteURL: website, google: Option.none() },
     undefined,
-    { claimGuestEntries: () => Effect.void },
+    async () => {},
   );
   const status = async (path: string) =>
     (await auth.handler(new Request(`https://api.blikka.test/auth${path}`, { method: "POST" }))).status;

@@ -2,7 +2,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { authClient } from "@/api/authClient.ts";
-import { ApiError } from "@/api/client.ts";
+import { isApiError } from "@/api/client.ts";
 import { enterMutation, entryCompetitionQuery, myEntryQuery } from "@/api/entry.ts";
 import { Button } from "@/components/ui/Button.tsx";
 import { FieldSeparator } from "@/components/ui/Field.tsx";
@@ -72,13 +72,12 @@ function YourEntry({ participant }: { participant: { name: string; email: string
 }
 
 const enterError = (error: Error, signedIn: boolean) => {
-  const tag = error instanceof ApiError ? error.tag : undefined;
-  if (tag === "EntryClosed") return "Entries have closed.";
+  if (isApiError(error, "EntryClosed")) return "Entries have closed.";
   // Signing in with that email claims the guest entry (adr/0004).
-  if (tag === "AlreadyEntered" && !signedIn) {
+  if (isApiError(error, "AlreadyEntered") && !signedIn) {
     return "That email has already entered. Continue with Google using it to get your entry back.";
   }
-  if (tag === "AlreadyEntered") return "Your email has already entered this event. Ask the organizer for help.";
+  if (isApiError(error, "AlreadyEntered")) return "Your email has already entered this event. Ask the organizer for help.";
   return "Couldn't enter. Try again.";
 };
 

@@ -5,7 +5,7 @@ import * as Layer from "effect/Layer";
 import { CompetitionNotFound } from "../competitions/schemas.ts";
 import { CompetitionsService } from "../competitions/service.ts";
 import type { User } from "../contract.ts";
-import { Db } from "../db/Db.ts";
+import { Db, transaction, type Tx } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { LastTopic, TopicNotFound, type TopicUpdate } from "./schemas.ts";
 
@@ -20,23 +20,24 @@ const columns = {
 
 const liveIn = (competitionId: string) => and(eq(topics.competitionId, competitionId), isNull(topics.deletedAt));
 
-type Tx = Parameters<Parameters<Db["Service"]["transaction"]>[0]>[0];
-
 // Every topic write takes this lock first, so positions are renumbered one write at a time and a
-// publish can't race the last topic's delete. Null when the competition was deleted.
-const lockCompetition = async (tx: Tx, id: string) => {
-  const [competition] = await tx
-    .select({ publishedAt: model.competitions.publishedAt })
-    .from(model.competitions)
-    .where(and(eq(model.competitions.id, id), isNull(model.competitions.deletedAt)))
-    .for("update");
-  return competition ?? null;
-};
+// publish can't race the last topic's delete. Undefined when the competition was deleted.
+const lockCompetition = (tx: Tx, id: string) =>
+  Effect.promise(() =>
+    tx
+      .select({ publishedAt: model.competitions.publishedAt })
+      .from(model.competitions)
+      .where(and(eq(model.competitions.id, id), isNull(model.competitions.deletedAt)))
+      .for("update"),
+  ).pipe(Effect.map(([competition]) => competition));
 
-const countLive = async (tx: Tx, competitionId: string) => {
-  const [row] = await tx.select({ n: count() }).from(topics).where(liveIn(competitionId));
-  return row!.n;
-};
+const countLive = (tx: Tx, competitionId: string) =>
+  Effect.promise(() => tx.select({ n: count() }).from(topics).where(liveIn(competitionId))).pipe(Effect.map(([row]) => row!.n));
+
+const liveTopic = (tx: Tx, id: string) =>
+  Effect.promise(() => tx.select(columns).from(topics).where(and(eq(topics.id, id), isNull(topics.deletedAt)))).pipe(
+    Effect.map(([topic]) => topic),
+  );
 
 export class TopicsService extends Context.Service<TopicsService>()("blikka/topics/TopicsService", {
   make: Effect.gen(function* () {
@@ -74,78 +75,78 @@ export class TopicsService extends Context.Service<TopicsService>()("blikka/topi
 
     const create = Effect.fn("TopicsService.create")(function* (caller: User, competitionId: string, name: string) {
       yield* competitions.writable(caller, competitionId);
-      const topic = yield* Effect.promise(() =>
-        db.transaction(async (tx) => {
-          if (!(await lockCompetition(tx, competitionId))) return null;
-          const n = await countLive(tx, competitionId);
-          const [topic] = await tx.insert(topics).values({ competitionId, name, position: n + 1 }).returning(columns);
+      return yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
+          // Deleted since the check.
+          if (!(yield* lockCompetition(tx, competitionId))) return yield* new CompetitionNotFound();
+          const n = yield* countLive(tx, competitionId);
+          const [topic] = yield* Effect.promise(() =>
+            tx.insert(topics).values({ competitionId, name, position: n + 1 }).returning(columns),
+          );
           return topic!;
         }),
       );
-      // Deleted since the check.
-      if (!topic) return yield* new CompetitionNotFound();
-      return topic;
     });
 
     const update = Effect.fn("TopicsService.update")(function* (caller: User, id: string, patch: TopicUpdate) {
       const { competition_id: competitionId } = yield* writable(caller, id);
-      const topic = yield* Effect.promise(() =>
-        db.transaction(async (tx) => {
-          if (!(await lockCompetition(tx, competitionId))) return null;
-          const [current] = await tx.select(columns).from(topics).where(and(eq(topics.id, id), isNull(topics.deletedAt)));
-          if (!current) return null;
+      return yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
+          // Deleted since the check.
+          if (!(yield* lockCompetition(tx, competitionId))) return yield* new TopicNotFound();
+          const current = yield* liveTopic(tx, id);
+          if (!current) return yield* new TopicNotFound();
           let position: number | undefined;
           if (patch.position !== undefined) {
-            const n = await countLive(tx, competitionId);
+            const n = yield* countLive(tx, competitionId);
             const from = current.position;
-            position = Math.min(patch.position, n);
+            // A const, so the query callbacks below see it narrowed.
+            const to = Math.min(patch.position, n);
+            position = to;
             // Shift the topics between the old and new position by one to close the gap.
-            if (position < from) {
-              await tx
-                .update(topics)
-                .set({ position: sql`${topics.position} + 1` })
-                .where(and(liveIn(competitionId), gte(topics.position, position), lt(topics.position, from)));
-            } else if (position > from) {
-              await tx
-                .update(topics)
-                .set({ position: sql`${topics.position} - 1` })
-                .where(and(liveIn(competitionId), gt(topics.position, from), lte(topics.position, position)));
+            if (to < from) {
+              yield* Effect.promise(() =>
+                tx
+                  .update(topics)
+                  .set({ position: sql`${topics.position} + 1` })
+                  .where(and(liveIn(competitionId), gte(topics.position, to), lt(topics.position, from))),
+              );
+            } else if (to > from) {
+              yield* Effect.promise(() =>
+                tx
+                  .update(topics)
+                  .set({ position: sql`${topics.position} - 1` })
+                  .where(and(liveIn(competitionId), gt(topics.position, from), lte(topics.position, to))),
+              );
             }
           }
-          const [topic] = await tx
-            .update(topics)
-            .set({ name: patch.name, position, updatedAt: sql`now()` })
-            .where(eq(topics.id, id))
-            .returning(columns);
+          const [topic] = yield* Effect.promise(() =>
+            tx.update(topics).set({ name: patch.name, position, updatedAt: sql`now()` }).where(eq(topics.id, id)).returning(columns),
+          );
           return topic!;
         }),
       );
-      // Deleted since the check.
-      if (!topic) return yield* new TopicNotFound();
-      return topic;
     });
 
     const remove = Effect.fn("TopicsService.remove")(function* (caller: User, id: string) {
       const { competition_id: competitionId } = yield* writable(caller, id);
-      const result = yield* Effect.promise(() =>
-        db.transaction(async (tx) => {
-          const competition = await lockCompetition(tx, competitionId);
-          if (!competition) return "gone";
-          const [current] = await tx.select(columns).from(topics).where(and(eq(topics.id, id), isNull(topics.deletedAt)));
-          if (!current) return "gone";
-          if (competition.publishedAt) {
-            if ((await countLive(tx, competitionId)) === 1) return "last";
-          }
-          await tx.update(topics).set({ deletedAt: sql`now()` }).where(eq(topics.id, id));
-          await tx
-            .update(topics)
-            .set({ position: sql`${topics.position} - 1` })
-            .where(and(liveIn(competitionId), gt(topics.position, current.position)));
-          return "ok";
+      yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
+          const competition = yield* lockCompetition(tx, competitionId);
+          // Deleted since the check.
+          if (!competition) return yield* new TopicNotFound();
+          const current = yield* liveTopic(tx, id);
+          if (!current) return yield* new TopicNotFound();
+          if (competition.publishedAt && (yield* countLive(tx, competitionId)) === 1) return yield* new LastTopic();
+          yield* Effect.promise(() => tx.update(topics).set({ deletedAt: sql`now()` }).where(eq(topics.id, id)));
+          yield* Effect.promise(() =>
+            tx
+              .update(topics)
+              .set({ position: sql`${topics.position} - 1` })
+              .where(and(liveIn(competitionId), gt(topics.position, current.position))),
+          );
         }),
       );
-      if (result === "gone") return yield* new TopicNotFound();
-      if (result === "last") return yield* new LastTopic();
     });
 
     return { list, get, create, update, remove };

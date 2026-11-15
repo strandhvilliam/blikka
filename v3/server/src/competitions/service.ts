@@ -3,7 +3,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import type { User } from "../contract.ts";
-import { Db } from "../db/Db.ts";
+import { Db, transaction } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { PermissionsService } from "../permissions/service.ts";
 import {
@@ -95,53 +95,58 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
       const opensAt = patch.opens_at === undefined ? current.opens_at : patch.opens_at;
       const closesAt = patch.closes_at === undefined ? current.closes_at : patch.closes_at;
       if (opensAt && closesAt && closesAt <= opensAt) return yield* new CompetitionWindowInvalid();
-      const competition = yield* Effect.promise(() =>
-        db.transaction(async (tx) => {
+      return yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
           // Topic deletes and entries lock this row too, so neither can slip past the checks below.
-          await tx.select({ id: model.competitions.id }).from(model.competitions).where(eq(model.competitions.id, id)).for("update");
+          yield* Effect.promise(() =>
+            tx.select({ id: model.competitions.id }).from(model.competitions).where(eq(model.competitions.id, id)).for("update"),
+          );
           if (patch.published) {
-            const [topic] = await tx
-              .select({ id: model.topics.id })
-              .from(model.topics)
-              .where(and(eq(model.topics.competitionId, id), isNull(model.topics.deletedAt)))
-              .limit(1);
-            if (!topic) return "no-topics" as const;
+            const [topic] = yield* Effect.promise(() =>
+              tx
+                .select({ id: model.topics.id })
+                .from(model.topics)
+                .where(and(eq(model.topics.competitionId, id), isNull(model.topics.deletedAt)))
+                .limit(1),
+            );
+            if (!topic) return yield* new CompetitionHasNoTopics();
           }
           if (patch.published === false) {
-            const [participant] = await tx
-              .select({ id: model.participants.id })
-              .from(model.participants)
-              .where(and(eq(model.participants.competitionId, id), isNull(model.participants.deletedAt)))
-              .limit(1);
-            if (participant) return "has-participants" as const;
+            const [participant] = yield* Effect.promise(() =>
+              tx
+                .select({ id: model.participants.id })
+                .from(model.participants)
+                .where(and(eq(model.participants.competitionId, id), isNull(model.participants.deletedAt)))
+                .limit(1),
+            );
+            if (participant) return yield* new CompetitionHasParticipants();
           }
-          const [competition] = await tx
-            .update(model.competitions)
-          // drizzle leaves out undefined keys, so fields not sent stay as they are.
-          .set({
-            name: patch.name,
-            description: patch.description,
-            timeZone: patch.time_zone,
-            opensAt: patch.opens_at,
-            closesAt: patch.closes_at,
-            publishedAt:
-              patch.published === undefined
-                ? undefined
-                : patch.published
-                  ? sql`coalesce(${model.competitions.publishedAt}, now())`
-                  : null,
-            updatedAt: sql`now()`,
-          })
-          .where(and(eq(model.competitions.id, id), isNull(model.competitions.deletedAt)))
-          .returning(columns);
+          const [competition] = yield* Effect.promise(() =>
+            tx
+              .update(model.competitions)
+              // drizzle leaves out undefined keys, so fields not sent stay as they are.
+              .set({
+                name: patch.name,
+                description: patch.description,
+                timeZone: patch.time_zone,
+                opensAt: patch.opens_at,
+                closesAt: patch.closes_at,
+                publishedAt:
+                  patch.published === undefined
+                    ? undefined
+                    : patch.published
+                      ? sql`coalesce(${model.competitions.publishedAt}, now())`
+                      : null,
+                updatedAt: sql`now()`,
+              })
+              .where(and(eq(model.competitions.id, id), isNull(model.competitions.deletedAt)))
+              .returning(columns),
+          );
+          // Deleted since the check.
+          if (!competition) return yield* new CompetitionNotFound();
           return competition;
         }),
       );
-      if (competition === "no-topics") return yield* new CompetitionHasNoTopics();
-      if (competition === "has-participants") return yield* new CompetitionHasParticipants();
-      // Deleted since the check.
-      if (!competition) return yield* new CompetitionNotFound();
-      return competition;
     });
 
     const remove = Effect.fn("CompetitionsService.remove")(function* (caller: User, id: string) {

@@ -1,8 +1,10 @@
 import * as Cloudflare from "@alchemy.run/cloudflare";
+import { TransactionRollbackError } from "drizzle-orm";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
 import * as Layer from "effect/Layer";
 import * as Redacted from "effect/Redacted";
 import { Pool } from "pg";
@@ -32,6 +34,33 @@ export const Database = Effect.gen(function* () {
 });
 
 export class Db extends Context.Service<Db, NodePgDatabase<typeof model>>()("blikka/db/Db") {}
+
+export type Tx = Parameters<Parameters<Db["Service"]["transaction"]>[0]>[0];
+
+// Runs `body` in a transaction. Any failure, a typed error or a defect, rolls it back and comes out
+// as it went in. Takes `db` rather than reading Db, so service methods don't start requiring it.
+export const transaction = <A, E, R>(db: Db["Service"], body: (tx: Tx) => Effect.Effect<A, E, R>) =>
+  Effect.gen(function* () {
+    // The caller's spans and services, so the body runs as part of the request.
+    const context = yield* Effect.context<R>();
+    const exit = yield* Effect.promise(async (): Promise<Exit.Exit<A, E>> => {
+      let failure: Exit.Exit<A, E> | undefined;
+      try {
+        return await db.transaction(async (tx) => {
+          const exit = await Effect.runPromiseExitWith(context)(body(tx));
+          if (Exit.isFailure(exit)) {
+            failure = exit;
+            tx.rollback(); // throws, which is how drizzle rolls back
+          }
+          return exit;
+        });
+      } catch (error) {
+        if (failure && error instanceof TransactionRollbackError) return failure;
+        throw error; // a database error stays a defect
+      }
+    });
+    return yield* exit;
+  });
 
 // Per request: Workers can't share sockets across requests, and Hyperdrive does the real pooling.
 export const DbLive = (hyperdrive: Cloudflare.Hyperdrive.ConnectClient) =>
