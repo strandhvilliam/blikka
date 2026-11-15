@@ -22,6 +22,10 @@ Follows the layout in Effect's LLMS.md.
 - Reusable effects are `Effect.fn("Service.operation")`, which names their span
 - Route files are named by their URL, as TanStack Router reads them (`routes/login.tsx`, `routes/__root.tsx`), and generated files end in `.gen.ts`
 
+After changing code in v3/, run `bun run format` and then `bun run check` inside `v3/`. A lint error is a rule of this codebase: fix the code. Disable a rule on one line only for a deliberate exception, with the reason after `--`.
+
+The anti-slop rules (`tools/oxlint/anti-slop/`, vendored, see its `UPSTREAM.md`) reject `unknown` inputs and returns, `typeof` checks and chained casts: parse at the boundary instead (with Schema in `server/`). A type assertion that stays needs a `// SAFETY:` comment just before it, stating the invariant that makes it hold.
+
 ## Vendored Repositories
 
 This project vendors external repositories under @.repos/

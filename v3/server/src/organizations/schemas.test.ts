@@ -25,6 +25,7 @@ test("domain errors carry their own status, so handlers don't map them", async (
       .add(HttpApiEndpoint.get("notFound", "/not-found", { error: OrganizationNotFound }))
       .add(HttpApiEndpoint.get("denied", "/denied", { error: PermissionDenied })),
   );
+
   const { handler } = HttpRouter.toWebHandler(
     HttpApiBuilder.layer(TestApi).pipe(
       Layer.provide(
@@ -38,6 +39,7 @@ test("domain errors carry their own status, so handlers don't map them", async (
     ),
     { disableLogger: true },
   );
+
   const status = async (path: string) => (await handler(new Request(`https://api.test${path}`))).status;
   expect(await status("/not-found")).toBe(404);
   expect(await status("/denied")).toBe(403);

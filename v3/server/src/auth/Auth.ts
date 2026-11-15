@@ -4,13 +4,13 @@ import { APIError, createAuthMiddleware } from "better-auth/api";
 import { bearer, emailOTP } from "better-auth/plugins";
 import { sql } from "drizzle-orm";
 import { ALCHEMY_DEV } from "alchemy/Phase";
-import * as Cause from "effect/Cause";
 import * as Config from "effect/Config";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
+import * as Schema from "effect/Schema";
 import * as HttpApiError from "effect/http-api/HttpApiError";
 import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import type * as HttpServerResponse from "effect/http/HttpServerResponse";
@@ -56,6 +56,9 @@ export const disabledAuthPaths = [
 
 const MAX_CODES_PER_HOUR = 5;
 
+// A request for a code; anything else is left to Better Auth to reject.
+const decodeOtpRequest = Schema.decodeUnknownOption(Schema.Struct({ email: Schema.String }));
+
 export const makeAuth = (
   db: Db["Service"],
   config: Config.Success<typeof AuthConfig>,
@@ -74,12 +77,17 @@ export const makeAuth = (
       // Each code allows 3 guesses, so the number of codes per email is what bounds guessing at
       // someone else's. Counted per email, not per IP, so it holds against any number of IPs.
       before: createAuthMiddleware(async (ctx) => {
-        const email = ctx.body?.email;
-        if (ctx.path !== "/email-otp/send-verification-otp" || typeof email !== "string") {
+        const request = decodeOtpRequest(ctx.body);
+
+        if (ctx.path !== "/email-otp/send-verification-otp" || Option.isNone(request)) {
           return;
         }
+
+        const { email } = request.value;
+
         const { otpSends } = model;
         const expired = sql`${otpSends.windowStart} < now() - interval '1 hour'`;
+
         // One statement, so parallel requests can't each read the same count.
         const [sent] = await db
           .insert(otpSends)
@@ -92,6 +100,7 @@ export const makeAuth = (
             },
           })
           .returning({ count: otpSends.count });
+
         if (sent!.count > MAX_CODES_PER_HOUR) {
           throw new APIError("TOO_MANY_REQUESTS", {
             message: "Too many codes requested. Try again in an hour.",
@@ -145,11 +154,15 @@ export const AuthLive = (config: Config.Success<typeof AuthConfig>, cookieDomain
       // Better Auth calls back outside Effect, so the claim runs with this request's context: its
       // trace, logger and Sentry scope. Built per request (api.ts), so the context is the request's.
       const run = Effect.runPromiseWith(yield* Effect.context<SentryScope>());
+
       const claimGuestEntries = (userId: string) => {
         const claim = participants.claimGuestEntries(userId);
+
         return run(Effect.catchCause(claim, reportCause));
       };
+
       const db = yield* Db;
+
       return makeAuth(db, config, cookieDomain, claimGuestEntries);
     }),
   );
@@ -158,6 +171,7 @@ export const getSession = Effect.fn("Auth.getSession")(function* (headers?: Head
   const auth = yield* Auth;
   const request = yield* HttpServerRequest.HttpServerRequest;
   const sessionHeaders = headers ?? new Headers(request.headers);
+
   return yield* Effect.promise(() => auth.api.getSession({ headers: sessionHeaders }));
 });
 
@@ -168,6 +182,7 @@ const checkOrigin = Effect.fn("Auth.checkOrigin")(function* () {
   const request = yield* HttpServerRequest.HttpServerRequest;
   const origin = request.headers["origin"];
   const safeMethod = request.method === "GET" || request.method === "HEAD";
+
   if (!safeMethod && origin !== undefined && !auth.options.trustedOrigins.includes(origin)) {
     return yield* new HttpApiError.Forbidden();
   }
@@ -178,9 +193,11 @@ const authenticate = Effect.fn("Auth.authenticate")(function* (
 ) {
   yield* checkOrigin();
   const session = yield* getSession();
+
   if (!session) {
     return yield* new HttpApiError.Unauthorized();
   }
+
   return yield* Effect.provideService(httpEffect, CurrentUser, session.user);
 });
 
@@ -194,20 +211,22 @@ const entrySession = Effect.fn("Auth.entrySession")(function* (
   const guestToken = bearer?.startsWith(GUEST_TOKEN_PREFIX) ? bearer : null;
 
   const headers = new Headers(request.headers);
+
   // A guest token isn't a session, so Better Auth only sees the cookie.
   if (guestToken) {
     headers.delete("authorization");
   }
+
   const session = yield* getSession(headers);
 
   const caller = { user: session?.user ?? null, guestToken };
+
   return yield* Effect.provideService(httpEffect, EntryCaller, caller);
 });
 
-// The cast swaps Auth for its per-request marker (see Authenticated.ts). It holds because the
+// SAFETY: the cast swaps Auth for its per-request marker (see Authenticated.ts). It holds because the
 // middleware runs inside each request, after api.ts has provided Auth.
-export const AuthenticatedLive = Layer.succeed(Authenticated)(
-  authenticate as Authenticated["Service"],
-);
+export const AuthenticatedLive = Layer.succeed(Authenticated)(authenticate as Authenticated["Service"]);
 
+// SAFETY: as for AuthenticatedLive.
 export const EntrySessionLive = Layer.succeed(EntrySession)(entrySession as EntrySession["Service"]);

@@ -8,6 +8,7 @@ import { sentryProject } from "../sentry-project.ts";
 export default defineConfig(({ mode }) => {
   // Source maps are uploaded only when a token is set (deploys), never under `alchemy dev`. The .env is in v3/.
   const { SENTRY_AUTH_TOKEN } = loadEnv(mode, `${import.meta.dirname}/..`, "SENTRY_");
+
   return {
     // Hidden: generated for the upload, not referenced from the shipped files.
     resolve: { tsconfigPaths: true },

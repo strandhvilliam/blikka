@@ -27,6 +27,7 @@ const hex = (bytes: ArrayBuffer | Uint8Array) =>
 // Only the hash is stored, so a database leak doesn't hand out guest entries (adr/0004).
 const hashToken = async (token: string) => {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+
   return hex(digest);
 };
 
@@ -49,9 +50,11 @@ const lockOpenCompetition = (tx: Tx, competitionId: string) =>
         )
         .for("share"),
     );
+
     if (!competition) {
       return yield* new CompetitionNotFound();
     }
+
     if (competition.closed) {
       return yield* new EntryClosed();
     }
@@ -85,27 +88,29 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
             ),
           ),
       );
+
       if (!competition) {
         return yield* new CompetitionNotFound();
       }
+
       return competition;
     });
 
     // A guest gets a token, returned only here.
-    const enterAsGuest = Effect.fn("EntryService.enterAsGuest")(function* (
-      competitionId: string,
-      guest: GuestDetails,
-    ) {
+    const enterAsGuest = Effect.fn("EntryService.enterAsGuest")(function* (competitionId: string, guest: GuestDetails) {
       const { name, email } = guest;
+
       if (!name || !email) {
         return yield* new GuestDetailsRequired();
       }
+
       const token = GUEST_TOKEN_PREFIX + hex(crypto.getRandomValues(new Uint8Array(32)));
       const guestTokenHash = yield* Effect.promise(() => hashToken(token));
 
       return yield* transaction(db, (tx) =>
         Effect.gen(function* () {
           yield* lockOpenCompetition(tx, competitionId);
+
           const [created] = yield* Effect.promise(() =>
             tx
               .insert(participants)
@@ -113,19 +118,18 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
               .onConflictDoNothing()
               .returning(entryColumns),
           );
+
           if (!created) {
             return yield* new AlreadyEntered();
           }
+
           return { participant: created, guest_token: token };
         }),
       );
     });
 
     // Signed in, the entry comes from the account and entering again returns it.
-    const enterSignedIn = Effect.fn("EntryService.enterSignedIn")(function* (
-      user: User,
-      competitionId: string,
-    ) {
+    const enterSignedIn = Effect.fn("EntryService.enterSignedIn")(function* (user: User, competitionId: string) {
       // A guest entry made with the user's verified email after they signed in becomes theirs here,
       // by the same rule as at sign-in.
       yield* claimGuestEntries(user.id);
@@ -139,17 +143,14 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
               tx
                 .select(entryColumns)
                 .from(participants)
-                .where(
-                  and(
-                    eq(participants.competitionId, competitionId),
-                    eq(participants.userId, user.id),
-                  ),
-                ),
+                .where(and(eq(participants.competitionId, competitionId), eq(participants.userId, user.id))),
             );
+
             return own;
           });
 
           const existing = yield* findOwn;
+
           if (existing) {
             return { participant: existing, guest_token: null };
           }
@@ -167,15 +168,18 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
               .onConflictDoNothing()
               .returning(entryColumns),
           );
+
           if (created) {
             return { participant: created, guest_token: null };
           }
 
           // The same user entering twice at once: the other request created it.
           const raced = yield* findOwn;
+
           if (!raced) {
             return yield* new AlreadyEntered();
           }
+
           return { participant: raced, guest_token: null };
         }),
       );
@@ -189,6 +193,7 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       if (user) {
         return yield* enterSignedIn(user, competitionId);
       }
+
       return yield* enterAsGuest(competitionId, guest);
     });
 
@@ -196,17 +201,21 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
     const owned = Effect.fn("EntryService.owned")(function* (caller: EntryCaller["Service"]) {
       const { user, guestToken } = caller;
       const owners: Array<SQL> = [];
+
       if (user) {
         owners.push(eq(participants.userId, user.id));
       }
+
       if (guestToken) {
         const tokenHash = yield* Effect.promise(() => hashToken(guestToken));
         owners.push(eq(participants.guestTokenHash, tokenHash));
       }
+
       // Neither a session nor a token owns nothing; an empty or() would match every row.
       if (owners.length === 0) {
         return sql`false`;
       }
+
       return and(isNull(participants.deletedAt), or(...owners));
     });
 
@@ -215,9 +224,11 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       competitionId?: string,
     ) {
       const filters = [yield* owned(caller)];
+
       if (competitionId) {
         filters.push(eq(participants.competitionId, competitionId));
       }
+
       return yield* Effect.promise(() =>
         db
           .select(entryColumns)
@@ -232,19 +243,23 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       id: string,
     ) {
       const scope = yield* owned(caller);
+
       const [row] = yield* Effect.promise(() =>
-        db.select(entryColumns).from(participants).where(and(scope, eq(participants.id, id))),
+        db
+          .select(entryColumns)
+          .from(participants)
+          .where(and(scope, eq(participants.id, id))),
       );
+
       if (!row) {
         return yield* new ParticipantNotFound();
       }
+
       return row;
     });
 
     return { getPublished, enter, listOwn, requireParticipantOwner };
   }),
 }) {
-  static readonly layer = Layer.effect(EntryService, EntryService.make).pipe(
-    Layer.provide(ParticipantsService.layer),
-  );
+  static readonly layer = Layer.effect(EntryService, EntryService.make).pipe(Layer.provide(ParticipantsService.layer));
 }

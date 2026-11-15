@@ -1,9 +1,11 @@
 {
   "name": "blikka-v3",
-  "type": "module",
   "private": true,
   "workspaces": {
-    "packages": ["server", "web"],
+    "packages": [
+      "server",
+      "web"
+    ],
     "catalog": {
       "@alchemy.run/axiom": "2.0.0-beta.84",
       "@alchemy.run/cloudflare": "2.0.0-beta.84",
@@ -14,6 +16,7 @@
       "effect": "4.0.6"
     }
   },
+  "type": "module",
   "scripts": {
     "up": "bun scripts/up.ts",
     "dev": "env -u npm_execpath alchemy dev",
@@ -22,7 +25,10 @@
     "destroy": "alchemy destroy",
     "test": "bun test",
     "db:generate": "drizzle-kit generate --name",
-    "api:generate": "bun server/scripts/openapi.ts > server/openapi.json && openapi-typescript server/openapi.json -o web/src/api.gen.ts"
+    "api:generate": "bun server/scripts/openapi.ts > server/openapi.json && openapi-typescript server/openapi.json -o web/src/api.gen.ts",
+    "format": "oxfmt",
+    "lint": "oxlint",
+    "check": "oxfmt --check && oxlint && tsc -p . && tsc -p server && tsc -p web"
   },
   "dependencies": {
     "@alchemy.run/axiom": "catalog:",
@@ -33,9 +39,12 @@
   "devDependencies": {
     "@cloudflare/workers-types": "catalog:",
     "@effect/platform-node": "4.0.6",
+    "@oxlint/plugins": "1.93.0",
     "@types/bun": "1.4.4",
     "drizzle-kit": "0.31.11",
     "openapi-typescript": "7.13.0",
+    "oxfmt": "0.78.0",
+    "oxlint": "1.93.0",
     "typescript": "^5.9.3"
   },
   "overrides": {

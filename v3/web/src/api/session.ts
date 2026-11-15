@@ -9,7 +9,11 @@ export const sessionQuery = queryOptions({
   queryKey: ["session"],
   queryFn: async () => {
     const result = await api().GET("/me");
-    if (result.response.status === 401) return null;
+
+    if (result.response.status === 401) {
+      return null;
+    }
+
     return unwrap(result);
   },
   staleTime: 5 * 60 * 1000,
@@ -21,6 +25,7 @@ export const sessionQuery = queryOptions({
 export function useSignOut() {
   const queryClient = useQueryClient();
   const router = useRouter();
+
   return async () => {
     await authClient.signOut();
     queryClient.clear();

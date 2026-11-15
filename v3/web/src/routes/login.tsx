@@ -13,7 +13,9 @@ const OTP_LENGTH = 6;
 
 export const Route = createFileRoute("/login")({
   beforeLoad: ({ context }) => {
-    if (context.session) throw redirect({ to: "/dashboard" });
+    if (context.session) {
+      throw redirect({ to: "/dashboard" });
+    }
   },
   component: Login,
 });
@@ -31,7 +33,11 @@ function Login() {
     setSubmitting(true);
     const { error } = await authClient.emailOtp.sendVerificationOtp({ email, type: "sign-in" });
     setSubmitting(false);
-    if (error) return setError(error.message);
+
+    if (error) {
+      return setError(error.message);
+    }
+
     setError(undefined);
     setOtpSent(true);
   };
@@ -40,12 +46,15 @@ function Login() {
   const verifyOtp = async (code: string) => {
     setSubmitting(true);
     const { error } = await authClient.signIn.emailOtp({ email, otp: code });
+
     if (error) {
       setError(error.message);
       setOtp("");
       setSubmitting(false);
+
       return;
     }
+
     await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
     navigate({ to: "/dashboard" });
   };

@@ -52,7 +52,10 @@ function Rename({ organization, canWrite }: { organization: { id: string; name: 
         value={name}
         onChange={(e) => {
           setName(e.target.value);
-          if (rename.isError) rename.reset();
+
+          if (rename.isError) {
+            rename.reset();
+          }
         }}
       />
       {rename.isError && (
@@ -61,7 +64,11 @@ function Rename({ organization, canWrite }: { organization: { id: string; name: 
         </p>
       )}
       {canWrite && (
-        <Button type="submit" className="justify-self-start" disabled={rename.isPending || rename.isSuccess || unchanged || !name.trim()}>
+        <Button
+          type="submit"
+          className="justify-self-start"
+          disabled={rename.isPending || rename.isSuccess || unchanged || !name.trim()}
+        >
           Save
         </Button>
       )}

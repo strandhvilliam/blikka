@@ -19,6 +19,9 @@ bun run dev      # local workerd, stage dev_$USER, logs in the terminal (no Axio
 bun run deploy   # migrate the .env database, then deploy to Cloudflare, stage live_$USER
 bun run deploy:prod  # migrate the .env.prod database, then deploy the prod stage, the only one served on the custom domain
 bun run destroy  # tear down
+bun run format   # oxfmt, config in .oxfmtrc.json
+bun run lint     # oxlint, config in .oxlintrc.json
+bun run check    # format check, lint and typecheck; run it before calling a change done
 ```
 
 `dev` unsets `npm_execpath` so the alchemy CLI runs under Node: under Bun, beta.84 starts the Vite child with the unpublished `register-dev-mode.js` (fixed upstream in alchemy-run/alchemy#2525). Drop the `env -u npm_execpath` once a release after `2.0.0-beta.84` includes that fix.

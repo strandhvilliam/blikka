@@ -1,7 +1,7 @@
 {
   "name": "@blikka/server",
-  "type": "module",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@alchemy.run/axiom": "catalog:",
     "@alchemy.run/cloudflare": "catalog:",

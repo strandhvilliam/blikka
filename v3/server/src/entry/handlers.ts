@@ -10,6 +10,7 @@ export const EntryHandlers = HttpApiBuilder.group(Api, "entry", (handlers) =>
     .handle("competition", ({ params }) =>
       Effect.gen(function* () {
         const entry = yield* EntryService;
+
         return yield* entry.getPublished(params.slug);
       }),
     )
@@ -17,6 +18,7 @@ export const EntryHandlers = HttpApiBuilder.group(Api, "entry", (handlers) =>
       Effect.gen(function* () {
         const entry = yield* EntryService;
         const caller = yield* EntryCaller;
+
         return yield* entry.enter(caller.user, payload.competition_id, payload);
       }),
     )
@@ -24,6 +26,7 @@ export const EntryHandlers = HttpApiBuilder.group(Api, "entry", (handlers) =>
       Effect.gen(function* () {
         const entry = yield* EntryService;
         const caller = yield* EntryCaller;
+
         return yield* entry.listOwn(caller, query.competition_id);
       }),
     )
@@ -31,6 +34,7 @@ export const EntryHandlers = HttpApiBuilder.group(Api, "entry", (handlers) =>
       Effect.gen(function* () {
         const entry = yield* EntryService;
         const caller = yield* EntryCaller;
+
         return yield* entry.requireParticipantOwner(caller, params.id);
       }),
     ),

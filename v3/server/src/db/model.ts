@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm'
+import { sql } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -11,11 +11,11 @@ import {
   unique,
   uniqueIndex,
   uuid,
-} from 'drizzle-orm/pg-core'
+} from "drizzle-orm/pg-core";
 
 // Better Auth core tables. Column names follow Better Auth's field names so the adapter maps 1:1.
 
-export const user = pgTable('user', {
+export const user = pgTable("user", {
   id: uuid()
     .primaryKey()
     .default(sql`uuidv7()`),
@@ -24,13 +24,13 @@ export const user = pgTable('user', {
   emailVerified: boolean().notNull().default(false),
   image: text(),
   // 'user' | 'superadmin'. Set by hand in the DB, never through the auth API (input: false).
-  platformRole: text().notNull().default('user'),
+  platformRole: text().notNull().default("user"),
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
-})
+});
 
 export const session = pgTable(
-  'session',
+  "session",
   {
     id: uuid()
       .primaryKey()
@@ -43,13 +43,13 @@ export const session = pgTable(
     userAgent: text(),
     userId: uuid()
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+      .references(() => user.id, { onDelete: "cascade" }),
   },
-  (table) => [index('session_user_id_idx').on(table.userId)],
-)
+  (table) => [index("session_user_id_idx").on(table.userId)],
+);
 
 export const account = pgTable(
-  'account',
+  "account",
   {
     id: uuid()
       .primaryKey()
@@ -58,7 +58,7 @@ export const account = pgTable(
     providerId: text().notNull(),
     userId: uuid()
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+      .references(() => user.id, { onDelete: "cascade" }),
     accessToken: text(),
     refreshToken: text(),
     idToken: text(),
@@ -69,11 +69,11 @@ export const account = pgTable(
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
   },
-  (table) => [index('account_user_id_idx').on(table.userId)],
-)
+  (table) => [index("account_user_id_idx").on(table.userId)],
+);
 
 export const verification = pgTable(
-  'verification',
+  "verification",
   {
     id: uuid()
       .primaryKey()
@@ -84,19 +84,19 @@ export const verification = pgTable(
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
   },
-  (table) => [index('verification_identifier_idx').on(table.identifier)],
-)
+  (table) => [index("verification_identifier_idx").on(table.identifier)],
+);
 
 // Sign-in codes sent to an email in its current hour. Auth.ts caps it, so a stranger can't keep
 // asking for new codes to guess at.
 // shortcut: one row per address ever asked for a code, never deleted; prune rows older than an hour once it grows.
-export const otpSends = pgTable('otp_sends', {
+export const otpSends = pgTable("otp_sends", {
   email: text().primaryKey(),
   count: integer().notNull(),
   windowStart: timestamp().notNull(),
-})
+});
 
-export const organizations = pgTable('organizations', {
+export const organizations = pgTable("organizations", {
   id: uuid()
     .primaryKey()
     .default(sql`uuidv7()`),
@@ -104,11 +104,11 @@ export const organizations = pgTable('organizations', {
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
   deletedAt: timestamp(),
-})
+});
 
 // Users who run an organization, not participants.
 export const organizationMembers = pgTable(
-  'organization_members',
+  "organization_members",
   {
     organizationId: uuid()
       .notNull()
@@ -116,24 +116,24 @@ export const organizationMembers = pgTable(
     userId: uuid()
       .notNull()
       .references(() => user.id),
-    role: text().$type<'owner' | 'admin'>().notNull().default('admin'),
+    role: text().$type<"owner" | "admin">().notNull().default("admin"),
     createdAt: timestamp().notNull().defaultNow(),
     // Removed or left. Joining again clears it (adr/0008).
     deletedAt: timestamp(),
   },
   (table) => [
     primaryKey({ columns: [table.organizationId, table.userId] }),
-    index('organization_members_user_id_idx').on(table.userId),
+    index("organization_members_user_id_idx").on(table.userId),
     // Exactly one owner (adr/0001); a transfer demotes before it promotes.
-    uniqueIndex('organization_members_one_owner')
+    uniqueIndex("organization_members_one_owner")
       .on(table.organizationId)
       .where(sql`${table.role} = 'owner' and ${table.deletedAt} is null`),
   ],
-)
+);
 
 // No token: whoever signs in with this verified email accepts it (adr/0007-organization-invitations.md).
 export const organizationInvitations = pgTable(
-  'organization_invitations',
+  "organization_invitations",
   {
     id: uuid()
       .primaryKey()
@@ -152,15 +152,15 @@ export const organizationInvitations = pgTable(
     createdAt: timestamp().notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('organization_invitations_open_unique')
+    uniqueIndex("organization_invitations_open_unique")
       .on(table.organizationId, table.email)
       .where(sql`${table.acceptedAt} is null and ${table.revokedAt} is null`),
-    index('organization_invitations_email_idx').on(table.email),
+    index("organization_invitations_email_idx").on(table.email),
   ],
-)
+);
 
 export const competitions = pgTable(
-  'competitions',
+  "competitions",
   {
     id: uuid()
       .primaryKey()
@@ -170,8 +170,8 @@ export const competitions = pgTable(
       .references(() => organizations.id),
     slug: text().notNull().unique(),
     name: text().notNull(),
-    description: text().notNull().default(''),
-    timeZone: text().notNull().default('Europe/Stockholm'),
+    description: text().notNull().default(""),
+    timeZone: text().notNull().default("Europe/Stockholm"),
     // Null is a draft participants can't see or enter (adr/0009).
     publishedAt: timestamp({ withTimezone: true }),
     // Null opensAt: not open yet. Null closesAt: no deadline.
@@ -182,14 +182,14 @@ export const competitions = pgTable(
     deletedAt: timestamp(),
   },
   (table) => [
-    index('competitions_organization_id_idx').on(table.organizationId),
+    index("competitions_organization_id_idx").on(table.organizationId),
     // The service checks this first; the constraint catches two edits racing.
-    check('competitions_window_check', sql`${table.closesAt} > ${table.opensAt}`),
+    check("competitions_window_check", sql`${table.closesAt} > ${table.opensAt}`),
   ],
-)
+);
 
 export const topics = pgTable(
-  'topics',
+  "topics",
   {
     id: uuid()
       .primaryKey()
@@ -205,11 +205,11 @@ export const topics = pgTable(
     updatedAt: timestamp().notNull().defaultNow(),
     deletedAt: timestamp(),
   },
-  (table) => [index('topics_competition_id_idx').on(table.competitionId)],
-)
+  (table) => [index("topics_competition_id_idx").on(table.competitionId)],
+);
 
 export const participants = pgTable(
-  'participants',
+  "participants",
   {
     id: uuid()
       .primaryKey()
@@ -218,7 +218,7 @@ export const participants = pgTable(
       .notNull()
       .references(() => competitions.id),
     // Null for guests; set when they sign in with the same verified email.
-    userId: uuid().references(() => user.id, { onDelete: 'set null' }),
+    userId: uuid().references(() => user.id, { onDelete: "set null" }),
     // Copied from the account on entry, so guests and users read the same.
     name: text().notNull(),
     email: text().notNull(),
@@ -229,12 +229,12 @@ export const participants = pgTable(
     deletedAt: timestamp(),
   },
   (table) => [
-    unique('participants_competition_id_email_unique').on(table.competitionId, table.email),
+    unique("participants_competition_id_email_unique").on(table.competitionId, table.email),
     // One entry per user per competition, even if their account email changed in between.
-    uniqueIndex('participants_competition_id_user_id_unique')
+    uniqueIndex("participants_competition_id_user_id_unique")
       .on(table.competitionId, table.userId)
       .where(sql`${table.userId} is not null`),
-    index('participants_user_id_idx').on(table.userId),
-    index('participants_email_idx').on(table.email),
+    index("participants_user_id_idx").on(table.userId),
+    index("participants_email_idx").on(table.email),
   ],
-)
+);

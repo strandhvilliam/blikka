@@ -34,10 +34,12 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
         .select({ email: sql<string>`lower(${model.user.email})` })
         .from(model.user)
         .where(and(eq(model.user.id, caller.id), eq(model.user.emailVerified, true)));
+
       const liveOrganizationIds = db
         .select({ id: model.organizations.id })
         .from(model.organizations)
         .where(isNull(model.organizations.deletedAt));
+
       return and(
         inArray(invitations.email, verifiedEmail),
         open,
@@ -53,6 +55,7 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
     ) {
       yield* authorize(caller, "members:write", organizationId);
       const email = rawEmail.toLowerCase();
+
       const [member] = yield* Effect.promise(() =>
         db
           .select({ userId: model.organizationMembers.userId })
@@ -66,10 +69,13 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
             ),
           ),
       );
+
       if (member) {
         return yield* new AlreadyMember();
       }
+
       const expiresAt = sql`now() + interval '7 days'`;
+
       const [invitation] = yield* Effect.promise(() =>
         db
           .insert(invitations)
@@ -81,11 +87,13 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           })
           .returning(columns),
       );
+
       // shortcut: logs instead of emailing, send it with the email service once there is one.
       yield* Effect.logInfo(
         `[invitations] ${caller.email} invited ${email} to organization ${organizationId}. ` +
           `They join by signing in with ${email}.`,
       );
+
       return invitation!;
     });
 
@@ -116,9 +124,11 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
               .where(and(eq(invitations.id, id), addressedToCaller(caller)))
               .returning({ organizationId: invitations.organizationId }),
           );
+
           if (!invitation) {
             return yield* new InvitationNotFound();
           }
+
           yield* Effect.promise(() =>
             tx
               .insert(model.organizationMembers)
@@ -130,19 +140,19 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
                 setWhere: isNotNull(model.organizationMembers.deletedAt),
               }),
           );
+
           return { organization_id: invitation.organizationId };
         }),
       );
     });
 
-    const list = Effect.fn("InvitationsService.list")(function* (
-      caller: User,
-      organizationId?: string,
-    ) {
+    const list = Effect.fn("InvitationsService.list")(function* (caller: User, organizationId?: string) {
       const filters = [manageable(caller)];
+
       if (organizationId) {
         filters.push(eq(invitations.organizationId, organizationId));
       }
+
       return yield* Effect.promise(() =>
         db
           .select(columns)
@@ -159,13 +169,16 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           .from(invitations)
           .where(and(manageable(caller), eq(invitations.id, id))),
       );
+
       if (!invitation) {
         return yield* new InvitationNotFound();
       }
+
       // Not a member any more since the read: the invitation is out of reach, like any other.
       yield* authorize(caller, "members:write", invitation.organizationId).pipe(
         Effect.catchTag("OrganizationNotFound", () => Effect.fail(new InvitationNotFound())),
       );
+
       const [revoked] = yield* Effect.promise(() =>
         db
           .update(invitations)
@@ -173,6 +186,7 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           .where(and(eq(invitations.id, id), open))
           .returning({ id: invitations.id }),
       );
+
       // Accepted or revoked by someone else since the read.
       if (!revoked) {
         return yield* new InvitationNotFound();

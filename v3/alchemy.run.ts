@@ -15,6 +15,7 @@ export const Website = Cloudflare.Website.Vite(
   "Website",
   Effect.gen(function* () {
     const api = yield* Api;
+
     return {
       rootDir: "web",
       domain: (yield* Hostnames)?.website,
@@ -27,7 +28,7 @@ export const Website = Cloudflare.Website.Vite(
         SENTRY_DSN: Option.getOrElse(yield* SentryDsn, () => ""),
         SENTRY_ENVIRONMENT: yield* Stage,
         // The website declares its env itself, so it never imports this file (and through it the server).
-      } satisfies Record<keyof WebsiteEnv, unknown>,
+      } satisfies Record<keyof WebsiteEnv, string | Alchemy.Output<string>>,
     };
   }).pipe(Effect.orDie),
 );
@@ -46,6 +47,7 @@ export default Alchemy.Stack(
   Effect.gen(function* () {
     const api = yield* Api;
     const website = yield* Website;
+
     return {
       apiUrl: api.url.as<string>(),
       websiteUrl: website.url.as<string>(),

@@ -11,6 +11,7 @@ export const OrganizationsHandlers = HttpApiBuilder.group(Api, "organizations", 
       Effect.gen(function* () {
         const organizations = yield* OrganizationsService;
         const user = yield* CurrentUser;
+
         return yield* organizations.list(user);
       }),
     )
@@ -18,6 +19,7 @@ export const OrganizationsHandlers = HttpApiBuilder.group(Api, "organizations", 
       Effect.gen(function* () {
         const organizations = yield* OrganizationsService;
         const user = yield* CurrentUser;
+
         return yield* organizations.create(user, payload.name);
       }),
     )
@@ -25,6 +27,7 @@ export const OrganizationsHandlers = HttpApiBuilder.group(Api, "organizations", 
       Effect.gen(function* () {
         const organizations = yield* OrganizationsService;
         const user = yield* CurrentUser;
+
         return yield* organizations.get(user, params.id);
       }),
     )
@@ -32,6 +35,7 @@ export const OrganizationsHandlers = HttpApiBuilder.group(Api, "organizations", 
       Effect.gen(function* () {
         const organizations = yield* OrganizationsService;
         const user = yield* CurrentUser;
+
         return yield* organizations.update(user, params.id, payload.name);
       }),
     )
@@ -39,6 +43,7 @@ export const OrganizationsHandlers = HttpApiBuilder.group(Api, "organizations", 
       Effect.gen(function* () {
         const organizations = yield* OrganizationsService;
         const user = yield* CurrentUser;
+
         return yield* organizations.remove(user, params.id);
       }),
     ),

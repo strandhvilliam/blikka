@@ -9,7 +9,11 @@ export const entryCompetitionQuery = (slug: string) =>
     queryKey: ["entry", "competitions", slug],
     queryFn: async () => {
       const result = await api().GET("/entry/competitions/{slug}", { params: { path: { slug } } });
-      if (result.response.status === 404) return null;
+
+      if (result.response.status === 404) {
+        return null;
+      }
+
       return unwrap(result);
     },
   });
@@ -27,8 +31,11 @@ const storedToken = (competitionId: string) => {
 
 const storeToken = (competitionId: string, token: string | null) => {
   try {
-    if (token) localStorage.setItem(tokenKey(competitionId), token);
-    else localStorage.removeItem(tokenKey(competitionId));
+    if (token) {
+      localStorage.setItem(tokenKey(competitionId), token);
+    } else {
+      localStorage.removeItem(tokenKey(competitionId));
+    }
   } catch {
     // Private mode: the entry still exists, the guest just can't come back to it on this device.
   }
@@ -40,14 +47,19 @@ export const myEntryQuery = (competitionId: string) =>
     queryKey: ["entry", "participants", { competitionId }],
     queryFn: async () => {
       const token = storedToken(competitionId);
+
       const entries = await unwrap(
         api().GET("/entry/participants", {
           params: { query: { competition_id: competitionId } },
           headers: token ? { authorization: `Bearer ${token}` } : {},
         }),
       );
+
       // Taken over or deleted: the token no longer answers.
-      if (token && entries.length === 0) storeToken(competitionId, null);
+      if (token && entries.length === 0) {
+        storeToken(competitionId, null);
+      }
+
       // shortcut: a signed-in browser holding a guest token for another email gets two; show the first until a page needs both.
       return entries[0] ?? null;
     },
@@ -60,7 +72,10 @@ export const enterMutation = (competitionId: string) =>
     mutationFn: (guest: { name: string; email: string } | null) =>
       unwrap(api().POST("/entry/participants", { body: { competition_id: competitionId, ...guest } })),
     onSuccess: ({ participant, guest_token }, _guest, _result, { client }) => {
-      if (guest_token) storeToken(competitionId, guest_token);
+      if (guest_token) {
+        storeToken(competitionId, guest_token);
+      }
+
       client.setQueryData(myEntryQuery(competitionId).queryKey, participant);
     },
   });

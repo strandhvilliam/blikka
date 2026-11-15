@@ -16,14 +16,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/Dialog.tsx";
 import { Input } from "@/components/ui/Input.tsx";
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemTitle,
-} from "@/components/ui/Item.tsx";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/Item.tsx";
 import { Label } from "@/components/ui/Label.tsx";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import {
@@ -124,12 +117,25 @@ function MemberActions({
   const leave = useMutation(leaveOrganizationMutation(organization.id));
   const [action, setAction] = useState<Action>();
   const actions: Array<Action> = [];
-  if (organization.role === "owner" && !isSelf) actions.push("transfer");
-  if (canManage && !isSelf && member.role !== "owner") actions.push("remove");
-  if (isSelf && member.role !== "owner") actions.push("leave");
-  if (actions.length === 0) return null;
+
+  if (organization.role === "owner" && !isSelf) {
+    actions.push("transfer");
+  }
+
+  if (canManage && !isSelf && member.role !== "owner") {
+    actions.push("remove");
+  }
+
+  if (isSelf && member.role !== "owner") {
+    actions.push("leave");
+  }
+
+  if (actions.length === 0) {
+    return null;
+  }
 
   const who = member.name || member.email;
+
   const dialogs = {
     transfer: {
       label: "Make owner",
@@ -162,7 +168,11 @@ function MemberActions({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           {actions.map((a) => (
-            <DropdownMenuItem key={a} variant={a === "transfer" ? "default" : "destructive"} onClick={() => setAction(a)}>
+            <DropdownMenuItem
+              key={a}
+              variant={a === "transfer" ? "default" : "destructive"}
+              onClick={() => setAction(a)}
+            >
               {dialogs[a].label}
             </DropdownMenuItem>
           ))}
@@ -194,6 +204,7 @@ function PendingInvitation({
   const revoke = useMutation(revokeInvitationMutation(invitation.organization_id));
   const busy = invite.isPending || revoke.isPending;
   const expiresAt = new Date(invitation.expires_at);
+  // oxlint-disable-next-line react/purity -- display only, recomputed on each render
   const expired = expiresAt <= new Date();
 
   return (
@@ -207,21 +218,11 @@ function PendingInvitation({
       {canManage && (
         <ItemActions>
           {expired && (
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => invite.mutate(invitation.email)}
-            >
+            <Button variant="outline" size="sm" disabled={busy} onClick={() => invite.mutate(invitation.email)}>
               Invite again
             </Button>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            disabled={busy}
-            onClick={() => revoke.mutate(invitation.id)}
-          >
+          <Button variant="ghost" size="sm" disabled={busy} onClick={() => revoke.mutate(invitation.id)}>
             Revoke
           </Button>
         </ItemActions>
@@ -235,6 +236,7 @@ function Invite({ organizationId }: { organizationId: string }) {
   const invite = useMutation(createInvitationMutation(organizationId));
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
+
   const error =
     invite.error &&
     (isApiError(invite.error, "AlreadyMember")
@@ -279,7 +281,10 @@ function Invite({ organizationId }: { organizationId: string }) {
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
-                if (invite.isError) invite.reset();
+
+                if (invite.isError) {
+                  invite.reset();
+                }
               }}
             />
             {error && (

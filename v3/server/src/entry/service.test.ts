@@ -13,25 +13,34 @@ const setup = async (tx: Tx) => {
   const owner = await createUser(tx, "Owner");
   const organizationId = await createOrganization(tx, owner);
   const competitions = runner(tx, CompetitionsService, CompetitionsService.layer);
-  const { id: competitionId } = await competitions.run((c) => c.create(owner, organizationId, `Marathon ${crypto.randomUUID()}`));
+
+  const { id: competitionId } = await competitions.run((c) =>
+    c.create(owner, organizationId, `Marathon ${crypto.randomUUID()}`),
+  );
+
   await tx.insert(model.topics).values({ competitionId, name: "Open", position: 1 });
   const publish = (published: boolean) => competitions.run((c) => c.update(owner, competitionId, { published }));
   await publish(true);
   const participants = runner(tx, ParticipantsService, ParticipantsService.layer);
+
   return { ...runner(tx, EntryService, EntryService.layer), participants, competitions, publish, owner, competitionId };
 };
 
 test("a guest enters with their details and owns the entry only through the token", () =>
   rolledBack(async (tx) => {
     const { run, fails, competitionId } = await setup(tx);
+
     const { participant, guest_token } = await run((p) =>
       p.enter(null, competitionId, { name: "Ada", email: "Ada@Example.com" }),
     );
+
     expect(participant).toMatchObject({ name: "Ada", email: "ada@example.com" });
     expect(guest_token).toStartWith("blikka_pgt_");
     expect(await run((p) => p.requireParticipantOwner(guest(guest_token), participant.id))).toEqual(participant);
     expect(await run((p) => p.listOwn(guest(guest_token), competitionId))).toEqual([participant]);
-    expect(await fails((p) => p.requireParticipantOwner(guest("blikka_pgt_wrong"), participant.id))).toBe("ParticipantNotFound");
+    expect(await fails((p) => p.requireParticipantOwner(guest("blikka_pgt_wrong"), participant.id))).toBe(
+      "ParticipantNotFound",
+    );
     expect(await fails((p) => p.requireParticipantOwner(guest(null), participant.id))).toBe("ParticipantNotFound");
   }));
 
@@ -39,7 +48,9 @@ test("a guest can't reuse an email or leave out their details", () =>
   rolledBack(async (tx) => {
     const { run, fails, competitionId } = await setup(tx);
     await run((p) => p.enter(null, competitionId, { name: "Ada", email: "ada@example.com" }));
-    expect(await fails((p) => p.enter(null, competitionId, { name: "Eve", email: "ADA@example.com" }))).toBe("AlreadyEntered");
+    expect(await fails((p) => p.enter(null, competitionId, { name: "Eve", email: "ADA@example.com" }))).toBe(
+      "AlreadyEntered",
+    );
     expect(await fails((p) => p.enter(null, competitionId, { name: "Eve" }))).toBe("GuestDetailsRequired");
   }));
 
@@ -61,7 +72,9 @@ test("a signed-in user gets the same entry when entering again", () =>
     const first = await run((p) => p.enter(user, competitionId, { name: "ignored" }));
     expect(first).toMatchObject({ guest_token: null, participant: { name: "Grace", email: user.email.toLowerCase() } });
     expect((await run((p) => p.enter(user, competitionId, {}))).participant.id).toBe(first.participant.id);
-    expect(await run((p) => p.requireParticipantOwner(signedIn(user), first.participant.id))).toEqual(first.participant);
+    expect(await run((p) => p.requireParticipantOwner(signedIn(user), first.participant.id))).toEqual(
+      first.participant,
+    );
   }));
 
 test("signing in with a guest entry's verified email takes it over and cuts off the guest token", () =>
@@ -71,7 +84,9 @@ test("signing in with a guest entry's verified email takes it over and cuts off 
     const entered = await run((p) => p.enter(null, competitionId, { name: "G", email: user.email }));
     const { participant } = await run((p) => p.enter(user, competitionId, {}));
     expect(participant).toMatchObject({ id: entered.participant.id, name: "Grace" });
-    expect(await fails((p) => p.requireParticipantOwner(guest(entered.guest_token), participant.id))).toBe("ParticipantNotFound");
+    expect(await fails((p) => p.requireParticipantOwner(guest(entered.guest_token), participant.id))).toBe(
+      "ParticipantNotFound",
+    );
   }));
 
 test("an unverified email doesn't take over a guest entry", () =>

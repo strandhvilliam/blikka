@@ -17,8 +17,12 @@ export const organizationQuery = (id: string) =>
     queryKey: ["organizations", id],
     queryFn: async () => {
       const result = await api().GET("/organizations/{id}", { params: { path: { id } } });
+
       // 400 is a malformed id, which can't name an organization either.
-      if (result.response.status === 404 || result.response.status === 400) return null;
+      if (result.response.status === 404 || result.response.status === 400) {
+        return null;
+      }
+
       return unwrap(result);
     },
   });
@@ -48,5 +52,6 @@ export const renameOrganizationMutation = (id: string) =>
 export const deleteOrganizationMutation = (id: string) =>
   mutationOptions({
     mutationFn: () => unwrap(api().DELETE("/organizations/{id}", { params: { path: { id } } })),
-    onSuccess: (_data, _vars, _result, { client }) => client.removeQueries({ queryKey: organizationQuery(id).queryKey }),
+    onSuccess: (_data, _vars, _result, { client }) =>
+      client.removeQueries({ queryKey: organizationQuery(id).queryKey }),
   });

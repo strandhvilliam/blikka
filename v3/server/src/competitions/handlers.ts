@@ -1,45 +1,50 @@
-import * as Effect from 'effect/Effect'
-import * as HttpApiBuilder from 'effect/http-api/HttpApiBuilder'
-import { CurrentUser } from '../auth/CurrentUser.ts'
-import { Api } from '../contract.ts'
-import { CompetitionsService } from './service.ts'
+import * as Effect from "effect/Effect";
+import * as HttpApiBuilder from "effect/http-api/HttpApiBuilder";
+import { CurrentUser } from "../auth/CurrentUser.ts";
+import { Api } from "../contract.ts";
+import { CompetitionsService } from "./service.ts";
 
 // CompetitionsService is built per request (api.ts), so it's read inside each handler.
-export const CompetitionsHandlers = HttpApiBuilder.group(Api, 'competitions', (handlers) =>
+export const CompetitionsHandlers = HttpApiBuilder.group(Api, "competitions", (handlers) =>
   handlers
-    .handle('list', ({ query }) =>
+    .handle("list", ({ query }) =>
       Effect.gen(function* () {
-        const competitions = yield* CompetitionsService
-        const user = yield* CurrentUser
-        return yield* competitions.list(user, query.organization_id)
+        const competitions = yield* CompetitionsService;
+        const user = yield* CurrentUser;
+
+        return yield* competitions.list(user, query.organization_id);
       }),
     )
-    .handle('create', ({ payload }) =>
+    .handle("create", ({ payload }) =>
       Effect.gen(function* () {
-        const competitions = yield* CompetitionsService
-        const user = yield* CurrentUser
-        return yield* competitions.create(user, payload.organization_id, payload.name)
+        const competitions = yield* CompetitionsService;
+        const user = yield* CurrentUser;
+
+        return yield* competitions.create(user, payload.organization_id, payload.name);
       }),
     )
-    .handle('get', ({ params }) =>
+    .handle("get", ({ params }) =>
       Effect.gen(function* () {
-        const competitions = yield* CompetitionsService
-        const user = yield* CurrentUser
-        return yield* competitions.get(user, params.id)
+        const competitions = yield* CompetitionsService;
+        const user = yield* CurrentUser;
+
+        return yield* competitions.get(user, params.id);
       }),
     )
-    .handle('update', ({ params, payload }) =>
+    .handle("update", ({ params, payload }) =>
       Effect.gen(function* () {
-        const competitions = yield* CompetitionsService
-        const user = yield* CurrentUser
-        return yield* competitions.update(user, params.id, payload)
+        const competitions = yield* CompetitionsService;
+        const user = yield* CurrentUser;
+
+        return yield* competitions.update(user, params.id, payload);
       }),
     )
-    .handle('remove', ({ params }) =>
+    .handle("remove", ({ params }) =>
       Effect.gen(function* () {
-        const competitions = yield* CompetitionsService
-        const user = yield* CurrentUser
-        return yield* competitions.remove(user, params.id)
+        const competitions = yield* CompetitionsService;
+        const user = yield* CurrentUser;
+
+        return yield* competitions.remove(user, params.id);
       }),
     ),
-)
+);

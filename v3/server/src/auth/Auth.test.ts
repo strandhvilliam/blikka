@@ -19,43 +19,49 @@ import { EntryCaller, EntrySession } from "./EntrySession.ts";
 const website = "https://blikka.test";
 const sessionUser = { id: "u1", email: "a@b.c", name: "A", platformRole: "superadmin" };
 
+// SAFETY: authenticate reads only options.trustedOrigins and api.getSession, the two faked here.
 const FakeAuth = Layer.succeed(Auth)({
   options: { trustedOrigins: [website] },
   api: {
     getSession: async ({ headers }: { headers: Headers }) => {
       sessionLookups.push(headers.get("authorization"));
+
       return headers.get("cookie") === "session=ok" || headers.get("authorization") === "Bearer ok"
         ? { user: sessionUser, session: {} }
         : null;
     },
   },
-} as unknown as Auth["Service"]);
+} as Auth["Service"]);
 
 let handlerRuns = 0;
 let sessionLookups: Array<string | null> = [];
+
 beforeEach(() => {
   handlerRuns = 0;
   sessionLookups = [];
 });
 
-const TestApi = HttpApi.make("test").add(
-  HttpApiGroup.make("probe")
-    .add(HttpApiEndpoint.get("read", "/read", { success: User }))
-    .add(HttpApiEndpoint.post("write", "/write", { payload: Schema.Struct({}), success: User }))
-    .middleware(Authenticated),
-).add(
-  HttpApiGroup.make("guest")
-    .add(
-      HttpApiEndpoint.post("enter", "/enter", {
-        payload: Schema.Struct({}),
-        success: Schema.Struct({ user: Schema.NullOr(User), guest_token: Schema.NullOr(Schema.String) }),
-      }),
-    )
-    .middleware(EntrySession),
-);
+const TestApi = HttpApi.make("test")
+  .add(
+    HttpApiGroup.make("probe")
+      .add(HttpApiEndpoint.get("read", "/read", { success: User }))
+      .add(HttpApiEndpoint.post("write", "/write", { payload: Schema.Struct({}), success: User }))
+      .middleware(Authenticated),
+  )
+  .add(
+    HttpApiGroup.make("guest")
+      .add(
+        HttpApiEndpoint.post("enter", "/enter", {
+          payload: Schema.Struct({}),
+          success: Schema.Struct({ user: Schema.NullOr(User), guest_token: Schema.NullOr(Schema.String) }),
+        }),
+      )
+      .middleware(EntrySession),
+  );
 
 const returnCurrentUser = CurrentUser.useSync((user) => {
   handlerRuns++;
+
   return user;
 });
 
@@ -70,6 +76,7 @@ const { handler } = HttpRouter.toWebHandler(
           handlers.handle("enter", () =>
             EntryCaller.useSync(({ user, guestToken }) => {
               handlerRuns++;
+
               return { user, guest_token: guestToken };
             }),
           ),
@@ -87,6 +94,7 @@ const request = (method: "GET" | "POST", path: string, headers: Record<string, s
     new Request(`https://api.blikka.test${path}`, {
       method,
       headers: method === "POST" ? { "content-type": "application/json", ...headers } : headers,
+      // oxlint-disable-next-line unicorn/no-invalid-fetch-options -- body is undefined for GET
       body: method === "POST" ? "{}" : undefined,
     }),
   );
@@ -108,6 +116,7 @@ test("a cookie write from another origin is a 403, and the handler doesn't run",
     const response = await request("POST", "/write", { cookie: "session=ok", origin });
     expect(response.status).toBe(403);
   }
+
   expect(handlerRuns).toBe(0);
 });
 
@@ -118,21 +127,35 @@ test("writes from the website, and token writes with no Origin, go through", asy
 
 test("the emailOTP endpoints the website doesn't use are 404, and the two it uses are not", async () => {
   const auth = makeAuth(
+    // SAFETY: the requests below are refused or answered before Better Auth touches the database.
     {} as Db["Service"],
-    { secret: Redacted.make("s".repeat(32)), baseURL: "https://api.blikka.test", websiteURL: website, google: Option.none() },
+    {
+      secret: Redacted.make("s".repeat(32)),
+      baseURL: "https://api.blikka.test",
+      websiteURL: website,
+      google: Option.none(),
+    },
     undefined,
     async () => {},
   );
+
   const status = async (path: string) =>
     (await auth.handler(new Request(`https://api.blikka.test/auth${path}`, { method: "POST" }))).status;
-  for (const path of disabledAuthPaths) expect(await status(path)).toBe(404);
+
+  for (const path of disabledAuthPaths) {
+    expect(await status(path)).toBe(404);
+  }
+
   // Reached: refused for the missing body, not for the path.
   expect(await status("/email-otp/send-verification-otp")).not.toBe(404);
   expect(await status("/sign-in/email-otp")).not.toBe(404);
 });
 
 test("EntrySession lets a caller with nothing through, and a session as its user", async () => {
-  expect(await (await request("POST", "/enter", { origin: website })).json()).toEqual({ user: null, guest_token: null });
+  expect(await (await request("POST", "/enter", { origin: website })).json()).toEqual({
+    user: null,
+    guest_token: null,
+  });
   const response = await request("POST", "/enter", { cookie: "session=ok", origin: website });
   expect(await response.json()).toEqual({ user: { id: "u1", email: "a@b.c", name: "A" }, guest_token: null });
 });
@@ -166,5 +189,6 @@ test("every contract endpoint is behind Authenticated", () => {
       .filter((endpoint) => !endpoint.middlewares.has(Authenticated))
       .map((endpoint) => `${group.identifier}.${endpoint.identifier}`),
   );
+
   expect(unauthenticated).toEqual([...publicEndpoints]);
 });

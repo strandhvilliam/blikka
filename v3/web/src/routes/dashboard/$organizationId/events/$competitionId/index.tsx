@@ -17,6 +17,7 @@ function Event() {
   const { data: participants } = useSuspenseQuery(participantsQuery(competition.id));
   // Filled in after mount, so the server and browser render the same text.
   const [origin, setOrigin] = useState("");
+  // oxlint-disable-next-line react/set-state-in-effect -- set after hydration on purpose, see above
   useEffect(() => setOrigin(window.location.origin), []);
 
   return (
@@ -25,7 +26,10 @@ function Event() {
         {competition.published_at ? (
           <>
             Participants enter at{" "}
-            <a href={`/e/${competition.slug}`} className="font-medium text-foreground underline underline-offset-4 wrap-anywhere">
+            <a
+              href={`/e/${competition.slug}`}
+              className="font-medium text-foreground underline underline-offset-4 wrap-anywhere"
+            >
               {origin}/e/{competition.slug}
             </a>
           </>

@@ -28,6 +28,7 @@ export const Logs = Axiom.Dataset("Logs", { name: LOGS, kind: "otel:logs:v1" }).
 
 export const Ingest = Effect.gen(function* () {
   const stage = yield* Stage;
+
   return yield* Axiom.ApiToken("Ingest", {
     name: `blikka-ingest-${stage}`,
     datasetCapabilities: {
@@ -42,6 +43,7 @@ export const Telemetry = Layer.unwrap(
     if (yield* ALCHEMY_DEV) {
       return Layer.empty;
     }
+
     return Axiom.Telemetry({ token: Ingest, traces: Traces, logs: Logs });
   }),
 );
@@ -59,14 +61,18 @@ export const SentrySourceMaps = Effect.gen(function* () {
       dev: ALCHEMY_DEV,
       authToken: Config.option(Config.Redacted("SENTRY_AUTH_TOKEN")),
     });
+
     if (!dev && Option.isSome(authToken)) {
       const { sentryRollupPlugin } = yield* Effect.promise(() => import("@sentry/rollup-plugin"));
+
       const plugin = sentryRollupPlugin({
         ...sentryProject,
         authToken: Redacted.value(authToken.value),
       });
+
       return { input: { plugins: [plugin] } } satisfies Cloudflare.WorkerProps["build"];
     }
   }
+
   return undefined;
 });

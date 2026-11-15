@@ -28,7 +28,11 @@ import { useSignOut } from "@/api/session.ts";
 export const Route = createFileRoute("/dashboard/$organizationId")({
   beforeLoad: async ({ context, params }) => {
     const organization = await context.queryClient.ensureQueryData(organizationQuery(params.organizationId));
-    if (!organization) throw notFound();
+
+    if (!organization) {
+      throw notFound();
+    }
+
     return { organization };
   },
   component: OrganizationLayout,
@@ -92,13 +96,18 @@ function OrganizationLayout() {
                             onClick={() =>
                               accept.mutate(invitation.id, {
                                 onSuccess: ({ organization_id }) =>
-                                  navigate({ to: "/dashboard/$organizationId", params: { organizationId: organization_id } }),
+                                  navigate({
+                                    to: "/dashboard/$organizationId",
+                                    params: { organizationId: organization_id },
+                                  }),
                               })
                             }
                           >
                             <span className="flex min-w-0 flex-col">
                               <span className="truncate">{invitation.organization.name}</span>
-                              <span className="text-xs wrap-anywhere text-muted-foreground">{invitedBy(invitation)}</span>
+                              <span className="text-xs wrap-anywhere text-muted-foreground">
+                                {invitedBy(invitation)}
+                              </span>
                             </span>
                             <span className="ml-auto font-medium">Join</span>
                           </DropdownMenuItem>
@@ -145,7 +154,9 @@ function OrganizationLayout() {
             </Button>
           ))}
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="min-w-0 shrink max-sm:max-w-40" />}>
+            <DropdownMenuTrigger
+              render={<Button variant="ghost" size="sm" className="min-w-0 shrink max-sm:max-w-40" />}
+            >
               <span className="truncate">{session.user.name || session.user.email}</span>
               <IconChevronDown className="text-muted-foreground" />
             </DropdownMenuTrigger>

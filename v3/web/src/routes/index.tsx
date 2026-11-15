@@ -9,6 +9,7 @@ function Home() {
   const { apiUrl } = rootRoute.useLoaderData();
   const { session } = Route.useRouteContext();
   const signOut = useSignOut();
+
   return (
     <main>
       <h1>Blikka</h1>

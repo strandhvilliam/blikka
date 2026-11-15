@@ -10,4 +10,5 @@ export const Participant = Schema.Struct({
   signed_in: Schema.Boolean,
   created_at: Schema.Date,
 });
+
 export type Participant = typeof Participant.Type;

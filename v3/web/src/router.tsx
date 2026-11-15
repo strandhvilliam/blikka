@@ -7,13 +7,16 @@ import { routeTree } from "./routeTree.gen";
 // server filled is sent with the page, so the browser doesn't fetch it again while hydrating.
 export function getRouter() {
   const queryClient = new QueryClient();
+
   const router = createRouter({
     routeTree,
     context: { queryClient },
     scrollRestoration: true,
     defaultNotFoundComponent: () => <p>Not found</p>,
   });
+
   setupRouterSsrQueryIntegration({ router, queryClient });
+
   return router;
 }
 

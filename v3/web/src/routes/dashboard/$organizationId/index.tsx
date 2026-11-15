@@ -74,6 +74,7 @@ function NewEvent({ organizationId }: { organizationId: string }) {
   const [name, setName] = useState("");
   // isSuccess too, so a second click while moving on can't create twice.
   const submitting = create.isPending || create.isSuccess;
+
   const error =
     create.error &&
     (isApiError(create.error, "CompetitionNameTaken")
@@ -117,7 +118,10 @@ function NewEvent({ organizationId }: { organizationId: string }) {
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                if (create.isError) create.reset();
+
+                if (create.isError) {
+                  create.reset();
+                }
               }}
             />
             {error && (

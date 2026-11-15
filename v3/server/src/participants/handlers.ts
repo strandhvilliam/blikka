@@ -10,6 +10,7 @@ export const ParticipantsHandlers = HttpApiBuilder.group(Api, "participants", (h
     Effect.gen(function* () {
       const participants = yield* ParticipantsService;
       const user = yield* CurrentUser;
+
       return yield* participants.list(user, query.competition_id);
     }),
   ),

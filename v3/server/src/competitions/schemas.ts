@@ -11,6 +11,7 @@ export const Competition = Schema.Struct({
   opens_at: Schema.NullOr(Schema.Date),
   closes_at: Schema.NullOr(Schema.Date),
 });
+
 export type Competition = typeof Competition.Type;
 
 export const CompetitionName = Schema.Trim.check(Schema.isNonEmpty(), Schema.isMaxLength(100));
@@ -21,6 +22,7 @@ export const TimeZone = Schema.String.check(
   Schema.makeFilter((timeZone: string) => {
     try {
       new Intl.DateTimeFormat("en", { timeZone });
+
       return true;
     } catch {
       return "not an IANA time zone";
@@ -37,6 +39,7 @@ export const CompetitionUpdate = Schema.Struct({
   closes_at: Schema.optionalKey(Schema.NullOr(Schema.Date)),
   published: Schema.optionalKey(Schema.Boolean),
 });
+
 export type CompetitionUpdate = typeof CompetitionUpdate.Type;
 
 // Publishing needs at least one topic (adr/0009).

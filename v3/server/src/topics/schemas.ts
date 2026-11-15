@@ -6,6 +6,7 @@ export const Topic = Schema.Struct({
   name: Schema.String,
   position: Schema.Int,
 });
+
 export type Topic = typeof Topic.Type;
 
 export const TopicName = Schema.Trim.check(Schema.isNonEmpty(), Schema.isMaxLength(100));
@@ -15,6 +16,7 @@ export const TopicUpdate = Schema.Struct({
   name: Schema.optionalKey(TopicName),
   position: Schema.optionalKey(Schema.Int.check(Schema.isGreaterThanOrEqualTo(1))),
 });
+
 export type TopicUpdate = typeof TopicUpdate.Type;
 
 // Also for topics of competitions the caller can't read.

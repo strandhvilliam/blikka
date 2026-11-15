@@ -5,13 +5,7 @@ import { useId, useRef, useState } from "react";
 import { createTopicMutation, deleteTopicMutation, topicsQuery, updateTopicMutation } from "@/api/topics.ts";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import { Button } from "@/components/ui/Button.tsx";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/Dialog.tsx";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/Dialog.tsx";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,14 +38,18 @@ function Topics() {
         <Empty className="border">
           <EmptyHeader>
             <EmptyTitle>No topics yet</EmptyTitle>
-            <EmptyDescription>Add at least one to publish the event. A single theme can be one topic, such as "Open".</EmptyDescription>
+            <EmptyDescription>
+              Add at least one to publish the event. A single theme can be one topic, such as "Open".
+            </EmptyDescription>
           </EmptyHeader>
         </Empty>
       ) : (
         <ItemGroup>
           {topics.map((topic) => (
             <Item key={topic.id} variant="outline">
-              <span className="w-6 shrink-0 text-right text-sm tabular-nums text-muted-foreground">{topic.position}</span>
+              <span className="w-6 shrink-0 text-right text-sm tabular-nums text-muted-foreground">
+                {topic.position}
+              </span>
               <ItemContent className="min-w-0">
                 <ItemTitle className="wrap-anywhere">{topic.name}</ItemTitle>
               </ItemContent>
@@ -123,7 +121,10 @@ function AddTopic({ competitionId }: { competitionId: string }) {
           value={name}
           onChange={(e) => {
             setName(e.target.value);
-            if (create.isError) create.reset();
+
+            if (create.isError) {
+              create.reset();
+            }
           }}
         />
         <Button type="submit" disabled={create.isPending || !name.trim()}>
@@ -154,7 +155,9 @@ function TopicActions({
   return (
     <>
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${topic.name}`} />}>
+        <DropdownMenuTrigger
+          render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${topic.name}`} />}
+        >
           <IconDots />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -215,7 +218,10 @@ function Rename({ topic, competitionId, onClose }: { topic: Topic; competitionId
               value={name}
               onChange={(e) => {
                 setName(e.target.value);
-                if (rename.isError) rename.reset();
+
+                if (rename.isError) {
+                  rename.reset();
+                }
               }}
             />
             {rename.isError && (

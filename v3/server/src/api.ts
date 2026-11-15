@@ -50,6 +50,7 @@ const AuthRoute = HttpRouter.add(
   "/auth/*",
   Effect.gen(function* () {
     const auth = yield* Auth;
+
     return yield* HttpEffect.fromWebHandler(auth.handler);
   }),
 );
@@ -95,14 +96,7 @@ export default class Api extends Cloudflare.Worker<Api>()(
     ).pipe(Layer.provide(PermissionsService.layer), Layer.provide(DbLive(hyperdrive)));
 
     return {
-      fetch: handler.pipe(
-        Effect.provide(services),
-        withSentry(sentry),
-        Effect.withSpan("Api.fetch"),
-      ),
+      fetch: handler.pipe(Effect.provide(services), withSentry(sentry), Effect.withSpan("Api.fetch")),
     };
-  }).pipe(
-    Effect.provide(Cloudflare.Hyperdrive.ConnectBinding),
-    Effect.provide(Telemetry),
-  ),
+  }).pipe(Effect.provide(Cloudflare.Hyperdrive.ConnectBinding), Effect.provide(Telemetry)),
 ) {}

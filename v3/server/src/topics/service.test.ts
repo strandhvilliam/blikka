@@ -7,15 +7,27 @@ const setup = async (tx: Tx) => {
   const owner = await createUser(tx, "Owner");
   const organizationId = await createOrganization(tx, owner);
   const competitions = runner(tx, CompetitionsService, CompetitionsService.layer);
-  const { id: competitionId } = await competitions.run((c) => c.create(owner, organizationId, `Marathon ${crypto.randomUUID()}`));
+
+  const { id: competitionId } = await competitions.run((c) =>
+    c.create(owner, organizationId, `Marathon ${crypto.randomUUID()}`),
+  );
+
   const s = runner(tx, TopicsService, TopicsService.layer);
+
   // One at a time: they share a transaction, and the order is the point.
   const add = async (...names: string[]) => {
     const added = [];
-    for (const name of names) added.push(await s.run((t) => t.create(owner, competitionId, name)));
+
+    for (const name of names) {
+      added.push(await s.run((t) => t.create(owner, competitionId, name)));
+    }
+
     return added;
   };
-  const names = () => s.run((t) => t.list(owner, competitionId)).then((list) => list.map((t) => `${t.position}:${t.name}`));
+
+  const names = () =>
+    s.run((t) => t.list(owner, competitionId)).then((list) => list.map((t) => `${t.position}:${t.name}`));
+
   return { ...s, competitions, owner, competitionId, add, names };
 };
 

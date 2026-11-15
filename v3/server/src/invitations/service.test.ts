@@ -8,6 +8,7 @@ const setup = async (tx: Tx) => {
   const owner = await createUser(tx, "Owner");
   const invitee = await createUser(tx, "Invitee");
   const organizationId = await createOrganization(tx, owner);
+
   return { ...runner(tx, InvitationsService, InvitationsService.layer), owner, invitee, organizationId };
 };
 
@@ -35,7 +36,11 @@ test("the invited person sees the invitation, with the organization and who sent
     const { id } = await run((s) => s.create(owner, organizationId, invitee.email));
     const received = await run((s) => s.received(invitee));
     expect(received.map(({ expires_at: _, ...rest }) => rest)).toEqual([
-      { id, organization: { id: organizationId, name: "Photo Club" }, invited_by: { name: "Owner", email: owner.email } },
+      {
+        id,
+        organization: { id: organizationId, name: "Photo Club" },
+        invited_by: { name: "Owner", email: owner.email },
+      },
     ]);
     expect(await run((s) => s.received(owner))).toEqual([]);
   }));
@@ -51,11 +56,17 @@ test("an unverified email, an expired or a revoked invitation can't be seen or a
     expect(await fails((s) => s.accept(invitee, id))).toBe("InvitationNotFound");
     await tx.update(model.user).set({ emailVerified: true }).where(eq(model.user.id, invitee.id));
 
-    await tx.update(model.organizationInvitations).set({ expiresAt: sql`now() - interval '1 second'` }).where(invitation);
+    await tx
+      .update(model.organizationInvitations)
+      .set({ expiresAt: sql`now() - interval '1 second'` })
+      .where(invitation);
     expect(await run((s) => s.received(invitee))).toEqual([]);
     expect(await fails((s) => s.accept(invitee, id))).toBe("InvitationNotFound");
 
-    await tx.update(model.organizationInvitations).set({ expiresAt: sql`now() + interval '1 day'` }).where(invitation);
+    await tx
+      .update(model.organizationInvitations)
+      .set({ expiresAt: sql`now() + interval '1 day'` })
+      .where(invitation);
     await run((s) => s.revoke(owner, id));
     expect(await run((s) => s.received(invitee))).toEqual([]);
     expect(await fails((s) => s.accept(invitee, id))).toBe("InvitationNotFound");
@@ -69,10 +80,12 @@ test("only the invited person can accept, once, and it makes them an admin", () 
     expect(await fails((s) => s.accept(someoneElse, id))).toBe("InvitationNotFound");
 
     expect(await run((s) => s.accept(invitee, id))).toEqual({ organization_id: organizationId });
+
     const [member] = await tx
       .select({ role: model.organizationMembers.role })
       .from(model.organizationMembers)
       .where(eq(model.organizationMembers.userId, invitee.id));
+
     expect(member).toEqual({ role: "admin" });
 
     expect(await run((s) => s.received(invitee))).toEqual([]);
@@ -90,10 +103,12 @@ test("someone removed can be invited again and rejoins as an admin", () =>
 
     const { id } = await run((s) => s.create(owner, organizationId, invitee.email));
     await run((s) => s.accept(invitee, id));
+
     const rows = await tx
       .select({ role: model.organizationMembers.role, deletedAt: model.organizationMembers.deletedAt })
       .from(model.organizationMembers)
       .where(membership);
+
     expect(rows).toEqual([{ role: "admin", deletedAt: null }]);
   }));
 

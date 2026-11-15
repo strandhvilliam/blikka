@@ -18,16 +18,18 @@ export class SentryScope extends Context.Service<
   { readonly isolationScope: Sentry.Scope; readonly scope: Sentry.Scope }
 >()("blikka/sentry/SentryScope") {}
 
-export const captureException = Effect.fn("Sentry.captureException")(function* (error: unknown) {
+export const captureException = Effect.fn("Sentry.captureException")(function* (cause: unknown) {
   const { isolationScope, scope } = yield* SentryScope;
   const span = yield* Effect.option(Effect.currentSpan);
+
   const tags = Option.match(span, {
     onNone: () => ({}),
     onSome: (span) => ({ trace_id: span.traceId }),
   });
+
   yield* Effect.sync(() =>
     Sentry.withIsolationScope(isolationScope, () =>
-      Sentry.withScope(scope, () => Sentry.captureException(error, { tags })),
+      Sentry.withScope(scope, () => Sentry.captureException(cause, { tags })),
     ),
   );
 });
@@ -45,26 +47,28 @@ const isUnexpected = (cause: Cause.Cause<unknown>) =>
     if (Cause.isFailReason(reason)) {
       return !HttpServerRespondable.isRespondable(reason.error);
     }
+
     return Cause.isDieReason(reason);
   });
 
 export const withSentry = (options: Sentry.CloudflareOptions) => {
   // What `Sentry.withSentry` sets up for a plain handler: without it each request shares one scope.
   Sentry.setAsyncLocalStorageAsyncContextStrategy();
+
   return <E, R>(self: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) =>
     Effect.gen(function* () {
       const execution = yield* Cloudflare.WorkerExecutionContext;
       const serverRequest = yield* HttpServerRequest.HttpServerRequest;
+
       const request = yield* HttpServerRequest.toWeb(serverRequest).pipe(
         Effect.mapError((reason) => new HttpServerError.HttpServerError({ reason })),
       );
+
       const context = yield* Effect.context<Exclude<R, SentryScope>>();
 
       const handled = self.pipe(
         Effect.tapCause((cause) => (isUnexpected(cause) ? reportCause(cause) : Effect.void)),
-        Effect.catchCause((cause) =>
-          Effect.map(HttpServerError.causeResponse(cause), ([response]) => response),
-        ),
+        Effect.catchCause((cause) => Effect.map(HttpServerError.causeResponse(cause), ([response]) => response)),
         Effect.map((response) => HttpServerResponse.toWeb(response, { context })),
       );
 
@@ -76,10 +80,13 @@ export const withSentry = (options: Sentry.CloudflareOptions) => {
             isolationScope: Sentry.getIsolationScope(),
             scope: Sentry.getCurrentScope(),
           };
+
           const run = Effect.runPromiseWith(context);
+
           return run(Effect.provideService(handled, SentryScope, scopes), { signal });
         }),
       );
+
       return HttpServerResponse.fromWeb(response);
     });
 };

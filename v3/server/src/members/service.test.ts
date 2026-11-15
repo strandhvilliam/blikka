@@ -10,6 +10,7 @@ const setup = async (tx: Tx) => {
   const admin = await createUser(tx, "Admin");
   const organizationId = await createOrganization(tx, owner);
   await tx.insert(model.organizationMembers).values({ organizationId, userId: admin.id, role: "admin" });
+
   return { ...runner(tx, MembersService, MembersService.layer), owner, admin, organizationId };
 };
 
@@ -23,12 +24,16 @@ test("members are listed oldest first, only for organizations the caller belongs
       { user_id: owner.id, organization_id: organizationId, name: "Owner", email: owner.email, role: "owner" },
       { user_id: admin.id, organization_id: organizationId, name: "Admin", email: admin.email, role: "admin" },
     ];
+
     expect(await run((s) => s.list(admin, organizationId))).toEqual(expected);
     expect(await run((s) => s.list(owner))).toEqual(expected);
     expect(await run((s) => s.list(owner, otherOrganizationId))).toEqual([]);
     expect(await run((s) => s.list(stranger, organizationId))).toEqual([]);
 
-    await tx.update(model.organizations).set({ deletedAt: new Date() }).where(eq(model.organizations.id, organizationId));
+    await tx
+      .update(model.organizations)
+      .set({ deletedAt: new Date() })
+      .where(eq(model.organizations.id, organizationId));
     expect(await run((s) => s.list(owner, organizationId))).toEqual([]);
   }));
 
@@ -54,10 +59,17 @@ test("an admin leaves by removing themselves; the owner can't leave or be remove
 
     await run((s) => s.remove(admin, organizationId, admin.id));
     expect((await run((s) => s.list(owner, organizationId))).map((m) => m.user_id)).toEqual([owner.id]);
+
     const [row] = await tx
       .select()
       .from(model.organizationMembers)
-      .where(and(eq(model.organizationMembers.organizationId, organizationId), eq(model.organizationMembers.userId, admin.id)));
+      .where(
+        and(
+          eq(model.organizationMembers.organizationId, organizationId),
+          eq(model.organizationMembers.userId, admin.id),
+        ),
+      );
+
     // Kept as a record, marked removed.
     expect(row?.deletedAt).toBeInstanceOf(Date);
   }));
@@ -76,7 +88,13 @@ test("the owner hands ownership to an admin and becomes an admin", () =>
   rolledBack(async (tx) => {
     const { run, fails, owner, admin, organizationId } = await setup(tx);
     const member = await run((s) => s.transferOwnership(owner, organizationId, admin.id));
-    expect(member).toEqual({ user_id: admin.id, organization_id: organizationId, name: "Admin", email: admin.email, role: "owner" });
+    expect(member).toEqual({
+      user_id: admin.id,
+      organization_id: organizationId,
+      name: "Admin",
+      email: admin.email,
+      role: "owner",
+    });
     expect((await run((s) => s.list(owner, organizationId))).map((m) => [m.user_id, m.role])).toEqual([
       [owner.id, "admin"],
       [admin.id, "owner"],
@@ -103,16 +121,18 @@ test("only the owner transfers, never to themselves, and only to a member", () =
 
 // The Db the service gets runs `meanwhile` right before the transfer's transaction, after the checks
 // have passed: what another request could do in between.
-const racing = (tx: Tx, meanwhile: () => Promise<unknown>) =>
-  new Proxy(tx, {
-    get: (target, property, receiver) =>
-      property === "transaction"
-        ? async (...args: Parameters<Tx["transaction"]>) => {
-            await meanwhile();
-            return target.transaction(...args);
-          }
-        : Reflect.get(target, property, receiver),
-  });
+// It replaces the method on the test's own transaction, which rolledBack discards.
+const racing = (tx: Tx, meanwhile: () => Promise<void>) => {
+  const transaction = tx.transaction.bind(tx);
+
+  tx.transaction = async (body) => {
+    await meanwhile();
+
+    return transaction(body);
+  };
+
+  return tx;
+};
 
 const member = (organizationId: string, userId: string) =>
   and(eq(model.organizationMembers.organizationId, organizationId), eq(model.organizationMembers.userId, userId));
@@ -128,13 +148,18 @@ const roles = (tx: Tx, organizationId: string) =>
 test("a transfer to someone removed meanwhile rolls back, and the owner stays owner", () =>
   rolledBack(async (tx) => {
     const { owner, admin, organizationId } = await setup(tx);
+
     const { fails } = runner(
-      racing(tx, () =>
-        tx.update(model.organizationMembers).set({ deletedAt: new Date() }).where(member(organizationId, admin.id)),
-      ),
+      racing(tx, async () => {
+        await tx
+          .update(model.organizationMembers)
+          .set({ deletedAt: new Date() })
+          .where(member(organizationId, admin.id));
+      }),
       MembersService,
       MembersService.layer,
     );
+
     expect(await fails((s) => s.transferOwnership(owner, organizationId, admin.id))).toBe("MemberNotFound");
     expect(await roles(tx, organizationId)).toEqual([
       { userId: owner.id, role: "owner" },
@@ -147,6 +172,7 @@ test("a transfer by an owner who handed it over meanwhile is refused and changes
     const { owner, admin, organizationId } = await setup(tx);
     const other = await createUser(tx, "Other");
     await tx.insert(model.organizationMembers).values({ organizationId, userId: other.id, role: "admin" });
+
     const { fails } = runner(
       racing(tx, async () => {
         await tx.update(model.organizationMembers).set({ role: "admin" }).where(member(organizationId, owner.id));
@@ -155,6 +181,7 @@ test("a transfer by an owner who handed it over meanwhile is refused and changes
       MembersService,
       MembersService.layer,
     );
+
     expect(await fails((s) => s.transferOwnership(owner, organizationId, admin.id))).toBe("PermissionDenied");
     expect(await roles(tx, organizationId)).toEqual([
       { userId: owner.id, role: "admin" },
@@ -166,14 +193,21 @@ test("a transfer by an owner who handed it over meanwhile is refused and changes
 test("the database refuses a second owner", () =>
   rolledBack(async (tx) => {
     const { admin, organizationId } = await setup(tx);
+
     // A savepoint, so the failure doesn't abort the test's transaction.
     const error = await tx
       .transaction((savepoint) =>
         savepoint
           .update(model.organizationMembers)
           .set({ role: "owner" })
-          .where(and(eq(model.organizationMembers.organizationId, organizationId), eq(model.organizationMembers.userId, admin.id))),
+          .where(
+            and(
+              eq(model.organizationMembers.organizationId, organizationId),
+              eq(model.organizationMembers.userId, admin.id),
+            ),
+          ),
       )
       .catch((error) => error);
+
     expect(error?.cause?.constraint).toBe("organization_members_one_owner");
   }));

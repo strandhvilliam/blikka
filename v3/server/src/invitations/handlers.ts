@@ -10,6 +10,7 @@ export const InvitationsHandlers = HttpApiBuilder.group(Api, "invitations", (han
       Effect.gen(function* () {
         const invitations = yield* InvitationsService;
         const user = yield* CurrentUser;
+
         return yield* invitations.list(user, query.organization_id);
       }),
     )
@@ -17,6 +18,7 @@ export const InvitationsHandlers = HttpApiBuilder.group(Api, "invitations", (han
       Effect.gen(function* () {
         const invitations = yield* InvitationsService;
         const user = yield* CurrentUser;
+
         return yield* invitations.revoke(user, params.id);
       }),
     )
@@ -24,6 +26,7 @@ export const InvitationsHandlers = HttpApiBuilder.group(Api, "invitations", (han
       Effect.gen(function* () {
         const invitations = yield* InvitationsService;
         const user = yield* CurrentUser;
+
         return yield* invitations.create(user, payload.organization_id, payload.email);
       }),
     )
@@ -31,6 +34,7 @@ export const InvitationsHandlers = HttpApiBuilder.group(Api, "invitations", (han
       Effect.gen(function* () {
         const invitations = yield* InvitationsService;
         const user = yield* CurrentUser;
+
         return yield* invitations.received(user);
       }),
     )
@@ -38,6 +42,7 @@ export const InvitationsHandlers = HttpApiBuilder.group(Api, "invitations", (han
       Effect.gen(function* () {
         const invitations = yield* InvitationsService;
         const user = yield* CurrentUser;
+
         return yield* invitations.accept(user, params.id);
       }),
     ),

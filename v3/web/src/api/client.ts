@@ -12,6 +12,7 @@ import { meta } from "@/lib/meta.ts";
 export const api = createIsomorphicFn()
   .server(() => {
     const cookie = getRequestHeader("cookie");
+
     return createClient<paths>({ baseUrl: env.API_URL, headers: cookie ? { cookie } : {} });
   })
   .client(() => createClient<paths>({ baseUrl: meta("api-url"), credentials: "include" }));
@@ -21,11 +22,10 @@ export const api = createIsomorphicFn()
 export class ApiError extends Error {
   readonly status: number;
   readonly tag: string | undefined;
-  constructor(response: Response, body?: unknown) {
+  constructor(response: Response, body?: ErrorBody) {
     super(`The Api responded ${response.status} to ${response.url}`);
     this.status = response.status;
-    const tag = (body as { _tag?: unknown } | undefined)?._tag;
-    this.tag = typeof tag === "string" ? tag : undefined;
+    this.tag = body?._tag;
   }
 }
 
@@ -39,8 +39,16 @@ export const isApiError = (error: unknown, tag: ErrorTag): error is ApiError =>
 // The response's data, or an ApiError. Checks `ok`, not `data`, since a 204 has no body.
 export async function unwrap<T>(result: Result<T> | Promise<Result<T>>): Promise<T> {
   const { data, error, response } = await result;
-  if (!response.ok) throw new ApiError(response, error);
+
+  if (!response.ok) {
+    throw new ApiError(response, error);
+  }
+
+  // SAFETY: the response is ok, so openapi-fetch has set data to the endpoint's success body.
   return data as T;
 }
 
-type Result<T> = { data?: T; error?: unknown; response: Response };
+// Every error body the Api sends is a tagged error (see the spec's error schemas).
+type ErrorBody = { _tag?: string };
+
+type Result<T> = { data?: T; error?: ErrorBody; response: Response };

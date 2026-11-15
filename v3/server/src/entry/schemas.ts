@@ -19,6 +19,7 @@ export const EntryParticipant = Schema.Struct({
   email: Schema.String,
   created_at: Schema.Date,
 });
+
 export type EntryParticipant = typeof EntryParticipant.Type;
 
 export const ParticipantName = Schema.Trim.check(Schema.isNonEmpty(), Schema.isMaxLength(100));
@@ -35,7 +36,11 @@ export class GuestDetailsRequired extends Schema.TaggedError<GuestDetailsRequire
 export class EntryClosed extends Schema.TaggedError<EntryClosed>()("EntryClosed", {}, { httpApiStatus: 409 }) {}
 
 // A guest can't enter with an email that already has an entry; signing in with it takes that entry over.
-export class AlreadyEntered extends Schema.TaggedError<AlreadyEntered>()("AlreadyEntered", {}, { httpApiStatus: 409 }) {}
+export class AlreadyEntered extends Schema.TaggedError<AlreadyEntered>()(
+  "AlreadyEntered",
+  {},
+  { httpApiStatus: 409 },
+) {}
 
 // Also for entries the caller doesn't own, so ids can't be probed.
 export class ParticipantNotFound extends Schema.TaggedError<ParticipantNotFound>()(

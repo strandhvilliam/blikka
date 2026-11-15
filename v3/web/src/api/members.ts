@@ -44,6 +44,9 @@ async function removeMember(organizationId: string, userId: string) {
   const { response } = await api().DELETE("/members/{user_id}", {
     params: { path: { user_id: userId }, query: { organization_id: organizationId } },
   });
+
   // 404: removed by someone else meanwhile, which is what was asked for.
-  if (!response.ok && response.status !== 404) throw new ApiError(response);
+  if (!response.ok && response.status !== 404) {
+    throw new ApiError(response);
+  }
 }

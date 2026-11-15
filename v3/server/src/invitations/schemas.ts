@@ -18,11 +18,7 @@ export const ReceivedInvitation = Schema.Struct({
 // Loose on purpose: signing in with the address is what proves it, not its shape.
 export const InvitationEmail = Schema.Trim.check(Schema.isPattern(/^[^\s@]+@[^\s@]+$/), Schema.isMaxLength(254));
 
-export class AlreadyMember extends Schema.TaggedError<AlreadyMember>()(
-  "AlreadyMember",
-  {},
-  { httpApiStatus: 409 },
-) {}
+export class AlreadyMember extends Schema.TaggedError<AlreadyMember>()("AlreadyMember", {}, { httpApiStatus: 409 }) {}
 
 // Also for someone else's, so the id gives nothing away.
 export class InvitationNotFound extends Schema.TaggedError<InvitationNotFound>()(

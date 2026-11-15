@@ -9,6 +9,7 @@ const setup = async (tx: Tx) => {
   const admin = await createUser(tx, "Admin");
   const organizationId = await createOrganization(tx, owner);
   await tx.insert(model.organizationMembers).values({ organizationId, userId: admin.id, role: "admin" });
+
   return { ...runner(tx, OrganizationsService, OrganizationsService.layer), owner, admin, organizationId };
 };
 
@@ -22,7 +23,10 @@ test("get returns the caller's role with their permissions", () =>
 test("an admin renames the organization; an outsider can't", () =>
   rolledBack(async (tx) => {
     const { run, fails, admin, organizationId } = await setup(tx);
-    expect(await run((s) => s.update(admin, organizationId, "Camera Club"))).toEqual({ id: organizationId, name: "Camera Club" });
+    expect(await run((s) => s.update(admin, organizationId, "Camera Club"))).toEqual({
+      id: organizationId,
+      name: "Camera Club",
+    });
     const stranger = await createUser(tx, "Stranger");
     expect(await fails((s) => s.update(stranger, organizationId, "Mine"))).toBe("OrganizationNotFound");
   }));
@@ -44,7 +48,12 @@ test("a removed member gets nothing from the organization", () =>
     await tx
       .update(model.organizationMembers)
       .set({ deletedAt: new Date() })
-      .where(and(eq(model.organizationMembers.organizationId, organizationId), eq(model.organizationMembers.userId, admin.id)));
+      .where(
+        and(
+          eq(model.organizationMembers.organizationId, organizationId),
+          eq(model.organizationMembers.userId, admin.id),
+        ),
+      );
     expect(await run((s) => s.list(admin))).toEqual([]);
     expect(await fails((s) => s.get(admin, organizationId))).toBe("OrganizationNotFound");
   }));

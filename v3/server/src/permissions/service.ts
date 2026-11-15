@@ -32,13 +32,17 @@ export class PermissionsService extends Context.Service<PermissionsService>()("b
           .innerJoin(model.organizations, eq(model.organizations.id, members.organizationId))
           .where(and(eq(members.organizationId, organizationId), activeMembershipOf(caller))),
       );
+
       if (!membership) {
         return yield* new OrganizationNotFound();
       }
+
       const permissions = permissionsOf(membership.role);
+
       if (!permissions.includes(permission)) {
         return yield* new PermissionDenied();
       }
+
       return { role: membership.role, permissions };
     });
 

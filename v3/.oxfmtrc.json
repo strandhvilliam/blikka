@@ -1,0 +1,5 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "printWidth": 120,
+  "ignorePatterns": ["**/*.gen.ts", "server/openapi.json", "server/drizzle/**", "tools/oxlint/anti-slop/**"]
+}

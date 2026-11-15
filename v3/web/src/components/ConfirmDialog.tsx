@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/Button.tsx";
 
 // Asks before an action that can't be taken back from the website. The dialog closes once
 // onConfirm resolves, and shows `failure` if it rejects.
-export function ConfirmDialog({
+export function ConfirmDialog<T>({
   open,
   onOpenChange,
   title,
@@ -26,7 +26,7 @@ export function ConfirmDialog({
   title: ReactNode;
   description: ReactNode;
   action: string;
-  onConfirm: () => Promise<unknown>;
+  onConfirm: () => Promise<T>;
   failure: string;
 }) {
   const [busy, setBusy] = useState(false);
@@ -59,12 +59,14 @@ export function ConfirmDialog({
             disabled={busy}
             onClick={async () => {
               setBusy(true);
+
               try {
                 await onConfirm();
                 onOpenChange(false);
               } catch {
                 setError(failure);
               }
+
               setBusy(false);
             }}
           >

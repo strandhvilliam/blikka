@@ -16,7 +16,10 @@ import { sessionQuery, useSignOut } from "@/api/session.ts";
 
 export const Route = createFileRoute("/onboarding")({
   beforeLoad: ({ context }) => {
-    if (!context.session) throw redirect({ to: "/login" });
+    if (!context.session) {
+      throw redirect({ to: "/login" });
+    }
+
     return { session: context.session };
   },
   // fetchQuery, not ensureQueryData, so an invitation sent since the last visit shows up.
@@ -56,7 +59,11 @@ function Onboarding() {
             progress={asksName ? [1, 2] : undefined}
             submit={async () => {
               const { error } = await authClient.updateUser({ name: name.trim() });
-              if (error) return "Couldn't save your name. Try again.";
+
+              if (error) {
+                return "Couldn't save your name. Try again.";
+              }
+
               await queryClient.invalidateQueries({ queryKey: sessionQuery.queryKey });
               setStep(afterName);
             }}
@@ -222,6 +229,7 @@ function Step({
         e.preventDefault();
         setSubmitting(true);
         const error = await submit();
+
         if (error) {
           setError(error);
           setSubmitting(false);

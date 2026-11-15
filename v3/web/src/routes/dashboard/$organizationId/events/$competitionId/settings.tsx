@@ -2,11 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useId, useState } from "react";
 import { isApiError } from "@/api/client.ts";
-import {
-  type CompetitionUpdate,
-  deleteCompetitionMutation,
-  updateCompetitionMutation,
-} from "@/api/competitions.ts";
+import { type CompetitionUpdate, deleteCompetitionMutation, updateCompetitionMutation } from "@/api/competitions.ts";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import { Button } from "@/components/ui/Button.tsx";
 import { Input } from "@/components/ui/Input.tsx";
@@ -28,8 +24,16 @@ function Settings() {
   return (
     <div className="flex flex-col gap-10">
       {/* key: a save resets the fields to what the Api stored. */}
-      <Details key={`${competition.name}|${competition.description}|${competition.time_zone}`} competition={competition} canWrite={canWrite} />
-      <Window key={`${competition.opens_at}|${competition.closes_at}|${competition.time_zone}`} competition={competition} canWrite={canWrite} />
+      <Details
+        key={`${competition.name}|${competition.description}|${competition.time_zone}`}
+        competition={competition}
+        canWrite={canWrite}
+      />
+      <Window
+        key={`${competition.opens_at}|${competition.closes_at}|${competition.time_zone}`}
+        competition={competition}
+        canWrite={canWrite}
+      />
       <Publishing competition={competition} canWrite={canWrite} />
       {canWrite && <Delete competition={competition} />}
     </div>
@@ -40,6 +44,7 @@ function useUpdate(id: string) {
   const router = useRouter();
   const update = useMutation(updateCompetitionMutation(id));
   const save = (body: CompetitionUpdate) => update.mutate(body, { onSuccess: () => router.invalidate() });
+
   return { ...update, save };
 }
 
@@ -49,6 +54,7 @@ function Details({ competition, canWrite }: { competition: Competition; canWrite
   const [name, setName] = useState(competition.name);
   const [description, setDescription] = useState(competition.description);
   const [timeZone, setTimeZone] = useState(competition.time_zone);
+
   const unchanged =
     name.trim() === competition.name &&
     description.trim() === competition.description &&
@@ -81,7 +87,12 @@ function Details({ competition, canWrite }: { competition: Competition; canWrite
         onChange={(e) => setDescription(e.target.value)}
       />
       <Label htmlFor={`${id}-zone`}>Time zone</Label>
-      <NativeSelect id={`${id}-zone`} disabled={!canWrite} value={timeZone} onChange={(e) => setTimeZone(e.target.value)}>
+      <NativeSelect
+        id={`${id}-zone`}
+        disabled={!canWrite}
+        value={timeZone}
+        onChange={(e) => setTimeZone(e.target.value)}
+      >
         {timeZones(competition.time_zone).map((zone) => (
           <NativeSelectOption key={zone} value={zone}>
             {zone.replaceAll("_", " ")}
@@ -110,10 +121,23 @@ const windowStatus = (competition: Competition, now: Date) => {
   const opens = competition.opens_at ? new Date(competition.opens_at) : null;
   const closes = competition.closes_at ? new Date(competition.closes_at) : null;
   const at = (date: Date) => formatIn(date, competition.time_zone);
-  if (closes && closes <= now) return { state: "closed", text: `Closed ${at(closes)}.` } as const;
-  if (!opens) return { state: "not-open", text: "Not open yet." } as const;
-  if (opens > now) return { state: "not-open", text: `Opens ${at(opens)}.` } as const;
-  return { state: "open", text: `Open since ${at(opens)}${closes ? `, closes ${at(closes)}` : ", no deadline"}.` } as const;
+
+  if (closes && closes <= now) {
+    return { state: "closed", text: `Closed ${at(closes)}.` } as const;
+  }
+
+  if (!opens) {
+    return { state: "not-open", text: "Not open yet." } as const;
+  }
+
+  if (opens > now) {
+    return { state: "not-open", text: `Opens ${at(opens)}.` } as const;
+  }
+
+  return {
+    state: "open",
+    text: `Open since ${at(opens)}${closes ? `, closes ${at(closes)}` : ", no deadline"}.`,
+  } as const;
 };
 
 function Window({ competition, canWrite }: { competition: Competition; canWrite: boolean }) {
@@ -124,6 +148,7 @@ function Window({ competition, canWrite }: { competition: Competition; canWrite:
   const [opens, setOpens] = useState(wallClock(competition.opens_at));
   const [closes, setCloses] = useState(wallClock(competition.closes_at));
   const unchanged = opens === wallClock(competition.opens_at) && closes === wallClock(competition.closes_at);
+  // oxlint-disable-next-line react/purity -- display only, recomputed on each render
   const status = windowStatus(competition, new Date());
   const now = () => new Date().toISOString();
 
@@ -196,7 +221,11 @@ function Window({ competition, canWrite }: { competition: Competition; canWrite:
           </p>
         )}
         {canWrite && (
-          <Button type="submit" className="justify-self-start" disabled={update.isPending || update.isSuccess || unchanged}>
+          <Button
+            type="submit"
+            className="justify-self-start"
+            disabled={update.isPending || update.isSuccess || unchanged}
+          >
             Save
           </Button>
         )}
@@ -264,7 +293,9 @@ function Delete({ competition }: { competition: Competition }) {
         onConfirm={() =>
           remove
             .mutateAsync()
-            .then(() => navigate({ to: "/dashboard/$organizationId", params: { organizationId: competition.organization_id } }))
+            .then(() =>
+              navigate({ to: "/dashboard/$organizationId", params: { organizationId: competition.organization_id } }),
+            )
         }
         failure="Couldn't delete the event. Try again."
       />

@@ -12,7 +12,11 @@ import { formatIn } from "@/lib/timeZone.ts";
 export const Route = createFileRoute("/e/$slug")({
   loader: async ({ context, params }) => {
     const competition = await context.queryClient.ensureQueryData(entryCompetitionQuery(params.slug));
-    if (!competition) throw notFound();
+
+    if (!competition) {
+      throw notFound();
+    }
+
     return competition;
   },
   head: ({ loaderData }) => ({ meta: [{ title: loaderData ? `${loaderData.name} · Blikka` : "Blikka" }] }),
@@ -26,9 +30,19 @@ const isClosed = (competition: Competition) =>
 
 const when = (competition: Competition) => {
   const at = (iso: string) => formatIn(new Date(iso), competition.time_zone);
-  if (isClosed(competition)) return "Entries are closed.";
-  if (competition.opens_at && new Date(competition.opens_at) > new Date()) return `Photos from ${at(competition.opens_at)}.`;
-  if (competition.closes_at) return `Photos until ${at(competition.closes_at)}.`;
+
+  if (isClosed(competition)) {
+    return "Entries are closed.";
+  }
+
+  if (competition.opens_at && new Date(competition.opens_at) > new Date()) {
+    return `Photos from ${at(competition.opens_at)}.`;
+  }
+
+  if (competition.closes_at) {
+    return `Photos until ${at(competition.closes_at)}.`;
+  }
+
   return null;
 };
 
@@ -55,9 +69,18 @@ function EventPage() {
 function Entry({ competition }: { competition: Competition }) {
   const { data: participant } = useQuery(myEntryQuery(competition.id));
 
-  if (participant === undefined) return null;
-  if (participant) return <YourEntry participant={participant} />;
-  if (isClosed(competition)) return null;
+  if (participant === undefined) {
+    return null;
+  }
+
+  if (participant) {
+    return <YourEntry participant={participant} />;
+  }
+
+  if (isClosed(competition)) {
+    return null;
+  }
+
   return <EnterForm competition={competition} />;
 }
 
@@ -72,12 +95,19 @@ function YourEntry({ participant }: { participant: { name: string; email: string
 }
 
 const enterError = (error: Error, signedIn: boolean) => {
-  if (isApiError(error, "EntryClosed")) return "Entries have closed.";
+  if (isApiError(error, "EntryClosed")) {
+    return "Entries have closed.";
+  }
+
   // Signing in with that email claims the guest entry (adr/0004).
   if (isApiError(error, "AlreadyEntered") && !signedIn) {
     return "That email has already entered. Continue with Google using it to get your entry back.";
   }
-  if (isApiError(error, "AlreadyEntered")) return "Your email has already entered this event. Ask the organizer for help.";
+
+  if (isApiError(error, "AlreadyEntered")) {
+    return "Your email has already entered this event. Ask the organizer for help.";
+  }
+
   return "Couldn't enter. Try again.";
 };
 
@@ -140,7 +170,12 @@ function EnterForm({ competition }: { competition: Competition }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
             />
-            <Button type="submit" size="lg" className="h-12" disabled={enter.isPending || !name.trim() || !email.trim()}>
+            <Button
+              type="submit"
+              size="lg"
+              className="h-12"
+              disabled={enter.isPending || !name.trim() || !email.trim()}
+            >
               Enter as a guest
             </Button>
           </form>

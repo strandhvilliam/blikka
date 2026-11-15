@@ -16,6 +16,7 @@ test("each role's exact permissions", () => {
     "jury:read",
     "jury:write",
   ];
+
   expect(ROLE_PERMISSIONS).toEqual({ owner: admin, admin });
 });
 

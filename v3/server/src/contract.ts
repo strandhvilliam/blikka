@@ -20,6 +20,7 @@ export const User = Schema.Struct({
   email: Schema.String,
   name: Schema.String,
 });
+
 export type User = typeof User.Type;
 
 export class UsersApi extends HttpApiGroup.make("users")

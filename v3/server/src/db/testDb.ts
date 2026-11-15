@@ -14,6 +14,7 @@ const pool = new Pool({
   max: 1,
   allowExitOnIdle: true,
 });
+
 const db = drizzle(pool, { schema: model, casing: "snake_case" });
 
 export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -30,31 +31,39 @@ export const rolledBack = (body: (tx: Tx) => Promise<void>) =>
       }
     });
 
+// SAFETY: a transaction runs every query a service makes on Db, and its own transaction() opens a
+// savepoint, so a test's writes stay inside the transaction that rolledBack throws away.
+export const asDb = (tx: Tx) => tx as Db["Service"];
+
 // Runs a domain service against the transaction, the way api.ts provides it per request.
 export const runner = <I, S>(
   tx: Tx,
   service: Context.Service<I, S>,
   layer: Layer.Layer<I, never, Db | PermissionsService>,
 ) => {
-  const provided = layer.pipe(
-    Layer.provide(PermissionsService.layer),
-    Layer.provide(Layer.succeed(Db)(tx as unknown as Db["Service"])),
-  );
+  const provided = layer.pipe(Layer.provide(PermissionsService.layer), Layer.provide(Layer.succeed(Db)(asDb(tx))));
+
   const run = <A, E>(f: (s: S) => Effect.Effect<A, E>) =>
     Effect.runPromise(Effect.flatMap(service, f).pipe(Effect.provide(provided)));
+
   const fails = <A, E extends { _tag: string }>(f: (s: S) => Effect.Effect<A, E>) =>
     run((s) => Effect.flip(f(s))).then((error) => error._tag);
+
   return { run, fails };
 };
 
 export const createUser = async (tx: Tx, name: string, emailVerified = true): Promise<User> => {
   const email = `${name}-${crypto.randomUUID()}@blikka.test`;
   const [row] = await tx.insert(model.user).values({ name, email, emailVerified }).returning();
+
   return { id: row!.id, email, name };
 };
 
 export const createOrganization = async (tx: Tx, owner: User, name = "Photo Club") => {
   const [organization] = await tx.insert(model.organizations).values({ name }).returning();
-  await tx.insert(model.organizationMembers).values({ organizationId: organization!.id, userId: owner.id, role: "owner" });
+  await tx
+    .insert(model.organizationMembers)
+    .values({ organizationId: organization!.id, userId: owner.id, role: "owner" });
+
   return organization!.id;
 };

@@ -13,6 +13,7 @@ export const toWallClock = (date: Date, timeZone: string): string => {
       .formatToParts(date)
       .map((part) => [part.type, part.value]),
   );
+
   return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}`;
 };
 
@@ -20,6 +21,7 @@ export const toWallClock = (date: Date, timeZone: string): string => {
 export const fromWallClock = (wallClock: string, timeZone: string): Date => {
   const asUtc = new Date(`${wallClock}Z`).getTime();
   const offsetAt = (t: number) => new Date(`${toWallClock(new Date(t), timeZone)}Z`).getTime() - t;
+
   return new Date(asUtc - offsetAt(asUtc - offsetAt(asUtc)));
 };
 
@@ -28,6 +30,4 @@ export const formatIn = (date: Date, timeZone: string): string =>
   new Intl.DateTimeFormat("en-GB", { timeZone, dateStyle: "medium", timeStyle: "short" }).format(date);
 
 // `current` stays even if the list leaves it out (e.g. an alias).
-export const timeZones = (current: string): string[] => [
-  ...new Set([current, ...Intl.supportedValuesOf("timeZone")]),
-];
+export const timeZones = (current: string): string[] => [...new Set([current, ...Intl.supportedValuesOf("timeZone")])];

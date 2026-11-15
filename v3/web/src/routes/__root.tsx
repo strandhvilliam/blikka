@@ -1,11 +1,5 @@
 import type { QueryClient } from "@tanstack/react-query";
-import {
-  HeadContent,
-  Scripts,
-  createRootRouteWithContext,
-  useRouter,
-  type ErrorComponentProps,
-} from "@tanstack/react-router";
+import { HeadContent, Scripts, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
 import { env } from "@/lib/env.ts";
@@ -64,8 +58,9 @@ function RootDocument({ children }: { children: ReactNode }) {
   );
 }
 
-function RootError(_: ErrorComponentProps) {
+function RootError() {
   const router = useRouter();
+
   return (
     <main>
       <p>Something went wrong.</p>

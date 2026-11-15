@@ -11,6 +11,7 @@ export const TopicsHandlers = HttpApiBuilder.group(Api, "topics", (handlers) =>
       Effect.gen(function* () {
         const topics = yield* TopicsService;
         const user = yield* CurrentUser;
+
         return yield* topics.list(user, query.competition_id);
       }),
     )
@@ -18,6 +19,7 @@ export const TopicsHandlers = HttpApiBuilder.group(Api, "topics", (handlers) =>
       Effect.gen(function* () {
         const topics = yield* TopicsService;
         const user = yield* CurrentUser;
+
         return yield* topics.create(user, payload.competition_id, payload.name);
       }),
     )
@@ -25,6 +27,7 @@ export const TopicsHandlers = HttpApiBuilder.group(Api, "topics", (handlers) =>
       Effect.gen(function* () {
         const topics = yield* TopicsService;
         const user = yield* CurrentUser;
+
         return yield* topics.update(user, params.id, payload);
       }),
     )
@@ -32,6 +35,7 @@ export const TopicsHandlers = HttpApiBuilder.group(Api, "topics", (handlers) =>
       Effect.gen(function* () {
         const topics = yield* TopicsService;
         const user = yield* CurrentUser;
+
         return yield* topics.remove(user, params.id);
       }),
     ),

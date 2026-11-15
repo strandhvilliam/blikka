@@ -12,6 +12,7 @@ import * as model from "./model.ts";
 
 export const Database = Effect.gen(function* () {
   const url = new URL(Redacted.value(yield* Config.Redacted("DATABASE_URL")));
+
   return yield* Cloudflare.Hyperdrive.Connection("Database", {
     origin: {
       scheme: "postgres",
@@ -43,24 +44,30 @@ export const transaction = <A, E, R>(db: Db["Service"], body: (tx: Tx) => Effect
   Effect.gen(function* () {
     // The caller's spans and services, so the body runs as part of the request.
     const context = yield* Effect.context<R>();
+
     const exit = yield* Effect.promise(async (): Promise<Exit.Exit<A, E>> => {
       let failure: Exit.Exit<A, E> | undefined;
+
       try {
         return await db.transaction(async (tx) => {
           const exit = await Effect.runPromiseExitWith(context)(body(tx));
+
           if (Exit.isFailure(exit)) {
             failure = exit;
             tx.rollback(); // throws, which is how drizzle rolls back
           }
+
           return exit;
         });
       } catch (error) {
         if (failure && error instanceof TransactionRollbackError) {
           return failure;
         }
+
         throw error; // a database error stays a defect
       }
     });
+
     return yield* exit;
   });
 
@@ -70,10 +77,12 @@ export const DbLive = (hyperdrive: Cloudflare.Hyperdrive.ConnectClient) =>
     Db,
     Effect.gen(function* () {
       const url = yield* hyperdrive.connectionString;
+
       const pool = yield* Effect.acquireRelease(
         Effect.sync(() => new Pool({ connectionString: Redacted.value(url), max: 1 })),
         (pool) => Effect.promise(() => pool.end()),
       );
+
       return drizzle(pool, { schema: model, casing: "snake_case" });
     }),
   );

@@ -36,9 +36,11 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
 
     const list = Effect.fn("MembersService.list")(function* (caller: User, organizationId?: string) {
       const filters = [readable(caller)];
+
       if (organizationId) {
         filters.push(eq(members.organizationId, organizationId));
       }
+
       return yield* Effect.promise(() =>
         db
           .select(columns)
@@ -49,11 +51,7 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
       );
     });
 
-    const get = Effect.fn("MembersService.get")(function* (
-      caller: User,
-      organizationId: string,
-      userId: string,
-    ) {
+    const get = Effect.fn("MembersService.get")(function* (caller: User, organizationId: string, userId: string) {
       const [member] = yield* Effect.promise(() =>
         db
           .select(columns)
@@ -61,9 +59,11 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
           .innerJoin(model.user, eq(model.user.id, members.userId))
           .where(and(readable(caller), membership(organizationId, userId))),
       );
+
       if (!member) {
         return yield* new MemberNotFound();
       }
+
       return member;
     });
 
@@ -76,12 +76,15 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
     // Removing yourself is leaving, which needs no permission.
     const remove = Effect.fn("MembersService.remove")(function* (caller: User, organizationId: string, userId: string) {
       const member = yield* get(caller, organizationId, userId);
+
       if (member.role === "owner") {
         return yield* new OwnerCannotBeRemoved();
       }
+
       if (userId !== caller.id) {
         yield* authorizeWrite(caller, organizationId);
       }
+
       const [removed] = yield* Effect.promise(() =>
         db
           .update(members)
@@ -90,6 +93,7 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
           .where(and(membership(organizationId, userId), ne(members.role, "owner")))
           .returning({ userId: members.userId }),
       );
+
       if (!removed) {
         return yield* new MemberNotFound();
       }
@@ -103,9 +107,11 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
     ) {
       yield* get(caller, organizationId, userId);
       const { role } = yield* authorizeWrite(caller, organizationId);
+
       if (role !== "owner" || userId === caller.id) {
         return yield* new PermissionDenied();
       }
+
       yield* transaction(db, (tx) =>
         Effect.gen(function* () {
           // Demote first: the index allows one owner at a time.
@@ -116,9 +122,11 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
               .where(and(membership(organizationId, caller.id), eq(members.role, "owner")))
               .returning({ userId: members.userId }),
           );
+
           if (!demoted) {
             return yield* new PermissionDenied();
           }
+
           const [promoted] = yield* Effect.promise(() =>
             tx
               .update(members)
@@ -126,12 +134,14 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
               .where(membership(organizationId, userId))
               .returning({ userId: members.userId }),
           );
+
           // Removed since the read: failing undoes the demotion, so the organization keeps its owner.
           if (!promoted) {
             return yield* new MemberNotFound();
           }
         }),
       );
+
       return yield* get(caller, organizationId, userId);
     });
 
