@@ -6,12 +6,29 @@ import { ParticipantsService } from "./service.ts";
 
 // The services are built per request (api.ts), so they're read inside each handler.
 export const ParticipantsHandlers = HttpApiBuilder.group(Api, "participants", (handlers) =>
-  handlers.handle("list", ({ query }) =>
-    Effect.gen(function* () {
-      const participants = yield* ParticipantsService;
-      const user = yield* CurrentUser;
+  handlers
+    .handle("list", ({ query }) =>
+      Effect.gen(function* () {
+        const participants = yield* ParticipantsService;
+        const user = yield* CurrentUser;
 
-      return yield* participants.list(user, query.competition_id);
-    }),
-  ),
+        return yield* participants.list(user, query.competition_id);
+      }),
+    )
+    .handle("get", ({ params }) =>
+      Effect.gen(function* () {
+        const participants = yield* ParticipantsService;
+        const user = yield* CurrentUser;
+
+        return yield* participants.get(user, params.id);
+      }),
+    )
+    .handle("remove", ({ params }) =>
+      Effect.gen(function* () {
+        const participants = yield* ParticipantsService;
+        const user = yield* CurrentUser;
+
+        return yield* participants.remove(user, params.id);
+      }),
+    ),
 );

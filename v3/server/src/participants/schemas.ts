@@ -9,6 +9,8 @@ export const Participant = Schema.Struct({
   // False for a guest.
   signed_in: Schema.Boolean,
   created_at: Schema.Date,
+  // Of topics that weren't deleted, so it reads against the topic count.
+  submissions: Schema.Int,
 });
 
 export type Participant = typeof Participant.Type;

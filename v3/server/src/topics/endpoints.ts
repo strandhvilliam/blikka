@@ -6,7 +6,15 @@ import * as HttpApiSchema from "effect/http-api/HttpApiSchema";
 import { Authenticated } from "../auth/Authenticated.ts";
 import { CompetitionNotFound } from "../competitions/schemas.ts";
 import { PermissionDenied } from "../permissions/permissions.ts";
-import { LastTopic, Topic, TopicName, TopicNotFound, TopicUpdate } from "./schemas.ts";
+import {
+  LastTopic,
+  Topic,
+  TopicHasSubmissions,
+  TopicName,
+  TopicNotFound,
+  TopicOrderLocked,
+  TopicUpdate,
+} from "./schemas.ts";
 
 const Id = Schema.String.check(Schema.isUUID());
 
@@ -31,14 +39,14 @@ export class TopicsApi extends HttpApiGroup.make("topics")
       params: { id: Id },
       payload: TopicUpdate,
       success: Topic,
-      error: [HttpApiError.BadRequestNoContent, TopicNotFound, PermissionDenied],
+      error: [HttpApiError.BadRequestNoContent, TopicNotFound, PermissionDenied, TopicOrderLocked],
     }),
   )
   .add(
     HttpApiEndpoint.delete("remove", "/topics/:id", {
       params: { id: Id },
       success: HttpApiSchema.NoContent,
-      error: [HttpApiError.BadRequestNoContent, TopicNotFound, PermissionDenied, LastTopic],
+      error: [HttpApiError.BadRequestNoContent, TopicNotFound, PermissionDenied, LastTopic, TopicHasSubmissions],
     }),
   )
   .middleware(Authenticated) {}

@@ -63,7 +63,7 @@ export class AlreadyEntered extends Schema.TaggedError<AlreadyEntered>()(
   { httpApiStatus: 409 },
 ) {}
 
-// Also for entries the caller doesn't own, so ids can't be probed.
+// Also for entries the caller doesn't own, or an organizer can't read, so ids can't be probed.
 export class ParticipantNotFound extends Schema.TaggedError<ParticipantNotFound>()(
   "ParticipantNotFound",
   {},

@@ -212,6 +212,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/participants/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["participants.get"];
+        put?: never;
+        post?: never;
+        delete: operations["participants.remove"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/submissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["submissions.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/invitations": {
         parameters: {
             query?: never;
@@ -336,6 +368,10 @@ export interface components {
             /** @enum {string} */
             _tag: "OrganizationNotFound";
         };
+        ParticipantNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "ParticipantNotFound";
+        };
         TopicNotOpenEncoded: {
             /** @enum {string} */
             _tag: "TopicNotOpen";
@@ -343,10 +379,6 @@ export interface components {
         TopicNotFoundEncoded: {
             /** @enum {string} */
             _tag: "TopicNotFound";
-        };
-        ParticipantNotFoundEncoded: {
-            /** @enum {string} */
-            _tag: "ParticipantNotFound";
         };
         AlreadyEnteredEncoded: {
             /** @enum {string} */
@@ -364,9 +396,17 @@ export interface components {
             /** @enum {string} */
             _tag: "CompetitionNotFound";
         };
+        TopicHasSubmissionsEncoded: {
+            /** @enum {string} */
+            _tag: "TopicHasSubmissions";
+        };
         LastTopicEncoded: {
             /** @enum {string} */
             _tag: "LastTopic";
+        };
+        TopicOrderLockedEncoded: {
+            /** @enum {string} */
+            _tag: "TopicOrderLocked";
         };
         CompetitionHasParticipantsEncoded: {
             /** @enum {string} */
@@ -1037,6 +1077,7 @@ export interface operations {
                         competition_id: string;
                         name: string;
                         position: number;
+                        submissions: number;
                     }[];
                 };
             };
@@ -1091,6 +1132,7 @@ export interface operations {
                         competition_id: string;
                         name: string;
                         position: number;
+                        submissions: number;
                     };
                 };
             };
@@ -1171,13 +1213,13 @@ export interface operations {
                     "application/json": components["schemas"]["TopicNotFoundEncoded"];
                 };
             };
-            /** @description LastTopic */
+            /** @description LastTopic | TopicHasSubmissions */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LastTopicEncoded"];
+                    "application/json": components["schemas"]["LastTopicEncoded"] | components["schemas"]["TopicHasSubmissionsEncoded"];
                 };
             };
         };
@@ -1211,6 +1253,7 @@ export interface operations {
                         competition_id: string;
                         name: string;
                         position: number;
+                        submissions: number;
                     };
                 };
             };
@@ -1244,6 +1287,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TopicNotFoundEncoded"];
+                };
+            };
+            /** @description TopicOrderLocked */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TopicOrderLockedEncoded"];
                 };
             };
         };
@@ -1594,6 +1646,168 @@ export interface operations {
                         email: string;
                         signed_in: boolean;
                         created_at: string;
+                        submissions: number;
+                    }[];
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "participants.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        competition_id: string;
+                        name: string;
+                        email: string;
+                        signed_in: boolean;
+                        created_at: string;
+                        submissions: number;
+                    };
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ParticipantNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "participants.remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description <No Content> */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description ParticipantNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParticipantNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "submissions.list": {
+        parameters: {
+            query?: {
+                participant_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        participant_id: string;
+                        topic_id: string;
+                        created_at: string;
+                        updated_at: string;
                     }[];
                 };
             };

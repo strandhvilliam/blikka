@@ -16,6 +16,8 @@ import { EntryHandlers } from "./entry/handlers.ts";
 import { EntryService } from "./entry/service.ts";
 import { ParticipantsHandlers } from "./participants/handlers.ts";
 import { ParticipantsService } from "./participants/service.ts";
+import { SubmissionsHandlers } from "./submissions/handlers.ts";
+import { SubmissionsService } from "./submissions/service.ts";
 import { TopicsHandlers } from "./topics/handlers.ts";
 import { TopicsService } from "./topics/service.ts";
 import { Api as Contract } from "./contract.ts";
@@ -41,6 +43,7 @@ const Handlers = Layer.mergeAll(
   TopicsHandlers,
   EntryHandlers,
   ParticipantsHandlers,
+  SubmissionsHandlers,
   InvitationsHandlers,
   MembersHandlers,
 ).pipe(Layer.provide(Layer.mergeAll(AuthenticatedLive, EntrySessionLive)));
@@ -91,6 +94,7 @@ export default class Api extends Cloudflare.Worker<Api>()(
       CompetitionsService.layer,
       TopicsService.layer,
       EntryService.layer,
+      SubmissionsService.layer,
       InvitationsService.layer,
       MembersService.layer,
     ).pipe(Layer.provide(PermissionsService.layer), Layer.provide(DbLive(hyperdrive)));

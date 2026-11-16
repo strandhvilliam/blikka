@@ -7,7 +7,7 @@ import { CompetitionsService } from "../competitions/service.ts";
 import type { User } from "../contract.ts";
 import { Db, transaction, type Tx } from "../db/Db.ts";
 import * as model from "../db/model.ts";
-import { LastTopic, TopicNotFound, type TopicUpdate } from "./schemas.ts";
+import { LastTopic, TopicHasSubmissions, TopicNotFound, TopicOrderLocked, type TopicUpdate } from "./schemas.ts";
 
 const { topics } = model;
 
@@ -16,12 +16,20 @@ const columns = {
   competition_id: topics.competitionId,
   name: topics.name,
   position: topics.position,
+  // drizzle writes a single-table select's columns without their table, which would make this
+  // subquery's id ambiguous, so each column is named through its table.
+  submissions: sql<number>`(
+    select count(*)::int from ${model.submissions}
+    inner join ${model.participants} on ${model.participants}.id = ${model.submissions}.participant_id
+    where ${model.submissions}.topic_id = ${topics}.id and ${model.participants}.deleted_at is null
+  )`,
 };
 
 const liveIn = (competitionId: string) => and(eq(topics.competitionId, competitionId), isNull(topics.deletedAt));
 
-// Every topic write takes this lock first, so positions are renumbered one write at a time and a
-// publish can't race the last topic's delete. Undefined when the competition was deleted.
+// Every topic write takes this lock first, so positions are renumbered one write at a time, a
+// publish can't race the last topic's delete, and a submit (FOR SHARE) can't slip past the
+// submissions checks. Undefined when the competition was deleted.
 const lockCompetition = (tx: Tx, id: string) =>
   Effect.gen(function* () {
     const [competition] = yield* Effect.promise(() =>
@@ -153,6 +161,21 @@ export class TopicsService extends Context.Service<TopicsService>()("blikka/topi
             const from = current.position;
             const to = Math.min(patch.position, live);
 
+            if (to !== from) {
+              const [submitted] = yield* Effect.promise(() =>
+                tx
+                  .select({ id: model.submissions.id })
+                  .from(model.submissions)
+                  .innerJoin(model.participants, eq(model.participants.id, model.submissions.participantId))
+                  .where(and(eq(model.participants.competitionId, competitionId), isNull(model.participants.deletedAt)))
+                  .limit(1),
+              );
+
+              if (submitted) {
+                return yield* new TopicOrderLocked();
+              }
+            }
+
             // Shift the topics between the old and new position by one to close the gap.
             if (to < from) {
               yield* Effect.promise(() =>
@@ -201,6 +224,10 @@ export class TopicsService extends Context.Service<TopicsService>()("blikka/topi
 
           if (!current) {
             return yield* new TopicNotFound();
+          }
+
+          if (current.submissions > 0) {
+            return yield* new TopicHasSubmissions();
           }
 
           if (competition.publishedAt) {

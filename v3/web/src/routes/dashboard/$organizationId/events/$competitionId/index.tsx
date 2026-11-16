@@ -7,7 +7,7 @@ import { type ComponentProps, type ReactNode, useEffect, useState } from "react"
 import { Button } from "@ui-sdk/react/button";
 import type { Competition } from "@/api/competitions.ts";
 import { type Participant, participantsQuery } from "@/api/participants.ts";
-import { topicsQuery } from "@/api/topics.ts";
+import { type Topic, topicsQuery } from "@/api/topics.ts";
 import { Card } from "@/components/Card.tsx";
 import { Count, EmptyState } from "@/components/EmptyState.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
@@ -21,8 +21,6 @@ export const Route = createFileRoute("/dashboard/$organizationId/events/$competi
     ]),
   component: Event,
 });
-
-type Topic = { id: string; name: string; position: number };
 
 const ago = (iso: string) => formatDistanceToNow(new Date(iso), { addSuffix: true });
 
@@ -77,11 +75,6 @@ function Published({
       </div>
       <Panel
         title="Submissions by topic"
-        badge={
-          <span className="rounded-[6px] bg-muted px-1.5 py-px text-[0.6875rem] text-muted-foreground">
-            Sample data
-          </span>
-        }
         link={<Link to="/dashboard/$organizationId/events/$competitionId/topics" params={params} />}
       >
         <ByTopic topics={topics} participants={participants.length} />
@@ -93,13 +86,11 @@ function Published({
 // A card whose title row leads to the page behind it.
 function Panel({
   title,
-  badge,
   link,
   className = "",
   children,
 }: {
   title: string;
-  badge?: ReactNode;
   link: ComponentProps<typeof Button>["render"];
   className?: string;
   children: ReactNode;
@@ -108,7 +99,6 @@ function Panel({
     <Card className={`flex flex-col overflow-hidden ${className}`}>
       <div className="flex h-12 items-center gap-2 border-b border-border px-5">
         <h2 className="font-semibold">{title}</h2>
-        {badge}
         <Button
           aria-label={`Open ${title.toLowerCase()}`}
           className="ms-auto size-7 border-transparent bg-transparent p-0 text-muted-foreground no-underline hover:bg-muted hover:text-foreground"
@@ -348,15 +338,11 @@ function Latest({ participants, timeZone }: { participants: Participant[]; timeZ
   );
 }
 
-// shortcut: made-up counts that fall off with each topic, until the Api reports submissions per topic.
-const sampleDone = (index: number, participants: number) =>
-  Math.round(participants * Math.max(0.12, 0.94 - index * 0.13));
-
 function ByTopic({ topics, participants }: { topics: Topic[]; participants: number }) {
   return (
     <ol className="grid gap-x-10 gap-y-4 p-5 lg:grid-cols-2">
       {topics.map((topic, index) => {
-        const done = sampleDone(index, participants);
+        const done = topic.submissions;
 
         return (
           <li key={topic.id} className="flex flex-col gap-1.5">

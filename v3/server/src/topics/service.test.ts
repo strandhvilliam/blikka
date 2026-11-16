@@ -1,6 +1,8 @@
 import { expect, test } from "bun:test";
 import { CompetitionsService } from "../competitions/service.ts";
 import { createOrganization, createUser, rolledBack, runner, type Tx } from "../db/testDb.ts";
+import { EntryService } from "../entry/service.ts";
+import { ParticipantsService } from "../participants/service.ts";
 import { TopicsService } from "./service.ts";
 
 const setup = async (tx: Tx) => {
@@ -76,4 +78,30 @@ test("outsiders see no topics and can't touch them", () =>
     expect(await fails((t) => t.create(stranger, competitionId, "Mine"))).toBe("CompetitionNotFound");
     expect(await fails((t) => t.update(stranger, open!.id, { name: "Mine" }))).toBe("TopicNotFound");
     expect(await fails((t) => t.remove(stranger, open!.id))).toBe("TopicNotFound");
+  }));
+
+test("a topic with submissions can't be deleted, and once anyone has submitted the order is fixed", () =>
+  rolledBack(async (tx) => {
+    const { run, fails, add, names, competitions, owner, competitionId } = await setup(tx);
+    const [light, shadow, water] = await add("Light", "Shadow", "Water");
+    const opensAt = new Date(Date.now() - 1000);
+    await competitions.run((c) => c.update(owner, competitionId, { published: true, opens_at: opensAt }));
+    const entering = runner(tx, EntryService, EntryService.layer);
+    const ada = await entering.run((e) => e.enter(null, competitionId, { name: "Ada", email: "ada@example.com" }));
+    await entering.run((e) => e.submit({ user: null, guestToken: ada.guest_token }, ada.participant.id, light!.id));
+
+    expect((await run((t) => t.list(owner, competitionId))).map((t) => t.submissions)).toEqual([1, 0, 0]);
+    expect(await fails((t) => t.remove(owner, light!.id))).toBe("TopicHasSubmissions");
+    expect(await fails((t) => t.update(owner, water!.id, { position: 1 }))).toBe("TopicOrderLocked");
+    // Renaming, and a move to where it already is, change no numbers.
+    await run((t) => t.update(owner, light!.id, { name: "Daylight", position: 1 }));
+    await run((t) => t.remove(owner, water!.id));
+    expect(await names()).toEqual(["1:Daylight", "2:Shadow"]);
+
+    // A deleted entry's submissions stop counting.
+    const participants = runner(tx, ParticipantsService, ParticipantsService.layer);
+    await participants.run((p) => p.remove(owner, ada.participant.id));
+    await run((t) => t.update(owner, shadow!.id, { position: 1 }));
+    await run((t) => t.remove(owner, light!.id));
+    expect(await names()).toEqual(["1:Shadow"]);
   }));

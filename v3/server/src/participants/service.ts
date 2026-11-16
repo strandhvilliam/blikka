@@ -6,6 +6,7 @@ import * as Layer from "effect/Layer";
 import type { User } from "../contract.ts";
 import { Db } from "../db/Db.ts";
 import * as model from "../db/model.ts";
+import { ParticipantNotFound } from "../entry/schemas.ts";
 import { PermissionsService } from "../permissions/service.ts";
 
 const { participants } = model;
@@ -18,6 +19,12 @@ const columns = {
   email: participants.email,
   signed_in: sql<boolean>`${participants.userId} is not null`,
   created_at: participants.createdAt,
+  // Columns named through their tables, as in topics/service.ts.
+  submissions: sql<number>`(
+    select count(*)::int from ${model.submissions}
+    inner join ${model.topics} on ${model.topics}.id = ${model.submissions}.topic_id
+    where ${model.submissions}.participant_id = ${participants}.id and ${model.topics}.deleted_at is null
+  )`,
 };
 
 export class ParticipantsService extends Context.Service<ParticipantsService>()(
@@ -25,11 +32,11 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
   {
     make: Effect.gen(function* () {
       const db = yield* Db;
-      const { selectAccessibleOrganizationIds } = yield* PermissionsService;
+      const { authorize, selectAccessibleOrganizationIds } = yield* PermissionsService;
 
       // The organizer's view (adr/0006): entries in competitions of organizations the caller can
       // read participants in.
-      const list = Effect.fn("ParticipantsService.list")(function* (caller: User, competitionId?: string) {
+      const readable = (caller: User) => {
         const organizationIds = selectAccessibleOrganizationIds(caller, "participants:read");
 
         const competitions = db
@@ -39,7 +46,11 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
             and(inArray(model.competitions.organizationId, organizationIds), isNull(model.competitions.deletedAt)),
           );
 
-        const filters = [inArray(participants.competitionId, competitions), isNull(participants.deletedAt)];
+        return and(inArray(participants.competitionId, competitions), isNull(participants.deletedAt));
+      };
+
+      const list = Effect.fn("ParticipantsService.list")(function* (caller: User, competitionId?: string) {
+        const filters = [readable(caller)];
 
         if (competitionId) {
           filters.push(eq(participants.competitionId, competitionId));
@@ -51,6 +62,48 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
             .from(participants)
             .where(and(...filters))
             .orderBy(participants.id),
+        );
+      });
+
+      const get = Effect.fn("ParticipantsService.get")(function* (caller: User, id: string) {
+        const [participant] = yield* Effect.promise(() =>
+          db
+            .select(columns)
+            .from(participants)
+            .where(and(readable(caller), eq(participants.id, id))),
+        );
+
+        if (!participant) {
+          return yield* new ParticipantNotFound();
+        }
+
+        return participant;
+      });
+
+      // Unpublishing counts only entries that weren't deleted, and the email can enter again.
+      const remove = Effect.fn("ParticipantsService.remove")(function* (caller: User, id: string) {
+        const [entry] = yield* Effect.promise(() =>
+          db
+            .select({ organizationId: model.competitions.organizationId })
+            .from(participants)
+            .innerJoin(model.competitions, eq(model.competitions.id, participants.competitionId))
+            .where(and(readable(caller), eq(participants.id, id))),
+        );
+
+        if (!entry) {
+          return yield* new ParticipantNotFound();
+        }
+
+        yield* authorize(caller, "participants:write", entry.organizationId).pipe(
+          // Left the organization since the read.
+          Effect.catchTag("OrganizationNotFound", () => Effect.fail(new ParticipantNotFound())),
+        );
+
+        yield* Effect.promise(() =>
+          db
+            .update(participants)
+            .set({ deletedAt: sql`now()`, updatedAt: sql`now()` })
+            .where(and(eq(participants.id, id), isNull(participants.deletedAt))),
         );
       });
 
@@ -85,7 +138,9 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
           db
             .select({ id: mine.id })
             .from(mine)
-            .where(and(eq(mine.competitionId, participants.competitionId), eq(mine.userId, userId))),
+            .where(
+              and(eq(mine.competitionId, participants.competitionId), eq(mine.userId, userId), isNull(mine.deletedAt)),
+            ),
         );
 
         yield* Effect.promise(() =>
@@ -100,6 +155,7 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
             .where(
               and(
                 isNull(participants.userId),
+                isNull(participants.deletedAt),
                 eq(participants.email, account.email.toLowerCase()),
                 not(alreadyEntered),
               ),
@@ -107,7 +163,7 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
         );
       });
 
-      return { list, claimGuestEntries };
+      return { list, get, remove, claimGuestEntries };
     }),
   },
 ) {

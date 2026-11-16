@@ -1051,13 +1051,19 @@
                         "type": "integer",
                         "minimum": -9007199254740991,
                         "maximum": 9007199254740991
+                      },
+                      "submissions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
                       }
                     },
                     "required": [
                       "id",
                       "competition_id",
                       "name",
-                      "position"
+                      "position",
+                      "submissions"
                     ],
                     "additionalProperties": false
                   }
@@ -1104,13 +1110,19 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "submissions": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
                     "id",
                     "competition_id",
                     "name",
-                    "position"
+                    "position",
+                    "submissions"
                   ],
                   "additionalProperties": false
                 }
@@ -1208,13 +1220,19 @@
                       "type": "integer",
                       "minimum": -9007199254740991,
                       "maximum": 9007199254740991
+                    },
+                    "submissions": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
                     }
                   },
                   "required": [
                     "id",
                     "competition_id",
                     "name",
-                    "position"
+                    "position",
+                    "submissions"
                   ],
                   "additionalProperties": false
                 }
@@ -1243,6 +1261,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TopicNotFoundEncoded"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "TopicOrderLocked",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopicOrderLockedEncoded"
                 }
               }
             }
@@ -1319,11 +1347,18 @@
             }
           },
           "409": {
-            "description": "LastTopic",
+            "description": "LastTopic | TopicHasSubmissions",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/LastTopicEncoded"
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/LastTopicEncoded"
+                    },
+                    {
+                      "$ref": "#/components/schemas/TopicHasSubmissionsEncoded"
+                    }
+                  ]
                 }
               }
             }
@@ -1933,6 +1968,11 @@
                       },
                       "created_at": {
                         "type": "string"
+                      },
+                      "submissions": {
+                        "type": "integer",
+                        "minimum": -9007199254740991,
+                        "maximum": 9007199254740991
                       }
                     },
                     "required": [
@@ -1941,7 +1981,215 @@
                       "name",
                       "email",
                       "signed_in",
-                      "created_at"
+                      "created_at",
+                      "submissions"
+                    ],
+                    "additionalProperties": false
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BadRequest"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/participants/{id}": {
+      "get": {
+        "tags": [
+          "participants"
+        ],
+        "operationId": "participants.get",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "competition_id": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "email": {
+                      "type": "string"
+                    },
+                    "signed_in": {
+                      "type": "boolean"
+                    },
+                    "created_at": {
+                      "type": "string"
+                    },
+                    "submissions": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "competition_id",
+                    "name",
+                    "email",
+                    "signed_in",
+                    "created_at",
+                    "submissions"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "BadRequest"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "ParticipantNotFound",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantNotFoundEncoded"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "participants"
+        ],
+        "operationId": "participants.remove",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "schema": {
+              "type": "string",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+              "format": "uuid"
+            },
+            "required": true
+          }
+        ],
+        "security": [],
+        "responses": {
+          "204": {
+            "description": "<No Content>"
+          },
+          "400": {
+            "description": "BadRequest"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "PermissionDenied | Forbidden",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionDeniedEncoded"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "ParticipantNotFound",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ParticipantNotFoundEncoded"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/submissions": {
+      "get": {
+        "tags": [
+          "submissions"
+        ],
+        "operationId": "submissions.list",
+        "parameters": [
+          {
+            "name": "participant_id",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|[fF]{8}-[fF]{4}-[fF]{4}-[fF]{4}-[fF]{12})$",
+              "format": "uuid"
+            },
+            "required": false
+          }
+        ],
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "participant_id": {
+                        "type": "string"
+                      },
+                      "topic_id": {
+                        "type": "string"
+                      },
+                      "created_at": {
+                        "type": "string"
+                      },
+                      "updated_at": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "id",
+                      "participant_id",
+                      "topic_id",
+                      "created_at",
+                      "updated_at"
                     ],
                     "additionalProperties": false
                   }
@@ -2674,6 +2922,21 @@
         ],
         "additionalProperties": false
       },
+      "ParticipantNotFoundEncoded": {
+        "type": "object",
+        "properties": {
+          "_tag": {
+            "type": "string",
+            "enum": [
+              "ParticipantNotFound"
+            ]
+          }
+        },
+        "required": [
+          "_tag"
+        ],
+        "additionalProperties": false
+      },
       "TopicNotOpenEncoded": {
         "type": "object",
         "properties": {
@@ -2696,21 +2959,6 @@
             "type": "string",
             "enum": [
               "TopicNotFound"
-            ]
-          }
-        },
-        "required": [
-          "_tag"
-        ],
-        "additionalProperties": false
-      },
-      "ParticipantNotFoundEncoded": {
-        "type": "object",
-        "properties": {
-          "_tag": {
-            "type": "string",
-            "enum": [
-              "ParticipantNotFound"
             ]
           }
         },
@@ -2779,6 +3027,21 @@
         ],
         "additionalProperties": false
       },
+      "TopicHasSubmissionsEncoded": {
+        "type": "object",
+        "properties": {
+          "_tag": {
+            "type": "string",
+            "enum": [
+              "TopicHasSubmissions"
+            ]
+          }
+        },
+        "required": [
+          "_tag"
+        ],
+        "additionalProperties": false
+      },
       "LastTopicEncoded": {
         "type": "object",
         "properties": {
@@ -2786,6 +3049,21 @@
             "type": "string",
             "enum": [
               "LastTopic"
+            ]
+          }
+        },
+        "required": [
+          "_tag"
+        ],
+        "additionalProperties": false
+      },
+      "TopicOrderLockedEncoded": {
+        "type": "object",
+        "properties": {
+          "_tag": {
+            "type": "string",
+            "enum": [
+              "TopicOrderLocked"
             ]
           }
         },
@@ -2876,6 +3154,9 @@
     },
     {
       "name": "participants"
+    },
+    {
+      "name": "submissions"
     },
     {
       "name": "invitations"

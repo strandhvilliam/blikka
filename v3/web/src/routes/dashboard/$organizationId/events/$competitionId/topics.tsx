@@ -14,7 +14,14 @@ import {
 import { Field, FieldError, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
 import { Menu, MenuContent, MenuItem, MenuSeparator, MenuTrigger } from "@ui-sdk/react/menu";
-import { createTopicMutation, deleteTopicMutation, topicsQuery, updateTopicMutation } from "@/api/topics.ts";
+import { isApiError } from "@/api/client.ts";
+import {
+  createTopicMutation,
+  deleteTopicMutation,
+  type Topic,
+  topicsQuery,
+  updateTopicMutation,
+} from "@/api/topics.ts";
 import { Card } from "@/components/Card.tsx";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import { EmptyState } from "@/components/EmptyState.tsx";
@@ -27,8 +34,6 @@ export const Route = createFileRoute("/dashboard/$organizationId/events/$competi
   component: Topics,
 });
 
-type Topic = { id: string; name: string; position: number };
-
 function Topics() {
   const { competition, organization } = Route.useRouteContext();
   const { data: topics } = useSuspenseQuery(topicsQuery(competition.id));
@@ -36,6 +41,8 @@ function Topics() {
   // The dropped order, shown until the Api's order comes back with it or the move fails.
   const [moved, setMoved] = useState<string[] | null>(null);
   const canWrite = organization.permissions.includes("competitions:write");
+  // The Api refuses to move topics once anyone has submitted (409), since participants go by the numbers.
+  const orderFixed = topics.some((topic) => topic.submissions > 0);
   // The Api refuses to delete it (409).
   const lastOfPublished = competition.published_at !== null && topics.length === 1;
   const byId = new Map(topics.map((topic) => [topic.id, topic]));
@@ -60,7 +67,11 @@ function Topics() {
             )}
           </>
         }
-        description="What participants photograph, in this order. Names stay hidden until the event opens."
+        description={
+          orderFixed
+            ? "What participants photograph, in this order. Participants have started submitting, so the order is fixed."
+            : "What participants photograph, in this order. Names stay hidden until the event opens."
+        }
       >
         {canWrite && <NewTopic competitionId={competition.id} />}
       </PageHeader>
@@ -102,6 +113,7 @@ function Topics() {
                     index={index}
                     competitionId={competition.id}
                     canWrite={canWrite}
+                    canMove={canWrite && !orderFixed}
                     lastOfPublished={lastOfPublished}
                   />
                 );
@@ -111,7 +123,9 @@ function Topics() {
         )}
         {move.isError && (
           <p role="alert" className="border-t border-border px-5 py-3 text-sm text-destructive">
-            Couldn't move the topic. Try again.
+            {isApiError(move.error, "TopicOrderLocked")
+              ? "Participants have started submitting, so the order is fixed."
+              : "Couldn't move the topic. Try again."}
           </p>
         )}
       </Card>
@@ -189,24 +203,35 @@ function TopicRow({
   index,
   competitionId,
   canWrite,
+  canMove,
   lastOfPublished,
 }: {
   topic: Topic;
   index: number;
   competitionId: string;
   canWrite: boolean;
+  canMove: boolean;
   lastOfPublished: boolean;
 }) {
   const remove = useMutation(deleteTopicMutation(competitionId));
   const [action, setAction] = useState<"edit" | "delete">();
   const trigger = useRef<HTMLButtonElement>(null);
+  // Why the Api would refuse the delete (409), shown under the disabled menu item.
+  let undeletable: string | null = null;
+
+  if (topic.submissions > 0) {
+    undeletable = "Participants have submitted to it";
+  } else if (lastOfPublished) {
+    undeletable = "A published event needs a topic";
+  }
 
   return (
     <SortableListItem
       value={topic.id}
       className="flex min-h-12 items-center gap-2 bg-card px-3 py-2 hover:bg-muted/40 data-grabbed:bg-muted data-dragging:not-data-settling:bg-muted/50"
     >
-      {canWrite && (
+      {/* Without a handle the row can't be picked up. */}
+      {canMove && (
         <SortableListHandle value={topic.id} aria-label={`Move ${topic.name}`}>
           <IconGripVertical aria-hidden />
         </SortableListHandle>
@@ -229,11 +254,11 @@ function TopicRow({
             <MenuContent align="end">
               <MenuItem onSelect={() => setAction("edit")}>Edit</MenuItem>
               <MenuSeparator />
-              <MenuItem destructive disabled={lastOfPublished} label="Delete" onSelect={() => setAction("delete")}>
-                {lastOfPublished ? (
+              <MenuItem destructive disabled={undeletable !== null} label="Delete" onSelect={() => setAction("delete")}>
+                {undeletable ? (
                   <span className="flex flex-col py-1">
                     Delete
-                    <span className="text-xs text-muted-foreground">A published event needs a topic</span>
+                    <span className="text-xs text-muted-foreground">{undeletable}</span>
                   </span>
                 ) : (
                   "Delete"

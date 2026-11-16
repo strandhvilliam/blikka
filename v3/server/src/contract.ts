@@ -9,6 +9,7 @@ import { MembersApi } from "./members/endpoints.ts";
 import { OrganizationsApi } from "./organizations/endpoints.ts";
 import { EntryApi } from "./entry/endpoints.ts";
 import { ParticipantsApi } from "./participants/endpoints.ts";
+import { SubmissionsApi } from "./submissions/endpoints.ts";
 import { TopicsApi } from "./topics/endpoints.ts";
 
 // Schemas only, so clients can import it without pulling in the database, Better Auth or secrets.
@@ -34,5 +35,6 @@ export class Api extends HttpApi.make("blikka")
   .add(TopicsApi)
   .add(EntryApi)
   .add(ParticipantsApi)
+  .add(SubmissionsApi)
   .add(InvitationsApi)
   .add(MembersApi) {}

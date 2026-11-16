@@ -1,4 +1,4 @@
-import { gt, isNotNull, sql } from "drizzle-orm";
+import { gt, isNull, sql } from "drizzle-orm";
 import {
   boolean,
   check,
@@ -229,11 +229,14 @@ export const participants = pgTable(
     deletedAt: timestamp(),
   },
   (table) => [
-    unique("participants_competition_id_email_unique").on(table.competitionId, table.email),
+    // Both leave deleted entries out, so someone whose entry the organizer deleted can enter again.
+    uniqueIndex("participants_competition_id_email_unique")
+      .on(table.competitionId, table.email)
+      .where(isNull(table.deletedAt)),
     // One entry per user per competition, even if their account email changed in between.
     uniqueIndex("participants_competition_id_user_id_unique")
       .on(table.competitionId, table.userId)
-      .where(isNotNull(table.userId)),
+      .where(sql`${table.userId} is not null and ${table.deletedAt} is null`),
     index("participants_user_id_idx").on(table.userId),
     index("participants_email_idx").on(table.email),
   ],

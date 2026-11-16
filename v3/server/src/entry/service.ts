@@ -152,7 +152,13 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
               tx
                 .select(entryColumns)
                 .from(participants)
-                .where(and(eq(participants.competitionId, competitionId), eq(participants.userId, user.id))),
+                .where(
+                  and(
+                    eq(participants.competitionId, competitionId),
+                    eq(participants.userId, user.id),
+                    isNull(participants.deletedAt),
+                  ),
+                ),
             );
 
             return own;
@@ -268,10 +274,13 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
     });
 
     // What availableTopics reads for one participant: their competition's window, its live topics
-    // in order, and their submissions.
-    const progress = Effect.fn("EntryService.progress")(function* (participant: EntryParticipant) {
+    // in order, and their submissions. Reads through `tx` inside a transaction: Db has one connection.
+    const progress = Effect.fn("EntryService.progress")(function* (
+      participant: EntryParticipant,
+      tx: Tx | Db["Service"] = db,
+    ) {
       const [competition] = yield* Effect.promise(() =>
-        db
+        tx
           .select({ opensAt: model.competitions.opensAt, closesAt: model.competitions.closesAt })
           .from(model.competitions)
           .where(and(eq(model.competitions.id, participant.competition_id), isNull(model.competitions.deletedAt))),
@@ -283,7 +292,7 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       }
 
       const topics = yield* Effect.promise(() =>
-        db
+        tx
           .select({ id: model.topics.id, position: model.topics.position, name: model.topics.name })
           .from(model.topics)
           .where(and(eq(model.topics.competitionId, participant.competition_id), isNull(model.topics.deletedAt)))
@@ -291,7 +300,7 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       );
 
       const submitted = yield* Effect.promise(() =>
-        db
+        tx
           .select({ topicId: submissions.topicId })
           .from(submissions)
           .where(eq(submissions.participantId, participant.id)),
@@ -324,39 +333,54 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       topicId: string,
     ) {
       const participant = yield* requireParticipantOwner(caller, participantId);
-      const { competition, submissions: submitted } = yield* progress(participant);
 
-      // Judged as if this topic had no submission, so a replace is allowed exactly while a first
-      // submit would be.
-      const others = submitted.filter((submission) => submission.topicId !== topicId);
-      const topic = availableTopics(competition, others, new Date()).find((topic) => topic.id === topicId);
+      return yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
+          // Shared, so submits don't wait on each other, but a topic delete or move (FOR UPDATE)
+          // waits for this one and then sees its submission.
+          yield* Effect.promise(() =>
+            tx
+              .select({ id: model.competitions.id })
+              .from(model.competitions)
+              .where(eq(model.competitions.id, participant.competition_id))
+              .for("share"),
+          );
 
-      if (!topic) {
-        return yield* new TopicNotFound();
-      }
+          const { competition, submissions: submitted } = yield* progress(participant, tx);
 
-      if (topic.status !== "open") {
-        return yield* new TopicNotOpen();
-      }
+          // Judged as if this topic had no submission, so a replace is allowed exactly while a first
+          // submit would be.
+          const others = submitted.filter((submission) => submission.topicId !== topicId);
+          const topic = availableTopics(competition, others, new Date()).find((topic) => topic.id === topicId);
 
-      const [submission] = yield* Effect.promise(() =>
-        db
-          .insert(submissions)
-          .values({ participantId, topicId })
-          .onConflictDoUpdate({
-            target: [submissions.participantId, submissions.topicId],
-            set: { updatedAt: sql`now()` },
-          })
-          .returning({
-            id: submissions.id,
-            participant_id: submissions.participantId,
-            topic_id: submissions.topicId,
-            created_at: submissions.createdAt,
-            updated_at: submissions.updatedAt,
-          }),
+          if (!topic) {
+            return yield* new TopicNotFound();
+          }
+
+          if (topic.status !== "open") {
+            return yield* new TopicNotOpen();
+          }
+
+          const [submission] = yield* Effect.promise(() =>
+            tx
+              .insert(submissions)
+              .values({ participantId, topicId })
+              .onConflictDoUpdate({
+                target: [submissions.participantId, submissions.topicId],
+                set: { updatedAt: sql`now()` },
+              })
+              .returning({
+                id: submissions.id,
+                participant_id: submissions.participantId,
+                topic_id: submissions.topicId,
+                created_at: submissions.createdAt,
+                updated_at: submissions.updatedAt,
+              }),
+          );
+
+          return submission!;
+        }),
       );
-
-      return submission!;
     });
 
     return { getPublished, enter, listOwn, requireParticipantOwner, listTopics, submit };

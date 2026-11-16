@@ -5,6 +5,8 @@ export const Topic = Schema.Struct({
   competition_id: Schema.String,
   name: Schema.String,
   position: Schema.Int,
+  // From participants whose entry wasn't deleted.
+  submissions: Schema.Int,
 });
 
 export type Topic = typeof Topic.Type;
@@ -24,3 +26,17 @@ export class TopicNotFound extends Schema.TaggedError<TopicNotFound>()("TopicNot
 
 // A published competition needs at least one topic (adr/0009).
 export class LastTopic extends Schema.TaggedError<LastTopic>()("LastTopic", {}, { httpApiStatus: 409 }) {}
+
+// Participants delivered it, so deleting it would lose their work.
+export class TopicHasSubmissions extends Schema.TaggedError<TopicHasSubmissions>()(
+  "TopicHasSubmissions",
+  {},
+  { httpApiStatus: 409 },
+) {}
+
+// Once anyone has submitted, moving a topic would change the numbers participants already saw.
+export class TopicOrderLocked extends Schema.TaggedError<TopicOrderLocked>()(
+  "TopicOrderLocked",
+  {},
+  { httpApiStatus: 409 },
+) {}
