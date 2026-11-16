@@ -6,7 +6,7 @@ import { Field, FieldError, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
-import { Section } from "@/components/Section.tsx";
+import { Saved, Section } from "@/components/Section.tsx";
 import { deleteOrganizationMutation, renameOrganizationMutation } from "@/api/organizations.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/settings")({
@@ -19,7 +19,7 @@ function Settings() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8">
       <PageHeader title="Settings" description="The organization's name, and deleting it." />
-      <div className="flex max-w-3xl flex-col gap-6">
+      <div className="flex flex-col gap-6">
         {/* key: a rename elsewhere resets the field to the new name. */}
         <Rename
           key={organization.name}
@@ -50,13 +50,16 @@ function Rename({ organization, canWrite }: { organization: { id: string; name: 
         description="Shown to members and on every event's entry page."
         footer={
           canWrite && (
-            <Button
-              type="submit"
-              data-variant="solid"
-              disabled={rename.isPending || rename.isSuccess || unchanged || !name.trim()}
-            >
-              Save
-            </Button>
+            <>
+              {rename.isSuccess && unchanged && <Saved />}
+              <Button
+                type="submit"
+                data-variant="solid"
+                disabled={rename.isPending || rename.isSuccess || unchanged || !name.trim()}
+              >
+                Save
+              </Button>
+            </>
           )
         }
       >

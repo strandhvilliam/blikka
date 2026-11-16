@@ -241,9 +241,16 @@ function PendingInvitation({
       <Initials name={invitation.email} />
       <div className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-medium">{invitation.email}</span>
-        <span className="text-sm text-muted-foreground">
-          {expired ? "Expired" : `Expires ${formatDistanceToNow(expiresAt, { addSuffix: true })}`}
-        </span>
+        {expired ? (
+          <span className="flex items-center gap-1.5 text-sm">
+            <span aria-hidden className="size-2 shrink-0 rounded-full bg-golden-hour" />
+            Expired
+          </span>
+        ) : (
+          <span className="text-sm text-muted-foreground">
+            Expires {formatDistanceToNow(expiresAt, { addSuffix: true })}
+          </span>
+        )}
       </div>
       {canManage && (
         <div className="flex gap-1">

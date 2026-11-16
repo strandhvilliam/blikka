@@ -69,7 +69,8 @@ function OrganizationLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="flex h-svh flex-col overflow-hidden bg-sidebar">
+    // Body text is 14px across the dashboard, like ui-sdk's components (--ui-font-size).
+    <div className="flex h-svh flex-col overflow-hidden bg-sidebar text-sm">
       <header className="flex h-12 shrink-0 items-center gap-1 pe-3">
         {/* As wide as the sidebar, so the breadcrumb starts where the page does. */}
         <div className="flex shrink-0 items-center ps-2 md:w-60 md:ps-5">
@@ -100,7 +101,7 @@ function OrganizationLayout() {
         <aside className="w-60 shrink-0 max-md:hidden">
           <Sidebar competition={event} />
         </aside>
-        <div className="min-w-0 flex-1 overflow-y-auto border-border bg-background md:rounded-tl-xl md:border-s md:border-t max-md:border-t">
+        <div className="min-w-0 flex-1 overflow-y-auto border-border bg-page md:rounded-tl-xl md:border-s md:border-t max-md:border-t">
           <Outlet />
         </div>
       </div>

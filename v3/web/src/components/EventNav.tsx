@@ -32,25 +32,21 @@ import { byStatus, competitionStatus, type CompetitionStatus } from "@/lib/compe
 
 const pages = [
   {
-    group: "Event",
     to: "/dashboard/$organizationId/events/$competitionId",
     label: "Overview",
     icon: IconLayoutDashboard,
   },
   {
-    group: "Event",
     to: "/dashboard/$organizationId/events/$competitionId/participants",
     label: "Participants",
     icon: IconUsers,
   },
   {
-    group: "Setup",
     to: "/dashboard/$organizationId/events/$competitionId/topics",
     label: "Topics",
     icon: IconListNumbers,
   },
   {
-    group: "Setup",
     to: "/dashboard/$organizationId/events/$competitionId/settings",
     label: "Settings",
     icon: IconSettings,
@@ -80,29 +76,22 @@ export function EventNav({ competition }: { competition: Competition }) {
         <IconArrowLeft aria-hidden className="size-4" />
         Events
       </Link>
-      {["Event", "Setup"].map((group) => (
-        <NavigationMenu key={group} aria-label={group} orientation="vertical">
-          <p className="mb-1 px-2 text-xs font-medium text-muted-foreground">{group}</p>
-          <NavigationMenuList>
-            {pages.flatMap((page) =>
-              page.group === group
-                ? [
-                    <NavigationMenuItem key={page.to}>
-                      <NavigationMenuLink
-                        className={navLinkClass}
-                        render={<Link to={page.to} params={params} />}
-                        current={page === current}
-                      >
-                        <page.icon aria-hidden />
-                        {page.label}
-                      </NavigationMenuLink>
-                    </NavigationMenuItem>,
-                  ]
-                : [],
-            )}
-          </NavigationMenuList>
-        </NavigationMenu>
-      ))}
+      <NavigationMenu aria-label="Event" orientation="vertical">
+        <NavigationMenuList>
+          {pages.map((page) => (
+            <NavigationMenuItem key={page.to}>
+              <NavigationMenuLink
+                className={navLinkClass}
+                render={<Link to={page.to} params={params} />}
+                current={page === current}
+              >
+                <page.icon aria-hidden />
+                {page.label}
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+          ))}
+        </NavigationMenuList>
+      </NavigationMenu>
     </div>
   );
 }

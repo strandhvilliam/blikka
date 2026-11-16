@@ -32,7 +32,7 @@ function Participants() {
           />
         ) : (
           <table className="w-full text-sm">
-            <thead className="border-b border-border bg-background text-xs text-muted-foreground">
+            <thead className="border-b border-border bg-page text-xs text-muted-foreground">
               <tr>
                 <th className="h-9 px-5 text-start font-medium">Name</th>
                 <th className="px-3 text-start font-medium max-md:hidden">Email</th>

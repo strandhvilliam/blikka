@@ -52,7 +52,7 @@ The camera carries the same ideas without the costume. A roll has a fixed number
 3. **One main action per screen.** It gets the pill. Everything else is quieter.
 4. **Make scarcity a feature.** One frame per topic. Counters and a finished roll are moments.
 5. **Words and values.** Sentences in the sans, measurements in mono. Never the other way round.
-6. **Ration color.** A neutral surround, Safelight for live or due, Blue hour for state. Nothing else.
+6. **Ration color.** A neutral surround, Safelight for live or due, Blue hour for state. In the product, three status colors report what happened. Nothing else.
 7. **Toy on top, depth underneath.** Defaults a first-timer understands, with more control one deliberate step away.
 8. **Proof of presence.** Who was there, where and when. No generated imagery in the brand, ever.
 9. **Private like a film camera.** No analytics on photos. Trust is part of what makes it feel human.
@@ -108,7 +108,9 @@ One palette, two lights. Every surface comes in light and dark and follows the s
 | --- | --- | --- |
 | Ground | `#FAFAFA` | Fixer `#0F0F0E` |
 | Card and sheet | White `#FFFFFF` | Tank `#1C1B19` |
-| Sidebar and top bar | `#F4F4F4` | `#090908` |
+| Sidebar and top bar | `#F4F4F4` | Fixer `#0F0F0E` |
+| Dashboard page panel | `#FAFAFA` | `#161514`, halfway from Fixer to Tank |
+| Control edge and focus ring | `#8A8A8A` | Silver `#A7A49C` |
 | Panel and selected nav | `#F0F0F0` | Tray `#2A2926` |
 | Line | `#E5E5E5` | Tray `#2A2926` |
 | Muted text | `#666666` | Silver `#A7A49C` |
@@ -129,6 +131,22 @@ The accents are the same in both themes.
 | Blue hour | `#5F7E9B` | State: the current frame's tick, an open topic, an upload in progress, a jury pick. |
 
 Neither accent reaches 4.5:1 for small text in both themes (Safelight is about 3.8:1 on Fixer and 4.8:1 on the light ground, Blue hour about 4.5:1 and 4.1:1). So accents are dots, ticks, outlines and fills, not small text. A live line is a Safelight dot followed by text in Ink or Paper. A tag filled with Blue hour uses text at 14 px semibold or larger.
+
+### Status
+
+Product only: the dashboard and the forms people fill in. Never the landing page, posters, social posts or anything that sells. Each status has a light and a dark value.
+
+| Name | Light | Dark | Job |
+| --- | --- | --- | --- |
+| Leaf | `#359658` | `#5FA87A` | Done: saved, published, uploaded. |
+| Golden hour | `#C8800D` | `#CA933E` | Needs a look: incomplete setup, a topic without a name, waiting on someone. |
+| Burn | `#A71F43` | `#DE6E74` | Failed: errors, a failed upload, destructive actions. |
+
+- **Color the dot, not the words.** Leaf and Golden hour are dots and 6% tints behind an alert, with the text in Ink or Paper. An amber dark enough for text turns brown.
+- **Only Burn is text,** for error messages. It reaches 4.5:1 on the ground, card and panel in both themes.
+- **Report, then stop.** No colored buttons, cards or headings.
+- **Burn is not Safelight.** Safelight is live or due. Burn is something that went wrong, so it's a darker, cooler red.
+- **In progress is Blue hour,** not a status color.
 
 ## Type
 
@@ -236,7 +254,7 @@ Marketing uses the same type, numbers and accents as the product. Real photos on
 - **Old-website patterns:** carousels, stock photos of smiling people, three icon cards under a centered hero.
 - **Fake scarcity:** limits that exist to sell upgrades, or countdown pressure.
 - **Ndot clones:** dot-matrix type reads as Nothing.
-- **Accent creep:** a third accent, Safelight as decoration, or accent-colored small text.
+- **Accent creep:** a third accent, Safelight as decoration, accent-colored small text, or status colors in marketing.
 - **Shadows and soft cards everywhere:** the org app gets flat 12px cards, the participant app gets none.
 
 ## Sources

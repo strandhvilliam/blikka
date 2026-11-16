@@ -185,7 +185,7 @@ function EntryCard({ competition }: { competition: Competition }) {
           </Detail>
         </dl>
       </div>
-      <div className="flex min-h-12 items-center gap-3 border-t border-border bg-background px-5 py-2 text-sm">
+      <div className="flex min-h-12 items-center gap-3 border-t border-border bg-page px-5 py-2 text-sm">
         <span aria-hidden className={`size-2 shrink-0 rounded-full ${state.dot}`} />
         <span className="font-medium">{state.word}</span>
         <span className="text-muted-foreground">{state.detail}</span>
@@ -426,7 +426,7 @@ function Checklist({ competition, topics }: { competition: Competition; topics: 
         {steps.map((step) => (
           <li key={step.title} className="flex items-center gap-3 border-b border-border px-5 py-3 last:border-0">
             {step.done ? (
-              <IconCircleCheckFilled aria-hidden className="size-5 shrink-0" />
+              <IconCircleCheckFilled aria-hidden className="size-5 shrink-0 text-leaf" />
             ) : (
               <IconCircle aria-hidden className="size-5 shrink-0 text-muted-foreground" />
             )}

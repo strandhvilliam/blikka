@@ -10,7 +10,7 @@ const dots: Record<CompetitionStatus, string> = {
 export function StatusBadge({ status }: { status: CompetitionStatus }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 text-xs font-medium ${status === "Ended" ? "text-muted-foreground" : ""}`}
+      className={`inline-flex shrink-0 items-center gap-1.5 rounded-(--ui-radius) border border-border bg-card px-2 py-0.5 text-xs font-medium ${status === "Ended" ? "text-muted-foreground" : ""}`}
     >
       <span aria-hidden className={`size-2 rounded-full ${dots[status]}`} />
       {status}

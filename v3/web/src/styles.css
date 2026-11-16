@@ -15,10 +15,17 @@
   --color-primary: var(--ui-primary);
   --color-destructive: var(--ui-destructive);
   --color-card: var(--ui-card);
-  /* The dashboard's sidebar and top bar, a step below the page's panel. */
-  --color-sidebar: light-dark(#f4f4f4, #090908);
+  /* The dashboard's sidebar and top bar, a step below the page's panel. Dark has nothing below
+     Fixer, so there the panel steps up instead, halfway to Tank so cards still sit above it. */
+  --color-sidebar: light-dark(#f4f4f4, #0f0f0e);
+  --color-page: light-dark(#fafafa, #161514);
   --color-safelight: #d3301f;
   --color-blue-hour: #5f7e9b;
+  /* Status (docs/brand.md, Status): product only, never marketing. Leaf and Golden hour are
+     dots and tints, not text; Burn is the error text. */
+  --color-leaf: light-dark(#359658, #5fa87a);
+  --color-golden-hour: light-dark(#c8800d, #ca933e);
+  --color-burn: var(--ui-destructive);
   --font-sans: var(--ui-font-sans);
   --font-mono: var(--ui-font-mono);
 }
@@ -36,10 +43,13 @@
   /* gray, Silver */
   --ui-muted-foreground: light-dark(#666666, #a7a49c);
   --ui-border: light-dark(#e5e5e5, #2a2926);
-  /* A control's edge and focus ring need 3:1 against the ground: about 3.3:1 on the light ground, 3.4:1 on Fixer. */
-  --ui-input: light-dark(#8a8a8a, #6b6860);
-  --ui-ring: light-dark(#8a8a8a, #6b6860);
-  --ui-ring-border: light-dark(#666666, #a7a49c);
+  /* Burn, the error status (docs/brand.md, Status) */
+  --ui-destructive: light-dark(#a71f43, #de6e74);
+  /* A control's edge and focus ring need 3:1 against the ground: about 3.3:1 on the light ground.
+     Silver is the only dark palette gray that clears it, at about 7.7:1 on Fixer. */
+  --ui-input: light-dark(#8a8a8a, #a7a49c);
+  --ui-ring: light-dark(#8a8a8a, #a7a49c);
+  --ui-ring-border: light-dark(#666666, #f3f0e8);
   /* white on Ink, Ink on Paper */
   --ui-primary-foreground: light-dark(#ffffff, #151515);
   --ui-overlay: light-dark(rgb(250 250 250 / 0.7), rgb(15 15 14 / 0.7));

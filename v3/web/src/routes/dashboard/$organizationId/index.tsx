@@ -114,7 +114,7 @@ function Dashboard() {
             </div>
 
             <table className="w-full text-sm">
-              <thead className="border-y border-border bg-background text-xs text-muted-foreground">
+              <thead className="border-y border-border bg-page text-xs text-muted-foreground">
                 <tr>
                   <th className="h-8 px-4 text-start font-medium">Name</th>
                   <th className="w-32 px-3 text-start font-medium">Status</th>

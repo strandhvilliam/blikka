@@ -1,6 +1,16 @@
 import type { ReactNode } from "react";
 import { Card } from "./Card.tsx";
 
+// A footer's confirmation once its form is saved: a Leaf dot, the word in the text color (docs/brand.md, Status).
+export function Saved() {
+  return (
+    <p role="status" className="me-auto flex items-center gap-2 text-sm">
+      <span aria-hidden className="size-2 shrink-0 rounded-full bg-leaf" />
+      Saved
+    </p>
+  );
+}
+
 // A settings card: what it is on top, its fields in the middle, and its action in a footer bar.
 export function Section({
   title,
@@ -29,7 +39,7 @@ export function Section({
       {children && <div className="flex flex-col gap-4 px-5 pb-5">{children}</div>}
       {footer && (
         <div
-          className={`flex min-h-12 flex-wrap items-center justify-end gap-3 border-t px-5 py-2.5 ${tone === "danger" ? "border-destructive/20 bg-destructive/5" : "border-border bg-background"}`}
+          className={`flex min-h-12 flex-wrap items-center justify-end gap-3 border-t px-5 py-2.5 ${tone === "danger" ? "border-destructive/20 bg-destructive/5" : "border-border bg-page"}`}
         >
           {footer}
         </div>

@@ -20,7 +20,7 @@ import { isApiError } from "@/api/client.ts";
 import { type CompetitionUpdate, deleteCompetitionMutation, updateCompetitionMutation } from "@/api/competitions.ts";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
-import { Section } from "@/components/Section.tsx";
+import { Saved, Section } from "@/components/Section.tsx";
 import { formatIn, fromWallClock, timeZones, toWallClock } from "@/lib/timeZone.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/events/$competitionId/settings")({
@@ -39,7 +39,7 @@ function Settings() {
         title="Settings"
         description="When the event runs, what participants submit, and whether it's published."
       />
-      <div className="flex max-w-3xl flex-col gap-6">
+      <div className="flex flex-col gap-6">
         {/* key: a save resets the fields to what the Api stored. */}
         <Details
           key={`${competition.name}|${competition.description}|${competition.time_zone}`}
@@ -95,6 +95,7 @@ function Details({ competition, canWrite }: { competition: Competition; canWrite
                 Couldn't save the details. Try again.
               </p>
             )}
+            {update.isSuccess && unchanged && <Saved />}
             {canWrite && (
               <Button
                 type="submit"
@@ -269,17 +270,21 @@ function Window({ competition, canWrite }: { competition: Competition; canWrite:
         }
         footer={
           <>
-            <p className="me-auto text-sm text-muted-foreground">
-              {update.isError ? (
-                <span role="alert" className="text-destructive">
-                  {isApiError(update.error, "CompetitionWindowInvalid")
-                    ? "Submissions have to close after they open."
-                    : "Couldn't save the times. Try again."}
-                </span>
-              ) : (
-                <>Times in {zone.replaceAll("_", " ")}. Leave closing empty for no deadline.</>
-              )}
-            </p>
+            {update.isSuccess && unchanged ? (
+              <Saved />
+            ) : (
+              <p className="me-auto text-sm text-muted-foreground">
+                {update.isError ? (
+                  <span role="alert" className="text-destructive">
+                    {isApiError(update.error, "CompetitionWindowInvalid")
+                      ? "Submissions have to close after they open."
+                      : "Couldn't save the times. Try again."}
+                  </span>
+                ) : (
+                  <>Times in {zone.replaceAll("_", " ")}. Leave closing empty for no deadline.</>
+                )}
+              </p>
+            )}
             {canWrite && (
               <Button type="submit" data-variant="solid" disabled={update.isPending || update.isSuccess || unchanged}>
                 Save
