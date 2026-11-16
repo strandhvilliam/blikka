@@ -19,6 +19,8 @@
      Fixer, so there the panel steps up instead, halfway to Tank so cards still sit above it. */
   --color-sidebar: light-dark(#f4f4f4, #0f0f0e);
   --color-page: light-dark(#fafafa, #161514);
+  /* The page's panel. In light it sits just under the white cards, lighter than the footers. */
+  --color-panel: light-dark(#fdfdfd, #161514);
   --color-safelight: #d3301f;
   --color-blue-hour: #5f7e9b;
   /* Status (docs/brand.md, Status): product only, never marketing. Leaf and Golden hour are
@@ -45,9 +47,10 @@
   --ui-border: light-dark(#e5e5e5, #2a2926);
   /* Burn, the error status (docs/brand.md, Status) */
   --ui-destructive: light-dark(#a71f43, #de6e74);
-  /* A control's edge and focus ring need 3:1 against the ground: about 3.3:1 on the light ground.
-     Silver is the only dark palette gray that clears it, at about 7.7:1 on Fixer. */
-  --ui-input: light-dark(#8a8a8a, #a7a49c);
+  /* The focus ring needs 3:1 against the ground: about 3.3:1 on the light ground. Silver is the
+     only dark palette gray that clears it, at about 7.7:1 on Fixer. In light a control's edge is
+     a soft gray instead, because at 3:1 it reads as a heavy outline. */
+  --ui-input: light-dark(#d4d4d4, #a7a49c);
   --ui-ring: light-dark(#8a8a8a, #a7a49c);
   --ui-ring-border: light-dark(#666666, #f3f0e8);
   /* white on Ink, Ink on Paper */

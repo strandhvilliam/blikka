@@ -101,7 +101,7 @@ function OrganizationLayout() {
         <aside className="w-60 shrink-0 max-md:hidden">
           <Sidebar competition={event} />
         </aside>
-        <div className="min-w-0 flex-1 overflow-y-auto border-border bg-page md:rounded-tl-xl md:border-s md:border-t max-md:border-t">
+        <div className="min-w-0 flex-1 overflow-y-auto border-border bg-panel md:rounded-tl-xl md:border-s md:border-t max-md:border-t">
           <Outlet />
         </div>
       </div>

@@ -109,8 +109,9 @@ One palette, two lights. Every surface comes in light and dark and follows the s
 | Ground | `#FAFAFA` | Fixer `#0F0F0E` |
 | Card and sheet | White `#FFFFFF` | Tank `#1C1B19` |
 | Sidebar and top bar | `#F4F4F4` | Fixer `#0F0F0E` |
-| Dashboard page panel | `#FAFAFA` | `#161514`, halfway from Fixer to Tank |
-| Control edge and focus ring | `#8A8A8A` | Silver `#A7A49C` |
+| Dashboard page panel | `#FDFDFD` | `#161514`, halfway from Fixer to Tank |
+| Control edge | `#D4D4D4` | Silver `#A7A49C` |
+| Focus ring | `#8A8A8A` | Silver `#A7A49C` |
 | Panel and selected nav | `#F0F0F0` | Tray `#2A2926` |
 | Line | `#E5E5E5` | Tray `#2A2926` |
 | Muted text | `#666666` | Silver `#A7A49C` |
