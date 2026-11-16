@@ -2,10 +2,12 @@ import type { QueryClient } from "@tanstack/react-query";
 import { HeadContent, Scripts, createRootRouteWithContext, useRouter } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import type { ReactNode } from "react";
+import { Preferences } from "@ui-sdk/react/preferences";
 import { env } from "@/lib/env.ts";
 import appCss from "../styles.css?url";
 import { captureServerError } from "@/lib/sentry.ts";
 import { sessionQuery } from "@/api/session.ts";
+import { colorScheme } from "@/lib/colorScheme.ts";
 
 // The browser's config comes from the server at runtime (read from these meta tags by
 // web/src/lib/meta.ts), so one build serves every stage.
@@ -45,13 +47,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 });
 
 function RootDocument({ children }: { children: ReactNode }) {
+  // Preferences' inline script sets data-color-scheme on <html> before React hydrates it.
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <Preferences preferences={[colorScheme]}>{children}</Preferences>
         <Scripts />
       </body>
     </html>

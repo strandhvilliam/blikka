@@ -1,12 +1,7 @@
-import { Link, Outlet, createFileRoute, notFound, useMatchRoute } from "@tanstack/react-router";
-import {
-  NavigationMenu,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-} from "@ui-sdk/react/navigation-menu";
+import { Outlet, createFileRoute, notFound } from "@tanstack/react-router";
 import { competitionQuery } from "@/api/competitions.ts";
 
+// The organization's layout shows the event's pages in its sidebar; this loads the event for them.
 export const Route = createFileRoute("/dashboard/$organizationId/events/$competitionId")({
   beforeLoad: async ({ context, params }) => {
     const competition = await context.queryClient.ensureQueryData(competitionQuery(params.competitionId));
@@ -19,43 +14,9 @@ export const Route = createFileRoute("/dashboard/$organizationId/events/$competi
 
     return { competition };
   },
-  component: EventLayout,
-});
-
-const pages = [
-  { to: "/dashboard/$organizationId/events/$competitionId", label: "Overview" },
-  { to: "/dashboard/$organizationId/events/$competitionId/topics", label: "Topics" },
-  { to: "/dashboard/$organizationId/events/$competitionId/settings", label: "Settings" },
-] as const;
-
-function EventLayout() {
-  const { competition } = Route.useRouteContext();
-  const params = { organizationId: competition.organization_id, competitionId: competition.id };
-  const matchRoute = useMatchRoute();
-
-  return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
-      <div className="flex flex-col gap-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <h1 className="truncate text-2xl font-semibold">{competition.name}</h1>
-          {!competition.published_at && <span className="text-sm text-muted-foreground">Draft</span>}
-        </div>
-        <NavigationMenu aria-label="Event" className="-ms-3">
-          <NavigationMenuList>
-            {pages.map((page) => (
-              <NavigationMenuItem key={page.to}>
-                <NavigationMenuLink
-                  render={<Link to={page.to} params={params} />}
-                  current={!!matchRoute({ to: page.to, params })}
-                >
-                  {page.label}
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-            ))}
-          </NavigationMenuList>
-        </NavigationMenu>
-      </div>
+  component: () => (
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8">
       <Outlet />
     </main>
-  );
-}
+  ),
+});

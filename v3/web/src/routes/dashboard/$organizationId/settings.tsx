@@ -5,6 +5,7 @@ import { Button } from "@ui-sdk/react/button";
 import { Field, FieldError, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
+import { PageHeader } from "@/components/PageHeader.tsx";
 import { deleteOrganizationMutation, renameOrganizationMutation } from "@/api/organizations.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/settings")({
@@ -15,8 +16,8 @@ function Settings() {
   const { organization } = Route.useRouteContext();
 
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 p-6">
-      <h1 className="text-2xl font-semibold">Settings</h1>
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-6 md:px-8">
+      <PageHeader title="Settings" description="The organization's name, and deleting it." />
       {/* key: a rename elsewhere resets the field to the new name. */}
       <Rename
         key={organization.name}

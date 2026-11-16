@@ -1,5 +1,5 @@
 import { mutationOptions, queryOptions } from "@tanstack/react-query";
-import type { paths } from "@/api.gen.ts";
+import type { operations, paths } from "@/api.gen.ts";
 import { api, unwrap } from "./client.ts";
 
 // An organization's competitions, oldest first. The Api returns [] for an organization the caller
@@ -25,6 +25,8 @@ export const competitionQuery = (id: string) =>
       return unwrap(result);
     },
   });
+
+export type Competition = operations["competitions.get"]["responses"][200]["content"]["application/json"];
 
 export type CompetitionUpdate = NonNullable<
   paths["/competitions/{id}"]["patch"]["requestBody"]

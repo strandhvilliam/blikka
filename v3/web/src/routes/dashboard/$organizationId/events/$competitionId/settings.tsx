@@ -19,6 +19,7 @@ import { TimeInput } from "@ui-sdk/react/time-input";
 import { isApiError } from "@/api/client.ts";
 import { type CompetitionUpdate, deleteCompetitionMutation, updateCompetitionMutation } from "@/api/competitions.ts";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
+import { PageHeader } from "@/components/PageHeader.tsx";
 import { formatIn, fromWallClock, timeZones, toWallClock } from "@/lib/timeZone.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/events/$competitionId/settings")({
@@ -32,21 +33,27 @@ function Settings() {
   const canWrite = organization.permissions.includes("competitions:write");
 
   return (
-    <div className="flex flex-col gap-10">
-      {/* key: a save resets the fields to what the Api stored. */}
-      <Details
-        key={`${competition.name}|${competition.description}|${competition.time_zone}`}
-        competition={competition}
-        canWrite={canWrite}
+    <>
+      <PageHeader
+        title="Settings"
+        description="When the event runs, what participants submit, and whether it's published."
       />
-      <Window
-        key={`${competition.opens_at}|${competition.closes_at}|${competition.time_zone}`}
-        competition={competition}
-        canWrite={canWrite}
-      />
-      <Publishing competition={competition} canWrite={canWrite} />
-      {canWrite && <Delete competition={competition} />}
-    </div>
+      <div className="flex flex-col gap-10">
+        {/* key: a save resets the fields to what the Api stored. */}
+        <Details
+          key={`${competition.name}|${competition.description}|${competition.time_zone}`}
+          competition={competition}
+          canWrite={canWrite}
+        />
+        <Window
+          key={`${competition.opens_at}|${competition.closes_at}|${competition.time_zone}`}
+          competition={competition}
+          canWrite={canWrite}
+        />
+        <Publishing competition={competition} canWrite={canWrite} />
+        {canWrite && <Delete competition={competition} />}
+      </div>
+    </>
   );
 }
 

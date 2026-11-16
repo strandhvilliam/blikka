@@ -18,6 +18,7 @@
     "better-auth": "catalog:",
     "date-fns": "4.4.0",
     "openapi-fetch": "0.17.0",
+    "qrcode.react": "4.2.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "tailwindcss": "4.3.5"
