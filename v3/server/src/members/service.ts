@@ -85,18 +85,39 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
         yield* authorizeWrite(caller, organizationId);
       }
 
-      const [removed] = yield* Effect.promise(() =>
-        db
-          .update(members)
-          .set({ deletedAt: sql`now()` })
-          // Not the owner: a transfer may have made them owner since the read.
-          .where(and(membership(organizationId, userId), ne(members.role, "owner")))
-          .returning({ userId: members.userId }),
-      );
+      yield* transaction(db, (tx) =>
+        Effect.gen(function* () {
+          const [removed] = yield* Effect.promise(() =>
+            tx
+              .update(members)
+              .set({ deletedAt: sql`now()` })
+              // Not the owner: a transfer may have made them owner since the read.
+              .where(and(membership(organizationId, userId), ne(members.role, "owner")))
+              .returning({ userId: members.userId }),
+          );
 
-      if (!removed) {
-        return yield* new MemberNotFound();
-      }
+          if (!removed) {
+            return yield* new MemberNotFound();
+          }
+
+          // Their open invitations go with them, so nobody joins on the word of someone no longer here (adr/0007).
+          const { organizationInvitations: invitations } = model;
+
+          yield* Effect.promise(() =>
+            tx
+              .update(invitations)
+              .set({ revokedAt: sql`now()` })
+              .where(
+                and(
+                  eq(invitations.organizationId, organizationId),
+                  eq(invitations.invitedBy, userId),
+                  isNull(invitations.acceptedAt),
+                  isNull(invitations.revokedAt),
+                ),
+              ),
+          );
+        }),
+      );
     });
 
     // The owner hands ownership to another member and becomes an admin. Nobody changes their own role (adr/0001).

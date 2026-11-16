@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { and, eq } from "drizzle-orm";
 import * as model from "../db/model.ts";
 import { createOrganization, createUser, rolledBack, runner, type Tx } from "../db/testDb.ts";
+import { InvitationsService } from "../invitations/service.ts";
 import { Member } from "./schemas.ts";
 import { MembersService } from "./service.ts";
 
@@ -49,6 +50,20 @@ test("an admin removes another admin, who drops out of the list and loses access
     // Gone already, and a removed member can't act any more.
     expect(await fails((s) => s.remove(admin, organizationId, other.id))).toBe("MemberNotFound");
     expect(await fails((s) => s.remove(other, organizationId, admin.id))).toBe("MemberNotFound");
+  }));
+
+test("removing an admin revokes the invitations they sent and haven't been accepted", () =>
+  rolledBack(async (tx) => {
+    const { run, owner, admin, organizationId } = await setup(tx);
+    const invitations = runner(tx, InvitationsService, InvitationsService.layer);
+    const invitee = await createUser(tx, "Invitee");
+    const fromAdmin = await invitations.run((s) => s.create(admin, organizationId, invitee.email));
+    const fromOwner = await invitations.run((s) => s.create(owner, organizationId, "someone@blikka.test"));
+
+    await run((s) => s.remove(owner, organizationId, admin.id));
+
+    expect(await invitations.fails((s) => s.accept(invitee, fromAdmin.id))).toBe("InvitationNotFound");
+    expect((await invitations.run((s) => s.list(owner, organizationId))).map((i) => i.id)).toEqual([fromOwner.id]);
   }));
 
 test("an admin leaves by removing themselves; the owner can't leave or be removed", () =>

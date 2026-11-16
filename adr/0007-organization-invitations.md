@@ -49,6 +49,10 @@ Accepting sets `accepted_at` and inserts the membership in one transaction. The 
 the open, addressed-to-you condition, so a second accept, including one running in parallel, finds
 no row.
 
+Removing a member, or a member leaving, revokes the open invitations they sent to that
+organization, in the same transaction. Nobody joins on the word of someone who is no longer a
+member. Inviting the same address again renews the invitation under whoever sent it last.
+
 ### Where the invited person sees it
 
 There is no invitation page. Onboarding asks for a name if the account has none, then lists the
