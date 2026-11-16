@@ -25,6 +25,7 @@
     "destroy": "alchemy destroy",
     "test": "bun test",
     "db:generate": "drizzle-kit generate --name",
+    "db:seed": "bun server/scripts/seed.ts",
     "api:generate": "bun server/scripts/openapi.ts > server/openapi.json && openapi-typescript server/openapi.json -o web/src/api.gen.ts",
     "format": "oxfmt",
     "lint": "oxlint",
