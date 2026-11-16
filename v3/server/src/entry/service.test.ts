@@ -163,3 +163,52 @@ test("claiming skips a competition the user already entered under an earlier ema
     expect(await run((p) => p.listOwn(signedIn(user), competitionId))).toHaveLength(1);
     expect(await run((p) => p.listOwn(guest(entered.guest_token)))).toHaveLength(1);
   }));
+
+test("topics stay locked and nameless until submissions open; then a participant marks one done and replaces it until close", () =>
+  rolledBack(async (tx) => {
+    const { run, fails, competitions, owner, competitionId } = await setup(tx);
+
+    const { participant, guest_token } = await run((p) =>
+      p.enter(null, competitionId, { name: "Ada", email: "ada@example.com" }),
+    );
+
+    const ada = guest(guest_token);
+    const [open] = await run((p) => p.listTopics(ada, participant.id));
+    expect(open).toEqual({ id: open!.id, position: 1, name: null, status: "locked" });
+    expect(await fails((p) => p.submit(ada, participant.id, open!.id))).toBe("TopicNotOpen");
+
+    await tx.insert(model.topics).values({ competitionId, name: "Street", position: 2 });
+    const opensAt = new Date(Date.now() - 60 * 60 * 1000);
+    await competitions.run((c) => c.update(owner, competitionId, { opens_at: opensAt }));
+    expect(await run((p) => p.listTopics(ada, participant.id))).toMatchObject([
+      { name: "Open", status: "open" },
+      { name: "Street", status: "open" },
+    ]);
+
+    const first = await run((p) => p.submit(ada, participant.id, open!.id));
+    const replaced = await run((p) => p.submit(ada, participant.id, open!.id));
+    expect(replaced).toMatchObject({ id: first.id, created_at: first.created_at });
+    expect((await run((p) => p.listTopics(ada, participant.id))).map((t) => t.status)).toEqual(["done", "open"]);
+
+    await competitions.run((c) => c.update(owner, competitionId, { closes_at: new Date(Date.now() - 1000) }));
+    expect((await run((p) => p.listTopics(ada, participant.id))).map((t) => t.status)).toEqual(["done", "missed"]);
+    expect(await fails((p) => p.submit(ada, participant.id, open!.id))).toBe("TopicNotOpen");
+  }));
+
+test("only the entry's owner sees its topics or submits, and only to a topic of its competition", () =>
+  rolledBack(async (tx) => {
+    const { run, fails, competitions, owner, competitionId } = await setup(tx);
+    await competitions.run((c) => c.update(owner, competitionId, { opens_at: new Date(Date.now() - 1000) }));
+    const ada = await run((p) => p.enter(null, competitionId, { name: "Ada", email: "ada@example.com" }));
+
+    const eve = guest(
+      (await run((p) => p.enter(null, competitionId, { name: "Eve", email: "eve@example.com" }))).guest_token,
+    );
+
+    const [topic] = await run((p) => p.listTopics(guest(ada.guest_token), ada.participant.id));
+    expect(await fails((p) => p.listTopics(eve, ada.participant.id))).toBe("ParticipantNotFound");
+    expect(await fails((p) => p.submit(eve, ada.participant.id, topic!.id))).toBe("ParticipantNotFound");
+    expect(await fails((p) => p.submit(guest(ada.guest_token), ada.participant.id, crypto.randomUUID()))).toBe(
+      "TopicNotFound",
+    );
+  }));

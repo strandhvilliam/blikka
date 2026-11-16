@@ -5,15 +5,19 @@ import * as HttpApiGroup from "effect/http-api/HttpApiGroup";
 import * as HttpApiSchema from "effect/http-api/HttpApiSchema";
 import { EntrySession } from "../auth/EntrySession.ts";
 import { CompetitionNotFound } from "../competitions/schemas.ts";
+import { TopicNotFound } from "../topics/schemas.ts";
 import {
   AlreadyEntered,
   EntryClosed,
   EntryCompetition,
   EntryParticipant,
+  EntrySubmission,
+  EntryTopic,
   GuestDetailsRequired,
   ParticipantEmail,
   ParticipantName,
   ParticipantNotFound,
+  TopicNotOpen,
 } from "./schemas.ts";
 
 const Id = Schema.String.check(Schema.isUUID());
@@ -54,6 +58,21 @@ export class EntryApi extends HttpApiGroup.make("entry")
       params: { id: Id },
       success: EntryParticipant,
       error: [HttpApiError.BadRequestNoContent, ParticipantNotFound],
+    }),
+  )
+  .add(
+    HttpApiEndpoint.get("topics", "/topics", {
+      query: { participant_id: Id },
+      success: Schema.Array(EntryTopic),
+      error: [HttpApiError.BadRequestNoContent, ParticipantNotFound],
+    }),
+  )
+  .add(
+    // Submitting a done topic again replaces it.
+    HttpApiEndpoint.post("submit", "/submissions", {
+      payload: Schema.Struct({ participant_id: Id, topic_id: Id }),
+      success: EntrySubmission,
+      error: [ParticipantNotFound, TopicNotFound, TopicNotOpen],
     }),
   )
   .prefix("/entry")

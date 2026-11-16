@@ -8,9 +8,18 @@ import type { User } from "../contract.ts";
 import { Db, transaction, type Tx } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { ParticipantsService } from "../participants/service.ts";
-import { AlreadyEntered, EntryClosed, GuestDetailsRequired, ParticipantNotFound } from "./schemas.ts";
+import { availableTopics } from "../topics/availableTopics.ts";
+import { TopicNotFound } from "../topics/schemas.ts";
+import {
+  AlreadyEntered,
+  EntryClosed,
+  type EntryParticipant,
+  GuestDetailsRequired,
+  ParticipantNotFound,
+  TopicNotOpen,
+} from "./schemas.ts";
 
-const { participants } = model;
+const { participants, submissions } = model;
 
 // What a participant sees of their own entry (EntryParticipant).
 const entryColumns = {
@@ -258,7 +267,99 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       return row;
     });
 
-    return { getPublished, enter, listOwn, requireParticipantOwner };
+    // What availableTopics reads for one participant: their competition's window, its live topics
+    // in order, and their submissions.
+    const progress = Effect.fn("EntryService.progress")(function* (participant: EntryParticipant) {
+      const [competition] = yield* Effect.promise(() =>
+        db
+          .select({ opensAt: model.competitions.opensAt, closesAt: model.competitions.closesAt })
+          .from(model.competitions)
+          .where(and(eq(model.competitions.id, participant.competition_id), isNull(model.competitions.deletedAt))),
+      );
+
+      // The organizer deleted the event: the entry goes with it.
+      if (!competition) {
+        return yield* new ParticipantNotFound();
+      }
+
+      const topics = yield* Effect.promise(() =>
+        db
+          .select({ id: model.topics.id, position: model.topics.position, name: model.topics.name })
+          .from(model.topics)
+          .where(and(eq(model.topics.competitionId, participant.competition_id), isNull(model.topics.deletedAt)))
+          .orderBy(model.topics.position),
+      );
+
+      const submitted = yield* Effect.promise(() =>
+        db
+          .select({ topicId: submissions.topicId })
+          .from(submissions)
+          .where(eq(submissions.participantId, participant.id)),
+      );
+
+      return { competition: { ...competition, topics }, submissions: submitted };
+    });
+
+    const listTopics = Effect.fn("EntryService.listTopics")(function* (
+      caller: EntryCaller["Service"],
+      participantId: string,
+    ) {
+      const participant = yield* requireParticipantOwner(caller, participantId);
+      const { competition, submissions } = yield* progress(participant);
+
+      return availableTopics(competition, submissions, new Date()).map((topic) => {
+        // Locked topics go without their name (adr/0009).
+        if (topic.status === "locked") {
+          return { ...topic, name: null };
+        }
+
+        return topic;
+      });
+    });
+
+    // A participant marks a topic done. The upload slice attaches the file.
+    const submit = Effect.fn("EntryService.submit")(function* (
+      caller: EntryCaller["Service"],
+      participantId: string,
+      topicId: string,
+    ) {
+      const participant = yield* requireParticipantOwner(caller, participantId);
+      const { competition, submissions: submitted } = yield* progress(participant);
+
+      // Judged as if this topic had no submission, so a replace is allowed exactly while a first
+      // submit would be.
+      const others = submitted.filter((submission) => submission.topicId !== topicId);
+      const topic = availableTopics(competition, others, new Date()).find((topic) => topic.id === topicId);
+
+      if (!topic) {
+        return yield* new TopicNotFound();
+      }
+
+      if (topic.status !== "open") {
+        return yield* new TopicNotOpen();
+      }
+
+      const [submission] = yield* Effect.promise(() =>
+        db
+          .insert(submissions)
+          .values({ participantId, topicId })
+          .onConflictDoUpdate({
+            target: [submissions.participantId, submissions.topicId],
+            set: { updatedAt: sql`now()` },
+          })
+          .returning({
+            id: submissions.id,
+            participant_id: submissions.participantId,
+            topic_id: submissions.topicId,
+            created_at: submissions.createdAt,
+            updated_at: submissions.updatedAt,
+          }),
+      );
+
+      return submission!;
+    });
+
+    return { getPublished, enter, listOwn, requireParticipantOwner, listTopics, submit };
   }),
 }) {
   static readonly layer = Layer.effect(EntryService, EntryService.make).pipe(Layer.provide(ParticipantsService.layer));

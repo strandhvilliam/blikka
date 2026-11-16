@@ -57,6 +57,13 @@
       "when": 1794771337912,
       "tag": "0007_add_participant_guest_tokens",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794784244538,
+      "tag": "0008_add_submissions",
+      "breakpoints": true
     }
   ]
 }

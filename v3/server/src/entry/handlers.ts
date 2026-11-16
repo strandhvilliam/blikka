@@ -37,5 +37,21 @@ export const EntryHandlers = HttpApiBuilder.group(Api, "entry", (handlers) =>
 
         return yield* entry.requireParticipantOwner(caller, params.id);
       }),
+    )
+    .handle("topics", ({ query }) =>
+      Effect.gen(function* () {
+        const entry = yield* EntryService;
+        const caller = yield* EntryCaller;
+
+        return yield* entry.listTopics(caller, query.participant_id);
+      }),
+    )
+    .handle("submit", ({ payload }) =>
+      Effect.gen(function* () {
+        const entry = yield* EntryService;
+        const caller = yield* EntryCaller;
+
+        return yield* entry.submit(caller, payload.participant_id, payload.topic_id);
+      }),
     ),
 );

@@ -181,7 +181,14 @@ test("EntrySession refuses a cookie write from another origin, and the handler d
 // Reading CurrentUser without the middleware doesn't compile, but a handler that never reads it would
 // silently be public. Add a deliberately public endpoint here as "group.endpoint".
 // Participants enter and read their entry as guests too (adr/0004), behind EntrySession instead.
-const publicEndpoints: ReadonlyArray<string> = ["entry.competition", "entry.enter", "entry.list", "entry.get"];
+const publicEndpoints: ReadonlyArray<string> = [
+  "entry.competition",
+  "entry.enter",
+  "entry.list",
+  "entry.get",
+  "entry.topics",
+  "entry.submit",
+];
 
 test("every contract endpoint is behind Authenticated", () => {
   const unauthenticated = Object.values(Api.groups).flatMap((group) =>

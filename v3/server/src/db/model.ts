@@ -238,3 +238,29 @@ export const participants = pgTable(
     index("participants_email_idx").on(table.email),
   ],
 );
+
+// A participant delivered this topic (adr/0009). No deletedAt: unlock times read these rows, so a
+// participant replaces a submission but never deletes it.
+export const submissions = pgTable(
+  "submissions",
+  {
+    id: uuid()
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    participantId: uuid()
+      .notNull()
+      .references(() => participants.id),
+    topicId: uuid()
+      .notNull()
+      .references(() => topics.id),
+    // The first submit. Unlocking reads this, so a replace never locks a later topic again.
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    // The last replace.
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    // One per topic until max_photos_per_topic (adr/0009).
+    unique("submissions_participant_id_topic_id_unique").on(table.participantId, table.topicId),
+    index("submissions_topic_id_idx").on(table.topicId),
+  ],
+);
