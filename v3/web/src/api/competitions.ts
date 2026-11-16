@@ -55,11 +55,15 @@ export const deleteCompetitionMutation = (competition: { id: string; organizatio
     },
   });
 
-// Rejects with a 409 when the name is taken in the organization.
+export type CompetitionCreate = NonNullable<
+  paths["/competitions"]["post"]["requestBody"]
+>["content"]["application/json"];
+
+// Creates the competition with its topics. Rejects with a 409 when the name is taken.
 export const createCompetitionMutation = (organizationId: string) =>
   mutationOptions({
-    mutationFn: (name: string) =>
-      unwrap(api().POST("/competitions", { body: { organization_id: organizationId, name } })),
-    onSuccess: (_data, _name, _result, { client }) =>
+    mutationFn: (body: Omit<CompetitionCreate, "organization_id">) =>
+      unwrap(api().POST("/competitions", { body: { ...body, organization_id: organizationId } })),
+    onSuccess: (_data, _body, _result, { client }) =>
       client.invalidateQueries({ queryKey: competitionsQuery(organizationId).queryKey }),
   });

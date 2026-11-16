@@ -13,10 +13,14 @@ const setup = async (tx: Tx) => {
   const competitions = runner(tx, CompetitionsService, CompetitionsService.layer);
 
   const { id: competitionId } = await competitions.run((c) =>
-    c.create(owner, organizationId, `Marathon ${crypto.randomUUID()}`),
+    c.create(owner, {
+      organization_id: organizationId,
+      name: `Marathon ${crypto.randomUUID()}`,
+      time_zone: "Europe/Stockholm",
+      topics: ["Open"],
+    }),
   );
 
-  await tx.insert(model.topics).values({ competitionId, name: "Open", position: 1 });
   await competitions.run((c) => c.update(owner, competitionId, { published: true }));
   const entering = runner(tx, EntryService, EntryService.layer);
 

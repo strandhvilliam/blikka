@@ -20,7 +20,7 @@ export const CompetitionsHandlers = HttpApiBuilder.group(Api, "competitions", (h
         const competitions = yield* CompetitionsService;
         const user = yield* CurrentUser;
 
-        return yield* competitions.create(user, payload.organization_id, payload.name);
+        return yield* competitions.create(user, payload);
       }),
     )
     .handle("get", ({ params }) =>

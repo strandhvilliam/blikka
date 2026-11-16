@@ -796,6 +796,10 @@ export interface operations {
                     /** Format: uuid */
                     organization_id: string;
                     name: string;
+                    time_zone: string;
+                    opens_at?: string;
+                    closes_at?: string;
+                    topics: string[];
                 };
             };
         };
@@ -817,6 +821,15 @@ export interface operations {
                         opens_at: string | null;
                         closes_at: string | null;
                     };
+                };
+            };
+            /** @description CompetitionWindowInvalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionWindowInvalidEncoded"];
                 };
             };
             /** @description Unauthorized */

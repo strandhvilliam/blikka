@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { eq } from "drizzle-orm";
 import * as model from "../db/model.ts";
 import { createOrganization, createUser, rolledBack, runner, type Tx } from "../db/testDb.ts";
 import { CompetitionsService } from "./service.ts";
@@ -7,9 +8,17 @@ const setup = async (tx: Tx) => {
   const owner = await createUser(tx, "Owner");
   const organizationId = await createOrganization(tx, owner);
   const s = runner(tx, CompetitionsService, CompetitionsService.layer);
-  const { id } = await s.run((c) => c.create(owner, organizationId, `Marathon ${crypto.randomUUID()}`));
 
-  return { ...s, owner, id };
+  const { id } = await s.run((c) =>
+    c.create(owner, {
+      organization_id: organizationId,
+      name: `Marathon ${crypto.randomUUID()}`,
+      time_zone: "Europe/Stockholm",
+      topics: [],
+    }),
+  );
+
+  return { ...s, owner, organizationId, id };
 };
 
 test("a new competition is an unpublished draft with no window", () =>
@@ -22,6 +31,47 @@ test("a new competition is an unpublished draft with no window", () =>
       opens_at: null,
       closes_at: null,
     });
+  }));
+
+test("create inserts the topics in order with the window; a taken name or a backwards window is refused", () =>
+  rolledBack(async (tx) => {
+    const { run, fails, owner, organizationId } = await setup(tx);
+    const name = `Walk ${crypto.randomUUID()}`;
+    const opens_at = new Date("2026-12-01T08:00:00Z");
+
+    const input = {
+      organization_id: organizationId,
+      name,
+      time_zone: "America/New_York",
+      opens_at,
+      topics: ["Light", "Shadow", "Water"],
+    };
+
+    const created = await run((s) => s.create(owner, input));
+    expect(created).toMatchObject({
+      name,
+      time_zone: "America/New_York",
+      opens_at,
+      closes_at: null,
+      published_at: null,
+    });
+
+    const topics = await tx
+      .select({ name: model.topics.name, position: model.topics.position })
+      .from(model.topics)
+      .where(eq(model.topics.competitionId, created.id))
+      .orderBy(model.topics.position);
+
+    expect(topics).toEqual([
+      { name: "Light", position: 1 },
+      { name: "Shadow", position: 2 },
+      { name: "Water", position: 3 },
+    ]);
+
+    expect(await fails((s) => s.create(owner, input))).toBe("CompetitionNameTaken");
+    expect(
+      await fails((s) => s.create(owner, { ...input, name: `Other ${crypto.randomUUID()}`, closes_at: opens_at })),
+    ).toBe("CompetitionWindowInvalid");
   }));
 
 test("update changes only the fields sent, and the slug stays", () =>

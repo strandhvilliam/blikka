@@ -1,4 +1,5 @@
 import * as Schema from "effect/Schema";
+import { TopicName } from "../topics/schemas.ts";
 
 export const Competition = Schema.Struct({
   id: Schema.String,
@@ -29,6 +30,19 @@ export const TimeZone = Schema.String.check(
     }
   }),
 );
+
+// The setup's answers, created in one go so an abandoned setup leaves nothing behind (adr/0009).
+// The topics are in the order participants get them.
+export const CompetitionCreate = Schema.Struct({
+  organization_id: Schema.String.check(Schema.isUUID()),
+  name: CompetitionName,
+  time_zone: TimeZone,
+  opens_at: Schema.optionalKey(Schema.Date),
+  closes_at: Schema.optionalKey(Schema.Date),
+  topics: Schema.Array(TopicName).check(Schema.isMinLength(1), Schema.isMaxLength(100)),
+});
+
+export type CompetitionCreate = typeof CompetitionCreate.Type;
 
 // `published: true` keeps an earlier published_at.
 export const CompetitionUpdate = Schema.Struct({

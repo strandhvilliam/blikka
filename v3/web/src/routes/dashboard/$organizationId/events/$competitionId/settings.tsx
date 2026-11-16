@@ -2,26 +2,17 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@ui-sdk/react/button";
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxLabel,
-  ComboboxList,
-  ComboboxTrigger,
-} from "@ui-sdk/react/combobox";
-import { DatePicker, DatePickerContent, DatePickerInput, DatePickerTrigger } from "@ui-sdk/react/date-picker";
-import { Field, FieldLabel, FieldLegend, FieldSet } from "@ui-sdk/react/field";
+import { Field, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
 import { Textarea } from "@ui-sdk/react/textarea";
-import { TimeInput } from "@ui-sdk/react/time-input";
 import { isApiError } from "@/api/client.ts";
 import { type CompetitionUpdate, deleteCompetitionMutation, updateCompetitionMutation } from "@/api/competitions.ts";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
 import { Saved, Section } from "@/components/Section.tsx";
-import { formatIn, fromWallClock, timeZones, toWallClock } from "@/lib/timeZone.ts";
+import { TimeZoneCombobox } from "@/components/TimeZoneCombobox.tsx";
+import { WallClockInput } from "@/components/WallClockInput.tsx";
+import { formatIn, fromWallClock, toWallClock } from "@/lib/timeZone.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/events/$competitionId/settings")({
   component: Settings,
@@ -116,25 +107,7 @@ function Details({ competition, canWrite }: { competition: Competition; canWrite
           <FieldLabel>Description</FieldLabel>
           <Textarea autoResize maxLength={2000} value={description} onValueChange={setDescription} />
         </Field>
-        <Combobox
-          items={timeZones(competition.time_zone).map((zone) => ({ value: zone, label: zone.replaceAll("_", " ") }))}
-          value={timeZone}
-          onValueChange={(zone) => zone && setTimeZone(zone)}
-          disabled={!canWrite}
-          autoHighlight
-        >
-          <div className="flex flex-col gap-1.5">
-            <ComboboxLabel>Time zone</ComboboxLabel>
-            <div>
-              <ComboboxInput />
-              <ComboboxTrigger aria-label="Show time zones" />
-            </div>
-          </div>
-          <ComboboxContent>
-            <ComboboxEmpty>No time zone matches.</ComboboxEmpty>
-            <ComboboxList />
-          </ComboboxContent>
-        </Combobox>
+        <TimeZoneCombobox value={timeZone} onChange={setTimeZone} disabled={!canWrite} />
       </Section>
     </form>
   );
@@ -162,57 +135,6 @@ const windowStatus = (competition: Competition, now: Date) => {
     text: `Open since ${at(opens)}${closes ? `, closes ${at(closes)}` : ", no deadline"}.`,
   } as const;
 };
-
-// A wall clock time like "2026-12-01T09:00" as a date picker and a time input. Choosing a date asks
-// for a time too; clearing the date clears both.
-function WallClockInput({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const [date, setDate] = useState(value.slice(0, 10) || null);
-  const [time, setTime] = useState(value.slice(11) || null);
-  const emit = (date: string | null, time: string | null) => onChange(date && time ? `${date}T${time}` : "");
-
-  return (
-    <FieldSet>
-      <FieldLegend>{label}</FieldLegend>
-      <div className="flex flex-wrap gap-2">
-        <DatePicker
-          locale="en-GB"
-          value={date}
-          onValueChange={(next) => {
-            // A single-date picker never reports a range.
-            const day = Array.isArray(next) ? null : next;
-            setDate(day);
-            emit(day, time);
-          }}
-        >
-          <div className="flex gap-1">
-            <DatePickerInput aria-label={`${label}, date`} />
-            <DatePickerTrigger aria-label={`Choose the ${label.toLowerCase()} date`} />
-          </div>
-          <DatePickerContent />
-        </DatePicker>
-        <TimeInput
-          locale="en-GB"
-          hourCycle={24}
-          aria-label={`${label}, time`}
-          required={date !== null}
-          value={time}
-          onValueChange={(next) => {
-            setTime(next);
-            emit(date, next);
-          }}
-        />
-      </div>
-    </FieldSet>
-  );
-}
 
 function Window({ competition, canWrite }: { competition: Competition; canWrite: boolean }) {
   const update = useUpdate(competition.id);

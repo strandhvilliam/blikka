@@ -7,6 +7,7 @@ import { Db, transaction } from "../db/Db.ts";
 import * as model from "../db/model.ts";
 import { PermissionsService } from "../permissions/service.ts";
 import {
+  type CompetitionCreate,
   CompetitionHasNoTopics,
   CompetitionHasParticipants,
   CompetitionNameTaken,
@@ -78,26 +79,48 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
         return competition;
       });
 
-      const create = Effect.fn("CompetitionsService.create")(function* (
-        caller: User,
-        organizationId: string,
-        name: string,
-      ) {
-        yield* authorize(caller, "competitions:write", organizationId);
+      const create = Effect.fn("CompetitionsService.create")(function* (caller: User, input: CompetitionCreate) {
+        yield* authorize(caller, "competitions:write", input.organization_id);
 
-        const [competition] = yield* Effect.promise(() =>
-          db
-            .insert(model.competitions)
-            .values({ organizationId, name, slug: slugOf(name) })
-            .onConflictDoNothing({ target: model.competitions.slug })
-            .returning(columns),
-        );
-
-        if (!competition) {
-          return yield* new CompetitionNameTaken();
+        if (input.opens_at && input.closes_at && input.closes_at <= input.opens_at) {
+          return yield* new CompetitionWindowInvalid();
         }
 
-        return competition;
+        return yield* transaction(db, (tx) =>
+          Effect.gen(function* () {
+            const [competition] = yield* Effect.promise(() =>
+              tx
+                .insert(model.competitions)
+                .values({
+                  organizationId: input.organization_id,
+                  name: input.name,
+                  slug: slugOf(input.name),
+                  timeZone: input.time_zone,
+                  opensAt: input.opens_at,
+                  closesAt: input.closes_at,
+                })
+                .onConflictDoNothing({ target: model.competitions.slug })
+                .returning(columns),
+            );
+
+            if (!competition) {
+              return yield* new CompetitionNameTaken();
+            }
+
+            // The Api requires a topic; tests create competitions without one to reach CompetitionHasNoTopics.
+            if (input.topics.length > 0) {
+              yield* Effect.promise(() =>
+                tx
+                  .insert(model.topics)
+                  .values(
+                    input.topics.map((name, index) => ({ competitionId: competition.id, name, position: index + 1 })),
+                  ),
+              );
+            }
+
+            return competition;
+          }),
+        );
       });
 
       const writable = Effect.fn("CompetitionsService.writable")(function* (caller: User, id: string) {

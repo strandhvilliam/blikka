@@ -100,17 +100,24 @@ Every topic's position and the total ("Topic 3 of 8"), each marked done, open, l
 The server leaves out the names of locked topics, so they can't be read from the network.
 Organizers see every topic.
 
-### Formats are templates
+### The setup asks about settings, not formats
 
-The "New event" dialog offers templates that fill in the settings above. Nothing stores which
-template was used.
+There are no formats or templates. Creating an event is a page of questions, one per setting, and
+the answers together make the format. Each question uses the same words as its field in Settings,
+and a question only appears when it applies:
 
-| Template | Topics | Windows | In sequence | Time per topic | Photos per topic |
-|---|---|---|---|---|---|
-| Photo marathon | 8 or 24, with classes | competition | no | none | 1 |
-| Live by-camera | several | per topic | no | none | 1 |
-| Topic by topic | several | competition | yes | optional | 1 |
-| Club night or open | 1 | competition | no | none | 3 to 5 |
+1. What's the event called?
+2. What will participants photograph? One topic is a single theme and skips the next two.
+3. How do the topics open? All at once (like a photo marathon), one at a time after the previous
+   is done (`topics_in_sequence`), or one at a time on a schedule or by hand (topic windows).
+4. Time limit per topic? Only for "after the previous is done" (`minutes_per_topic`).
+5. When can photos be submitted? Dates, or opened and closed by hand.
+6. Do participants pick a class, and a category?
+
+Question 3 sets two settings with one answer. The rarer combination of sequence and topic windows
+is still reachable in Settings. The browser keeps the answers until the last step, and one
+`POST /competitions` creates the competition with its topics in a transaction, so an abandoned
+setup leaves nothing behind.
 
 Features the old app tied to the marathon (contact sheets, the verification mode, staff laptop
 upload) become settings an organizer turns on, not parts of a mode.
@@ -124,8 +131,8 @@ one extends `availableTopics`. None of them rewrites existing rows.
 
 ## Consequences
 
-- A new format is usually a new template. It needs code only when it brings a new kind of unlock,
-  and then the change goes in `availableTopics` and its tests.
+- A new format is usually a new combination of answers and needs no code. It needs code only when
+  it brings a new kind of unlock, and then the change goes in `availableTopics` and its tests.
 - `availableTopics` carries every combination of windows, classes, sequence and time limits, so its
   tests have to cover those combinations. It is the one place the old app's 346 checks collapse
   into.
@@ -146,12 +153,14 @@ one extends `availableTopics`. None of them rewrites existing rows.
 - **Submissions without a topic for themeless events.** One fewer row for those events, but every
   feature that groups submissions by topic would need a second case.
 - **Hiding locked topics in the website only.** The names would still be in the Api response.
+- **Templates in the setup ("Photo marathon", "Live", "Topic by topic").** Familiar names, but a
+  list to name and maintain, and combinations outside it have no template. Plain answers with an
+  example ("All at once, like a photo marathon") give organizers the familiar word without one.
 
 ## Open questions
 
 These don't change the model, only what gets built first:
 
-- Which templates ship first.
 - Whether a class can cover topics that aren't next to each other, or a participant can enter more
   than one class.
 - Whether a category ever changes upload rules, such as a size limit for phones.

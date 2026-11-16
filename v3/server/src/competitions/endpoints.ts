@@ -8,9 +8,9 @@ import { OrganizationNotFound } from "../organizations/schemas.ts";
 import { PermissionDenied } from "../permissions/permissions.ts";
 import {
   Competition,
+  CompetitionCreate,
   CompetitionHasNoTopics,
   CompetitionHasParticipants,
-  CompetitionName,
   CompetitionNameTaken,
   CompetitionNotFound,
   CompetitionUpdate,
@@ -31,9 +31,9 @@ export class CompetitionsApi extends HttpApiGroup.make("competitions")
   )
   .add(
     HttpApiEndpoint.post("create", "/competitions", {
-      payload: Schema.Struct({ organization_id: Id, name: CompetitionName }),
+      payload: CompetitionCreate,
       success: HttpApiSchema.status(201)(Competition),
-      error: [OrganizationNotFound, PermissionDenied, CompetitionNameTaken],
+      error: [OrganizationNotFound, PermissionDenied, CompetitionNameTaken, CompetitionWindowInvalid],
     }),
   )
   .add(

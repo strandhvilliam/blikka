@@ -11,7 +11,12 @@ const setup = async (tx: Tx) => {
   const competitions = runner(tx, CompetitionsService, CompetitionsService.layer);
 
   const { id: competitionId } = await competitions.run((c) =>
-    c.create(owner, organizationId, `Marathon ${crypto.randomUUID()}`),
+    c.create(owner, {
+      organization_id: organizationId,
+      name: `Marathon ${crypto.randomUUID()}`,
+      time_zone: "Europe/Stockholm",
+      topics: [],
+    }),
   );
 
   const s = runner(tx, TopicsService, TopicsService.layer);

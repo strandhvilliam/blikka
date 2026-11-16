@@ -1,27 +1,16 @@
-import { IconCalendarEvent, IconLink, IconPlus, IconSearch } from "@tabler/icons-react";
-import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
-import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
+import { IconCalendarEvent, IconPlus, IconSearch } from "@tabler/icons-react";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { SegmentedControl, SegmentedControlIndicator, SegmentedControlItem } from "@ui-sdk/react/segmented-control";
-import {
-  Dialog,
-  DialogBackdrop,
-  DialogContent,
-  DialogDescription,
-  DialogTitle,
-  DialogTrigger,
-} from "@ui-sdk/react/dialog";
-import { Field, FieldDescription, FieldError, FieldLabel } from "@ui-sdk/react/field";
 import { Input, InputGroup } from "@ui-sdk/react/input";
 import { Button } from "@ui-sdk/react/button";
-import { isApiError } from "@/api/client.ts";
-import { type Competition, competitionsQuery, createCompetitionMutation } from "@/api/competitions.ts";
+import { type Competition, competitionsQuery } from "@/api/competitions.ts";
 import { Card } from "@/components/Card.tsx";
 import { EmptyState } from "@/components/EmptyState.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
 import { statusDots } from "@/components/StatusBadge.tsx";
 import { type CompetitionStatus, byStatus, competitionStatus } from "@/lib/competitionStatus.ts";
-import { slugOf } from "@/lib/slug.ts";
 import { formatWindow } from "@/lib/timeZone.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/")({
@@ -64,7 +53,16 @@ function Dashboard() {
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8">
       <PageHeader title="Events" description={`Competitions, photo walks and exhibitions run by ${organization.name}.`}>
         {/* Cosmetic: the Api refuses the create without this permission either way. */}
-        {organization.permissions.includes("competitions:write") && <NewEvent organizationId={organization.id} />}
+        {organization.permissions.includes("competitions:write") && (
+          <Button
+            data-variant="solid"
+            className="rounded-full ps-3 pe-3.5 no-underline"
+            render={<Link to="/dashboard/$organizationId/events/new" params={{ organizationId: organization.id }} />}
+          >
+            <IconPlus aria-hidden />
+            New event
+          </Button>
+        )}
       </PageHeader>
 
       {competitions.length === 0 ? (
@@ -215,77 +213,5 @@ function EventCard({ competition }: { competition: Competition & { status: Compe
         </span>
       </p>
     </Card>
-  );
-}
-
-function NewEvent({ organizationId }: { organizationId: string }) {
-  const navigate = useNavigate();
-  const create = useMutation(createCompetitionMutation(organizationId));
-  const [name, setName] = useState("");
-  // isSuccess too, so a second click while moving on can't create twice.
-  const submitting = create.isPending || create.isSuccess;
-
-  const error =
-    create.error &&
-    (isApiError(create.error, "CompetitionNameTaken")
-      ? "That name is taken."
-      : "Couldn't create the event. Try again.");
-
-  return (
-    <Dialog>
-      <DialogTrigger data-variant="solid" className="rounded-full ps-3 pe-3.5">
-        <IconPlus aria-hidden />
-        New event
-      </DialogTrigger>
-      <DialogBackdrop />
-      <DialogContent>
-        <DialogTitle>New event</DialogTitle>
-        <DialogDescription>A competition, photo walk or exhibition.</DialogDescription>
-        <form
-          className="flex flex-col gap-6"
-          onSubmit={(e) => {
-            e.preventDefault();
-            create.mutate(name.trim(), {
-              onSuccess: (competition) =>
-                navigate({
-                  to: "/dashboard/$organizationId/events/$competitionId",
-                  params: { organizationId, competitionId: competition.id },
-                }),
-            });
-          }}
-        >
-          <Field invalid={error ? true : undefined}>
-            <FieldLabel>Name</FieldLabel>
-            <Input
-              autoFocus
-              autoComplete="off"
-              placeholder="Summer Photo Walk"
-              required
-              maxLength={100}
-              value={name}
-              onValueChange={(value) => {
-                setName(value);
-
-                if (create.isError) {
-                  create.reset();
-                }
-              }}
-            />
-            {error && <FieldError>{error}</FieldError>}
-            {/* min-w-0 lets a long slug truncate instead of widening the dialog. */}
-            {name.trim() && (
-              <FieldDescription className="flex min-w-0 items-center gap-1.5">
-                <IconLink aria-hidden />
-                <span className="sr-only">Link name:</span>
-                <span className="truncate">{slugOf(name)}</span>
-              </FieldDescription>
-            )}
-          </Field>
-          <Button type="submit" data-variant="solid" className="self-end" disabled={submitting || !name.trim()}>
-            Create event
-          </Button>
-        </form>
-      </DialogContent>
-    </Dialog>
   );
 }
