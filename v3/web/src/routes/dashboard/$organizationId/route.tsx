@@ -1,24 +1,13 @@
 import { IconCheck, IconChevronDown, IconPlus, IconSelector } from "@tabler/icons-react";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Link, Outlet, createFileRoute, notFound, useNavigate, useParams } from "@tanstack/react-router";
+import { Link, Outlet, createFileRoute, notFound, useMatchRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { Menu, MenuContent, MenuGroup, MenuGroupLabel, MenuItem, MenuSeparator, MenuTrigger } from "@ui-sdk/react/menu";
 import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/Breadcrumb.tsx";
-import { Button } from "@/components/ui/Button.tsx";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/DropdownMenu.tsx";
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@ui-sdk/react/navigation-menu";
 import { competitionQuery } from "@/api/competitions.ts";
 import { acceptInvitationMutation, invitedBy, receivedInvitationsQuery } from "@/api/invitations.ts";
 import { organizationQuery, organizationsQuery } from "@/api/organizations.ts";
@@ -53,54 +42,56 @@ function OrganizationLayout() {
   const { competitionId } = useParams({ strict: false });
   const { data: competition } = useQuery({ ...competitionQuery(competitionId ?? ""), enabled: !!competitionId });
   const signOut = useSignOut();
+  const matchRoute = useMatchRoute();
 
   return (
     <div className="min-h-svh">
-      <header className="flex h-14 items-center justify-between gap-4 border-b px-4">
-        <Breadcrumb className="min-w-0">
-          <BreadcrumbList>
-            <BreadcrumbItem className="font-semibold text-foreground max-sm:hidden">Blikka</BreadcrumbItem>
-            <BreadcrumbSeparator className="max-sm:hidden">/</BreadcrumbSeparator>
-            <BreadcrumbItem className="min-w-0">
-              <DropdownMenu>
-                <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="min-w-0 shrink" />}>
+      <header className="flex h-14 items-center justify-between gap-4 border-b border-border px-4">
+        <nav aria-label="Breadcrumb" className="min-w-0">
+          <ol className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+            <li className="font-semibold text-foreground max-sm:hidden">Blikka</li>
+            <li aria-hidden className="max-sm:hidden">
+              /
+            </li>
+            <li className="min-w-0">
+              <Menu>
+                <MenuTrigger className="max-w-full min-w-0">
                   <span className="truncate">{organization.name}</span>
                   {invitations?.length ? (
                     <span className="size-1.5 shrink-0 rounded-full bg-primary">
                       <span className="sr-only">, you have invitations</span>
                     </span>
                   ) : null}
-                  <IconSelector className="text-muted-foreground" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-64">
-                  <DropdownMenuGroup>
-                    <DropdownMenuLabel>Organizations</DropdownMenuLabel>
+                  <IconSelector aria-hidden />
+                </MenuTrigger>
+                <MenuContent align="start">
+                  <MenuGroup>
+                    <MenuGroupLabel>Organizations</MenuGroupLabel>
                     {organizations?.map((o) => (
-                      <DropdownMenuItem
+                      <MenuItem
                         key={o.id}
                         render={<Link to="/dashboard/$organizationId" params={{ organizationId: o.id }} />}
                       >
-                        {o.name}
-                        {o.id === organization.id && <IconCheck className="ml-auto" />}
-                      </DropdownMenuItem>
+                        <span className="truncate">{o.name}</span>
+                        {o.id === organization.id && <IconCheck aria-hidden className="ms-auto" />}
+                      </MenuItem>
                     ))}
-                  </DropdownMenuGroup>
+                  </MenuGroup>
                   {invitations?.length ? (
                     <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuGroup>
-                        <DropdownMenuLabel>Invitations</DropdownMenuLabel>
+                      <MenuSeparator />
+                      <MenuGroup>
+                        <MenuGroupLabel>Invitations</MenuGroupLabel>
                         {invitations.map((invitation) => (
-                          <DropdownMenuItem
+                          <MenuItem
                             key={invitation.id}
-                            onClick={() =>
-                              accept.mutate(invitation.id, {
-                                onSuccess: ({ organization_id }) =>
-                                  navigate({
-                                    to: "/dashboard/$organizationId",
-                                    params: { organizationId: organization_id },
-                                  }),
-                              })
+                            onSelect={() =>
+                              accept.mutateAsync(invitation.id).then(({ organization_id }) =>
+                                navigate({
+                                  to: "/dashboard/$organizationId",
+                                  params: { organizationId: organization_id },
+                                }),
+                              )
                             }
                           >
                             <span className="flex min-w-0 flex-col">
@@ -109,76 +100,75 @@ function OrganizationLayout() {
                                 {invitedBy(invitation)}
                               </span>
                             </span>
-                            <span className="ml-auto font-medium">Join</span>
-                          </DropdownMenuItem>
+                            <span className="ms-auto font-medium">Join</span>
+                          </MenuItem>
                         ))}
-                      </DropdownMenuGroup>
+                      </MenuGroup>
                     </>
                   ) : null}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem render={<Link to="/onboarding" />}>
-                    <IconPlus />
+                  <MenuSeparator />
+                  <MenuItem render={<Link to="/onboarding" />}>
+                    <IconPlus aria-hidden />
                     New organization
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </BreadcrumbItem>
+                  </MenuItem>
+                </MenuContent>
+              </Menu>
+            </li>
             {competition && (
               <>
-                <BreadcrumbSeparator>/</BreadcrumbSeparator>
-                <BreadcrumbItem>
-                  <BreadcrumbLink
-                    render={<Link to="/dashboard/$organizationId" params={{ organizationId: organization.id }} />}
-                  >
+                <li aria-hidden>/</li>
+                <li>
+                  <Link to="/dashboard/$organizationId" params={{ organizationId: organization.id }}>
                     Events
-                  </BreadcrumbLink>
-                </BreadcrumbItem>
-                <BreadcrumbSeparator>/</BreadcrumbSeparator>
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{competition.name}</BreadcrumbPage>
-                </BreadcrumbItem>
+                  </Link>
+                </li>
+                <li aria-hidden>/</li>
+                <li aria-current="page" className="min-w-0 truncate text-foreground">
+                  {competition.name}
+                </li>
               </>
             )}
-          </BreadcrumbList>
-        </Breadcrumb>
+          </ol>
+        </nav>
         <div className="flex min-w-0 items-center gap-1">
-          {pages.map((page) => (
-            <Button
-              key={page.to}
-              variant="ghost"
-              size="sm"
-              className="max-sm:hidden"
-              render={<Link to={page.to} params={{ organizationId: organization.id }} />}
-            >
-              {page.label}
-            </Button>
-          ))}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={<Button variant="ghost" size="sm" className="min-w-0 shrink max-sm:max-w-40" />}
-            >
+          <NavigationMenu aria-label="Organization" className="max-sm:hidden">
+            <NavigationMenuList>
+              {pages.map((page) => (
+                <NavigationMenuItem key={page.to}>
+                  <NavigationMenuLink
+                    render={<Link to={page.to} params={{ organizationId: organization.id }} />}
+                    current={!!matchRoute({ to: page.to, params: { organizationId: organization.id } })}
+                  >
+                    {page.label}
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              ))}
+            </NavigationMenuList>
+          </NavigationMenu>
+          <Menu>
+            <MenuTrigger className="min-w-0 max-sm:max-w-40">
               <span className="truncate">{session.user.name || session.user.email}</span>
-              <IconChevronDown className="text-muted-foreground" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="wrap-anywhere">{session.user.email}</DropdownMenuLabel>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
+              <IconChevronDown aria-hidden />
+            </MenuTrigger>
+            <MenuContent align="end">
+              <MenuGroup>
+                <MenuGroupLabel className="wrap-anywhere">{session.user.email}</MenuGroupLabel>
+              </MenuGroup>
+              <MenuSeparator />
               {/* On phones the header has no room for the pages, so they live here. */}
               {pages.map((page) => (
-                <DropdownMenuItem
+                <MenuItem
                   key={page.to}
                   className="sm:hidden"
                   render={<Link to={page.to} params={{ organizationId: organization.id }} />}
                 >
                   {page.label}
-                </DropdownMenuItem>
+                </MenuItem>
               ))}
-              <DropdownMenuSeparator className="sm:hidden" />
-              <DropdownMenuItem onClick={signOut}>Sign out</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <MenuSeparator className="sm:hidden" />
+              <MenuItem onSelect={signOut}>Sign out</MenuItem>
+            </MenuContent>
+          </Menu>
         </div>
       </header>
       <Outlet />

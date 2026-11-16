@@ -1,22 +1,19 @@
 import { IconLink, IconPlus } from "@tabler/icons-react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useId, useState } from "react";
-import { isApiError } from "@/api/client.ts";
-import { Button } from "@/components/ui/Button.tsx";
+import { useState } from "react";
 import {
   Dialog,
+  DialogBackdrop,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/Dialog.tsx";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/Empty.tsx";
-import { Input } from "@/components/ui/Input.tsx";
-import { Item, ItemContent, ItemGroup, ItemTitle } from "@/components/ui/Item.tsx";
-import { Label } from "@/components/ui/Label.tsx";
+} from "@ui-sdk/react/dialog";
+import { Field, FieldDescription, FieldError, FieldLabel } from "@ui-sdk/react/field";
+import { Input } from "@ui-sdk/react/input";
+import { Button } from "@ui-sdk/react/button";
+import { isApiError } from "@/api/client.ts";
 import { competitionsQuery, createCompetitionMutation } from "@/api/competitions.ts";
 import { slugOf } from "@/lib/slug.ts";
 
@@ -37,38 +34,32 @@ function Dashboard() {
         {organization.permissions.includes("competitions:write") && <NewEvent organizationId={organization.id} />}
       </div>
       {competitions.length === 0 ? (
-        <Empty className="border">
-          <EmptyHeader>
-            <EmptyTitle>No events yet</EmptyTitle>
-            <EmptyDescription>Competitions, photo walks and exhibitions you create show up here.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <div className="flex flex-col items-center gap-1 py-16 text-center">
+          <p className="font-medium">No events yet</p>
+          <p className="text-sm text-muted-foreground">
+            Competitions, photo walks and exhibitions you create show up here.
+          </p>
+        </div>
       ) : (
-        <ItemGroup>
+        <ul className="flex flex-col divide-y divide-border border-y border-border">
           {competitions.map((competition) => (
-            <Item
-              key={competition.id}
-              variant="outline"
-              render={
-                <Link
-                  to="/dashboard/$organizationId/events/$competitionId"
-                  params={{ organizationId: organization.id, competitionId: competition.id }}
-                />
-              }
-            >
-              <ItemContent>
-                <ItemTitle>{competition.name}</ItemTitle>
-              </ItemContent>
-            </Item>
+            <li key={competition.id}>
+              <Link
+                to="/dashboard/$organizationId/events/$competitionId"
+                params={{ organizationId: organization.id, competitionId: competition.id }}
+                className="flex py-3 font-medium"
+              >
+                {competition.name}
+              </Link>
+            </li>
           ))}
-        </ItemGroup>
+        </ul>
       )}
     </main>
   );
 }
 
 function NewEvent({ organizationId }: { organizationId: string }) {
-  const id = useId();
   const navigate = useNavigate();
   const create = useMutation(createCompetitionMutation(organizationId));
   const [name, setName] = useState("");
@@ -83,13 +74,16 @@ function NewEvent({ organizationId }: { organizationId: string }) {
 
   return (
     <Dialog>
-      <DialogTrigger render={<Button />}>
-        <IconPlus />
+      <DialogTrigger data-variant="solid">
+        <IconPlus aria-hidden />
         New event
       </DialogTrigger>
+      <DialogBackdrop />
       <DialogContent>
+        <DialogTitle>New event</DialogTitle>
+        <DialogDescription>A competition, photo walk or exhibition.</DialogDescription>
         <form
-          className="grid gap-6"
+          className="flex flex-col gap-6"
           onSubmit={(e) => {
             e.preventDefault();
             create.mutate(name.trim(), {
@@ -101,48 +95,36 @@ function NewEvent({ organizationId }: { organizationId: string }) {
             });
           }}
         >
-          <DialogHeader>
-            <DialogTitle>New event</DialogTitle>
-            <DialogDescription>A competition, photo walk or exhibition.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-2">
-            <Label htmlFor={id}>Name</Label>
+          <Field invalid={error ? true : undefined}>
+            <FieldLabel>Name</FieldLabel>
             <Input
-              id={id}
               autoFocus
               autoComplete="off"
               placeholder="Summer Photo Walk"
               required
               maxLength={100}
-              aria-describedby={name.trim() ? `${id}-slug` : undefined}
               value={name}
-              onChange={(e) => {
-                setName(e.target.value);
+              onValueChange={(value) => {
+                setName(value);
 
                 if (create.isError) {
                   create.reset();
                 }
               }}
             />
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
-          </div>
-          {/* One row at every width; min-w-0 lets a long slug truncate instead of widening the dialog. */}
-          <DialogFooter className="min-w-0 flex-row items-center">
+            {error && <FieldError>{error}</FieldError>}
+            {/* min-w-0 lets a long slug truncate instead of widening the dialog. */}
             {name.trim() && (
-              <p id={`${id}-slug`} className="flex min-w-0 items-center gap-1.5 text-muted-foreground">
-                <IconLink className="size-4 shrink-0" />
+              <FieldDescription className="flex min-w-0 items-center gap-1.5">
+                <IconLink aria-hidden />
                 <span className="sr-only">Link name:</span>
                 <span className="truncate">{slugOf(name)}</span>
-              </p>
+              </FieldDescription>
             )}
-            <Button type="submit" className="ml-auto" disabled={submitting || !name.trim()}>
-              Create event
-            </Button>
-          </DialogFooter>
+          </Field>
+          <Button type="submit" data-variant="solid" className="self-end" disabled={submitting || !name.trim()}>
+            Create event
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

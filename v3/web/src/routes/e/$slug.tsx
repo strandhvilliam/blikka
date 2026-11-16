@@ -4,9 +4,9 @@ import { useState } from "react";
 import { authClient } from "@/api/authClient.ts";
 import { isApiError } from "@/api/client.ts";
 import { enterMutation, entryCompetitionQuery, myEntryQuery } from "@/api/entry.ts";
-import { Button } from "@/components/ui/Button.tsx";
-import { FieldSeparator } from "@/components/ui/Field.tsx";
-import { Input } from "@/components/ui/Input.tsx";
+import { Button } from "@ui-sdk/react/button";
+import { Input } from "@ui-sdk/react/input";
+import { Separator } from "@ui-sdk/react/separator";
 import { formatIn } from "@/lib/timeZone.ts";
 
 export const Route = createFileRoute("/e/$slug")({
@@ -86,10 +86,10 @@ function Entry({ competition }: { competition: Competition }) {
 
 function YourEntry({ participant }: { participant: { name: string; email: string } }) {
   return (
-    <div className="flex flex-col gap-1 rounded-3xl bg-muted p-6">
+    <div className="flex flex-col gap-1">
       <p className="font-medium">You're entered</p>
       <p className="text-sm text-muted-foreground wrap-anywhere">{participant.name || participant.email}</p>
-      <p className="mt-3 text-sm text-muted-foreground">Your topics will show up here when submissions open.</p>
+      <p className="text-sm text-muted-foreground">Your topics will show up here when submissions open.</p>
     </div>
   );
 }
@@ -126,21 +126,20 @@ function EnterForm({ competition }: { competition: Competition }) {
           <p className="text-sm text-muted-foreground wrap-anywhere">
             Signed in as {session.user.name || session.user.email}
           </p>
-          <Button size="lg" className="h-12" disabled={enter.isPending} onClick={() => submit(null)}>
+          <Button data-variant="solid" disabled={enter.isPending} onClick={() => submit(null)}>
             Enter
           </Button>
         </div>
       ) : (
         <>
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-12"
-            onClick={() => authClient.signIn.social({ provider: "google", callbackURL: window.location.href })}
-          >
+          <Button onClick={() => authClient.signIn.social({ provider: "google", callbackURL: window.location.href })}>
             Continue with Google
           </Button>
-          <FieldSeparator>or enter as a guest</FieldSeparator>
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            <Separator className="flex-1" />
+            or enter as a guest
+            <Separator className="flex-1" />
+          </div>
           <form
             className="flex flex-col gap-3"
             onSubmit={(e) => {
@@ -155,9 +154,8 @@ function EnterForm({ competition }: { competition: Competition }) {
               autoComplete="name"
               required
               maxLength={100}
-              className="h-12 text-center text-lg md:text-lg"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onValueChange={setName}
             />
             <Input
               type="email"
@@ -166,16 +164,10 @@ function EnterForm({ competition }: { competition: Competition }) {
               autoComplete="email"
               required
               maxLength={254}
-              className="h-12 text-center text-lg md:text-lg"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onValueChange={setEmail}
             />
-            <Button
-              type="submit"
-              size="lg"
-              className="h-12"
-              disabled={enter.isPending || !name.trim() || !email.trim()}
-            >
+            <Button type="submit" data-variant="solid" disabled={enter.isPending || !name.trim() || !email.trim()}>
               Enter as a guest
             </Button>
           </form>

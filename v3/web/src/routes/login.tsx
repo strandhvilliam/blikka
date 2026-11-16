@@ -1,11 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { Button } from "@ui-sdk/react/button";
+import { Input } from "@ui-sdk/react/input";
+import { OTPInput, OTPInputGroup, OTPInputSlot } from "@ui-sdk/react/otp-input";
+import { Separator } from "@ui-sdk/react/separator";
 import { authClient } from "@/api/authClient.ts";
-import { Button } from "@/components/ui/Button.tsx";
-import { FieldSeparator } from "@/components/ui/Field.tsx";
-import { Input } from "@/components/ui/Input.tsx";
-import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/InputOtp.tsx";
 import { sessionQuery } from "@/api/session.ts";
 
 // Better Auth's emailOTP default.
@@ -74,28 +74,27 @@ function Login() {
               <h1 className="text-2xl font-semibold">Check your email</h1>
               <p className="text-muted-foreground">We sent a code to {email}</p>
             </div>
-            <InputOTP
+            <OTPInput
               aria-label="Code"
               autoFocus
               maxLength={OTP_LENGTH}
+              pattern="digits"
               value={otp}
-              onChange={setOtp}
-              onComplete={verifyOtp}
+              onValueChange={setOtp}
+              onValueCommit={verifyOtp}
               disabled={submitting}
-              containerClassName="justify-center"
+              className="self-center"
             >
-              <InputOTPGroup>
+              <OTPInputGroup>
                 {Array.from({ length: OTP_LENGTH }, (_, i) => (
-                  <InputOTPSlot key={i} index={i} className="size-12 text-lg" />
+                  <OTPInputSlot key={i} index={i} />
                 ))}
-              </InputOTPGroup>
-            </InputOTP>
-            <Button type="submit" size="lg" className="h-12" disabled={submitting || otp.length < OTP_LENGTH}>
+              </OTPInputGroup>
+            </OTPInput>
+            <Button type="submit" data-variant="solid" disabled={submitting || otp.length < OTP_LENGTH}>
               Verify code
             </Button>
             <Button
-              type="button"
-              variant="ghost"
               onClick={() => {
                 setOtpSent(false);
                 setOtp("");
@@ -109,16 +108,17 @@ function Login() {
           <>
             <h1 className="text-2xl font-semibold">Sign in to Blikka</h1>
             <Button
-              variant="outline"
-              size="lg"
-              className="h-12"
               onClick={() =>
                 authClient.signIn.social({ provider: "google", callbackURL: `${window.location.origin}/dashboard` })
               }
             >
               Continue with Google
             </Button>
-            <FieldSeparator>or</FieldSeparator>
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <Separator className="flex-1" />
+              or
+              <Separator className="flex-1" />
+            </div>
             <form
               className="flex flex-col gap-3"
               onSubmit={(e) => {
@@ -132,11 +132,10 @@ function Login() {
                 placeholder="you@example.com"
                 autoComplete="email"
                 required
-                className="h-12 text-center text-lg md:text-lg"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onValueChange={setEmail}
               />
-              <Button type="submit" size="lg" className="h-12" disabled={submitting || !email}>
+              <Button type="submit" data-variant="solid" disabled={submitting || !email}>
                 Email me a code
               </Button>
             </form>

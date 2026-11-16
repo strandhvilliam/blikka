@@ -1,10 +1,10 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { useId, useState } from "react";
+import { useState } from "react";
+import { Button } from "@ui-sdk/react/button";
+import { Field, FieldError, FieldLabel } from "@ui-sdk/react/field";
+import { Input } from "@ui-sdk/react/input";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
-import { Button } from "@/components/ui/Button.tsx";
-import { Input } from "@/components/ui/Input.tsx";
-import { Label } from "@/components/ui/Label.tsx";
 import { deleteOrganizationMutation, renameOrganizationMutation } from "@/api/organizations.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/settings")({
@@ -29,7 +29,6 @@ function Settings() {
 }
 
 function Rename({ organization, canWrite }: { organization: { id: string; name: string }; canWrite: boolean }) {
-  const id = useId();
   const router = useRouter();
   const rename = useMutation(renameOrganizationMutation(organization.id));
   const [name, setName] = useState(organization.name);
@@ -43,29 +42,26 @@ function Rename({ organization, canWrite }: { organization: { id: string; name: 
         rename.mutate(name.trim(), { onSuccess: () => router.invalidate() });
       }}
     >
-      <Label htmlFor={id}>Organization name</Label>
-      <Input
-        id={id}
-        required
-        maxLength={100}
-        disabled={!canWrite}
-        value={name}
-        onChange={(e) => {
-          setName(e.target.value);
+      <Field disabled={!canWrite} invalid={rename.isError ? true : undefined}>
+        <FieldLabel>Organization name</FieldLabel>
+        <Input
+          required
+          maxLength={100}
+          value={name}
+          onValueChange={(value) => {
+            setName(value);
 
-          if (rename.isError) {
-            rename.reset();
-          }
-        }}
-      />
-      {rename.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          Couldn't save the name. Try again.
-        </p>
-      )}
+            if (rename.isError) {
+              rename.reset();
+            }
+          }}
+        />
+        {rename.isError && <FieldError>Couldn't save the name. Try again.</FieldError>}
+      </Field>
       {canWrite && (
         <Button
           type="submit"
+          data-variant="solid"
           className="justify-self-start"
           disabled={rename.isPending || rename.isSuccess || unchanged || !name.trim()}
         >
@@ -87,7 +83,7 @@ function Delete({ organization }: { organization: { id: string; name: string } }
         <h2 className="font-medium">Delete organization</h2>
         <p className="text-sm text-muted-foreground">Its events and everyone's access to them go with it.</p>
       </div>
-      <Button variant="destructive" onClick={() => setOpen(true)}>
+      <Button data-variant="destructive" onClick={() => setOpen(true)}>
         Delete organization
       </Button>
       <ConfirmDialog

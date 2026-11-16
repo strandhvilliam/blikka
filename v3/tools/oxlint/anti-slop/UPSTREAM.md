@@ -8,4 +8,3 @@
 Deviations in `v3/.oxlintrc.json`:
 
 - The `anti-slop-effect` rules are off for `web/**`: the website doesn't depend on `effect`.
-- `no-runtime-typeof`, `no-unknown-parameters` and `require-safety-comment-for-type-assertion` are off for `web/src/components/ui/**`, the shadcn components kept as generated.

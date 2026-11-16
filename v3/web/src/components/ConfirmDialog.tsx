@@ -1,17 +1,14 @@
-import { useState, type ReactNode } from "react";
 import {
   AlertDialog,
-  AlertDialogCancel,
+  AlertDialogBackdrop,
+  AlertDialogClose,
   AlertDialogContent,
   AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/AlertDialog.tsx";
-import { Button } from "@/components/ui/Button.tsx";
+} from "@ui-sdk/react/alert-dialog";
 
-// Asks before an action that can't be taken back from the website. The dialog closes once
-// onConfirm resolves, and shows `failure` if it rejects.
+// Asks before an action that can't be taken back from the website. The dialog stays open while
+// onConfirm runs, closes once it resolves, and shows `failure` if it rejects.
 export function ConfirmDialog<T>({
   open,
   onOpenChange,
@@ -20,59 +17,43 @@ export function ConfirmDialog<T>({
   action,
   onConfirm,
   failure,
+  finalFocus,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  title: ReactNode;
-  description: ReactNode;
+  title: string;
+  description: string;
   action: string;
   onConfirm: () => Promise<T>;
   failure: string;
+  // Where focus goes once it closes, for a dialog opened from a menu item that's gone by then.
+  finalFocus?: () => HTMLElement | null;
 }) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
-
   return (
-    <AlertDialog
-      open={open}
-      onOpenChange={(open) => {
-        onOpenChange(open);
-        setError(undefined);
-      }}
-    >
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        {error && (
-          <p role="alert" className="text-sm text-destructive">
-            {error}
-          </p>
-        )}
-        <AlertDialogFooter>
-          <AlertDialogCancel variant="ghost" disabled={busy}>
-            Cancel
-          </AlertDialogCancel>
-          <Button
-            variant="destructive"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-
-              try {
-                await onConfirm();
-                onOpenChange(false);
-              } catch {
-                setError(failure);
-              }
-
-              setBusy(false);
-            }}
-          >
-            {action}
-          </Button>
-        </AlertDialogFooter>
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogBackdrop />
+      <AlertDialogContent finalFocus={finalFocus}>
+        <AlertDialogTitle>{title}</AlertDialogTitle>
+        <AlertDialogDescription>{description}</AlertDialogDescription>
+        <AlertDialogClose
+          data-variant="destructive"
+          data-agent-confirm={description}
+          value="confirm"
+          action={onConfirm}
+          render={(props, state) => (
+            <div className="flex flex-col gap-4">
+              {state.error ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {failure}
+                </p>
+              ) : null}
+              <div className="flex justify-end gap-2">
+                <AlertDialogClose>Cancel</AlertDialogClose>
+                <button {...props}>{action}</button>
+              </div>
+            </div>
+          )}
+        />
       </AlertDialogContent>
     </AlertDialog>
   );

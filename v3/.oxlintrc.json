@@ -81,14 +81,6 @@
         "anti-slop-effect/no-service-constructor-imports": "off",
         "anti-slop-effect/prefer-effect-match": "off"
       }
-    },
-    {
-      "files": ["web/src/components/ui/**"],
-      "rules": {
-        "anti-slop/no-runtime-typeof": "off",
-        "anti-slop/no-unknown-parameters": "off",
-        "anti-slop/require-safety-comment-for-type-assertion": "off"
-      }
     }
   ],
   "ignorePatterns": [

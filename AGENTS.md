@@ -26,6 +26,10 @@ After changing code in v3/, run `bun run format` and then `bun run check` inside
 
 The anti-slop rules (`tools/oxlint/anti-slop/`, vendored, see its `UPSTREAM.md`) reject `unknown` inputs and returns, `typeof` checks and chained casts: parse at the boundary instead (with Schema in `server/`). A type assertion that stays needs a `// SAFETY:` comment just before it, stating the invariant that makes it hold.
 
+## UI in v3/
+
+`v3/web` builds its UI with ui-sdk (`@ui-sdk/react`, `@ui-sdk/core`). Before using ui-sdk, follow the `ui-sdk` skill if it's installed, and read `v3/web/node_modules/@ui-sdk/react/docs/llms.txt`. To build a new component, also search `v3/web/node_modules/@ui-sdk/react/docs/core.md` by heading, and read `rendering.md` next to it.
+
 ## Vendored Repositories
 
 This project vendors external repositories under @.repos/

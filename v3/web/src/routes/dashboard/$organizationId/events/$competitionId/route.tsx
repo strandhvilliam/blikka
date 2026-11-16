@@ -1,6 +1,10 @@
-import { Link, Outlet, createFileRoute, notFound } from "@tanstack/react-router";
-import { Badge } from "@/components/ui/Badge.tsx";
-import { buttonVariants } from "@/components/ui/Button.tsx";
+import { Link, Outlet, createFileRoute, notFound, useMatchRoute } from "@tanstack/react-router";
+import {
+  NavigationMenu,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+} from "@ui-sdk/react/navigation-menu";
 import { competitionQuery } from "@/api/competitions.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/events/$competitionId")({
@@ -27,28 +31,29 @@ const pages = [
 function EventLayout() {
   const { competition } = Route.useRouteContext();
   const params = { organizationId: competition.organization_id, competitionId: competition.id };
+  const matchRoute = useMatchRoute();
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
       <div className="flex flex-col gap-3">
         <div className="flex min-w-0 items-center gap-3">
           <h1 className="truncate text-2xl font-semibold">{competition.name}</h1>
-          {!competition.published_at && <Badge variant="secondary">Draft</Badge>}
+          {!competition.published_at && <span className="text-sm text-muted-foreground">Draft</span>}
         </div>
-        <nav className="-ml-2.5 flex gap-1">
-          {pages.map((page) => (
-            <Link
-              key={page.to}
-              to={page.to}
-              params={params}
-              className={buttonVariants({ variant: "ghost", size: "sm" })}
-              activeOptions={{ exact: true }}
-              activeProps={{ className: "bg-muted" }}
-            >
-              {page.label}
-            </Link>
-          ))}
-        </nav>
+        <NavigationMenu aria-label="Event" className="-ms-3">
+          <NavigationMenuList>
+            {pages.map((page) => (
+              <NavigationMenuItem key={page.to}>
+                <NavigationMenuLink
+                  render={<Link to={page.to} params={params} />}
+                  current={!!matchRoute({ to: page.to, params })}
+                >
+                  {page.label}
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            ))}
+          </NavigationMenuList>
+        </NavigationMenu>
       </div>
       <Outlet />
     </main>

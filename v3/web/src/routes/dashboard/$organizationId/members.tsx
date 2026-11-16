@@ -2,29 +2,21 @@ import { IconDots, IconUserPlus } from "@tabler/icons-react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { useId, useState } from "react";
-import { isApiError } from "@/api/client.ts";
-import { Badge } from "@/components/ui/Badge.tsx";
-import { Button } from "@/components/ui/Button.tsx";
+import { useRef, useState } from "react";
+import { Button } from "@ui-sdk/react/button";
 import {
   Dialog,
+  DialogBackdrop,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/Dialog.tsx";
-import { Input } from "@/components/ui/Input.tsx";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/Item.tsx";
-import { Label } from "@/components/ui/Label.tsx";
+} from "@ui-sdk/react/dialog";
+import { Field, FieldError, FieldLabel } from "@ui-sdk/react/field";
+import { Input } from "@ui-sdk/react/input";
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@ui-sdk/react/menu";
+import { isApiError } from "@/api/client.ts";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/DropdownMenu.tsx";
 import { createInvitationMutation, invitationsQuery, revokeInvitationMutation } from "@/api/invitations.ts";
 import {
   leaveOrganizationMutation,
@@ -57,39 +49,37 @@ function Members() {
         <h1 className="text-2xl font-semibold">Members</h1>
         {canManage && <Invite organizationId={organization.id} />}
       </div>
-      <ItemGroup>
+      <ul className="flex flex-col divide-y divide-border border-y border-border">
         {members.map((member) => (
-          <Item key={member.user_id} variant="outline">
-            <ItemContent>
-              <ItemTitle>
+          <li key={member.user_id} className="flex items-center gap-3 py-3">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="font-medium wrap-anywhere">
                 {member.name || member.email}
-                {member.user_id === session?.user.id && <span className="text-muted-foreground">(you)</span>}
-              </ItemTitle>
-              {member.name && <ItemDescription>{member.email}</ItemDescription>}
-            </ItemContent>
-            <ItemActions>
-              <Badge variant="secondary">{roles[member.role]}</Badge>
-              <MemberActions
-                member={member}
-                organization={organization}
-                isSelf={member.user_id === session?.user.id}
-                canManage={canManage}
-              />
-            </ItemActions>
-          </Item>
+                {member.user_id === session?.user.id && <span className="text-muted-foreground"> (you)</span>}
+              </span>
+              {member.name && <span className="text-sm wrap-anywhere text-muted-foreground">{member.email}</span>}
+            </div>
+            <span className="text-sm text-muted-foreground">{roles[member.role]}</span>
+            <MemberActions
+              member={member}
+              organization={organization}
+              isSelf={member.user_id === session?.user.id}
+              canManage={canManage}
+            />
+          </li>
         ))}
-      </ItemGroup>
+      </ul>
       {invitations.length > 0 && (
         <section className="flex flex-col gap-3">
           <div>
             <h2 className="font-medium">Invited</h2>
             <p className="text-sm text-muted-foreground">They join by signing in to Blikka with the invited address.</p>
           </div>
-          <ItemGroup>
+          <ul className="flex flex-col divide-y divide-border border-y border-border">
             {invitations.map((invitation) => (
               <PendingInvitation key={invitation.id} invitation={invitation} canManage={canManage} />
             ))}
-          </ItemGroup>
+          </ul>
         </section>
       )}
     </main>
@@ -115,7 +105,10 @@ function MemberActions({
   const transfer = useMutation(transferOwnershipMutation(organization.id));
   const remove = useMutation(removeMemberMutation(organization.id));
   const leave = useMutation(leaveOrganizationMutation(organization.id));
+  // Kept after closing, so the dialog keeps its words while it animates out.
   const [action, setAction] = useState<Action>();
+  const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
   const actions: Array<Action> = [];
 
   if (organization.role === "owner" && !isSelf) {
@@ -162,31 +155,35 @@ function MemberActions({
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant="ghost" size="icon-sm" aria-label={`Actions for ${who}`} />}>
-          <IconDots />
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+      <Menu>
+        <MenuTrigger ref={trigger} aria-label={`Actions for ${who}`}>
+          <IconDots aria-hidden />
+        </MenuTrigger>
+        <MenuContent align="end">
           {actions.map((a) => (
-            <DropdownMenuItem
+            <MenuItem
               key={a}
-              variant={a === "transfer" ? "default" : "destructive"}
-              onClick={() => setAction(a)}
+              destructive={a !== "transfer"}
+              onSelect={() => {
+                setAction(a);
+                setOpen(true);
+              }}
             >
               {dialogs[a].label}
-            </DropdownMenuItem>
+            </MenuItem>
           ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+        </MenuContent>
+      </Menu>
       {action && (
         <ConfirmDialog
-          open
-          onOpenChange={(open) => !open && setAction(undefined)}
+          open={open}
+          onOpenChange={setOpen}
           title={dialogs[action].title}
           description={dialogs[action].description}
           action={dialogs[action].label}
           onConfirm={dialogs[action].confirm}
           failure={dialogs[action].failure}
+          finalFocus={() => trigger.current}
         />
       )}
     </>
@@ -208,31 +205,30 @@ function PendingInvitation({
   const expired = expiresAt <= new Date();
 
   return (
-    <Item variant="outline">
-      <ItemContent>
-        <ItemTitle>{invitation.email}</ItemTitle>
-        <ItemDescription>
+    <li className="flex items-center gap-3 py-3">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="font-medium wrap-anywhere">{invitation.email}</span>
+        <span className="text-sm text-muted-foreground">
           {expired ? "Expired" : `Expires ${formatDistanceToNow(expiresAt, { addSuffix: true })}`}
-        </ItemDescription>
-      </ItemContent>
+        </span>
+      </div>
       {canManage && (
-        <ItemActions>
+        <div className="flex gap-1">
           {expired && (
-            <Button variant="outline" size="sm" disabled={busy} onClick={() => invite.mutate(invitation.email)}>
+            <Button disabled={busy} onClick={() => invite.mutate(invitation.email)}>
               Invite again
             </Button>
           )}
-          <Button variant="ghost" size="sm" disabled={busy} onClick={() => revoke.mutate(invitation.id)}>
+          <Button disabled={busy} onClick={() => revoke.mutate(invitation.id)}>
             Revoke
           </Button>
-        </ItemActions>
+        </div>
       )}
-    </Item>
+    </li>
   );
 }
 
 function Invite({ organizationId }: { organizationId: string }) {
-  const id = useId();
   const invite = useMutation(createInvitationMutation(organizationId));
   const [open, setOpen] = useState(false);
   const [email, setEmail] = useState("");
@@ -252,26 +248,24 @@ function Invite({ organizationId }: { organizationId: string }) {
         invite.reset();
       }}
     >
-      <DialogTrigger render={<Button />}>
-        <IconUserPlus />
+      <DialogTrigger data-variant="solid">
+        <IconUserPlus aria-hidden />
         Invite
       </DialogTrigger>
+      <DialogBackdrop />
       <DialogContent>
+        <DialogTitle>Invite a member</DialogTitle>
+        <DialogDescription>Members can manage the organization and all of its events.</DialogDescription>
         <form
-          className="grid gap-6"
+          className="flex flex-col gap-6"
           onSubmit={(e) => {
             e.preventDefault();
             invite.mutate(email.trim(), { onSuccess: () => setOpen(false) });
           }}
         >
-          <DialogHeader>
-            <DialogTitle>Invite a member</DialogTitle>
-            <DialogDescription>Members can manage the organization and all of its events.</DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-2">
-            <Label htmlFor={id}>Email</Label>
+          <Field invalid={error ? true : undefined}>
+            <FieldLabel>Email</FieldLabel>
             <Input
-              id={id}
               type="email"
               autoFocus
               autoComplete="off"
@@ -279,25 +273,19 @@ function Invite({ organizationId }: { organizationId: string }) {
               required
               maxLength={254}
               value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
+              onValueChange={(value) => {
+                setEmail(value);
 
                 if (invite.isError) {
                   invite.reset();
                 }
               }}
             />
-            {error && (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            )}
-          </div>
-          <DialogFooter>
-            <Button type="submit" disabled={invite.isPending || !email.trim()}>
-              Send invitation
-            </Button>
-          </DialogFooter>
+            {error && <FieldError>{error}</FieldError>}
+          </Field>
+          <Button type="submit" data-variant="solid" className="self-end" disabled={invite.isPending || !email.trim()}>
+            Send invitation
+          </Button>
         </form>
       </DialogContent>
     </Dialog>

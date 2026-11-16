@@ -3,9 +3,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect, useState } from "react";
 import { participantsQuery } from "@/api/participants.ts";
-import { Badge } from "@/components/ui/Badge.tsx";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/Empty.tsx";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/Item.tsx";
 
 export const Route = createFileRoute("/dashboard/$organizationId/events/$competitionId/")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(participantsQuery(params.competitionId)),
@@ -26,10 +23,7 @@ function Event() {
         {competition.published_at ? (
           <>
             Participants enter at{" "}
-            <a
-              href={`/e/${competition.slug}`}
-              className="font-medium text-foreground underline underline-offset-4 wrap-anywhere"
-            >
+            <a href={`/e/${competition.slug}`} className="font-medium wrap-anywhere">
               {origin}/e/{competition.slug}
             </a>
           </>
@@ -38,31 +32,25 @@ function Event() {
         )}
       </p>
       {participants.length === 0 ? (
-        <Empty className="border">
-          <EmptyHeader>
-            <EmptyTitle>No one has entered yet</EmptyTitle>
-            <EmptyDescription>Participants show up here as they enter.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <div className="flex flex-col items-center gap-1 py-16 text-center">
+          <p className="font-medium">No one has entered yet</p>
+          <p className="text-sm text-muted-foreground">Participants show up here as they enter.</p>
+        </div>
       ) : (
-        <ItemGroup>
+        <ul className="flex flex-col divide-y divide-border border-y border-border">
           {participants.map((participant) => (
-            <Item key={participant.id} variant="outline">
-              <ItemContent className="min-w-0">
-                <ItemTitle className="wrap-anywhere">{participant.name || participant.email}</ItemTitle>
-                <ItemDescription className="wrap-anywhere">
+            <li key={participant.id} className="flex items-center gap-3 py-3">
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="font-medium wrap-anywhere">{participant.name || participant.email}</span>
+                <span className="text-sm wrap-anywhere text-muted-foreground">
                   {participant.name && `${participant.email} · `}
                   entered {formatDistanceToNow(new Date(participant.created_at), { addSuffix: true })}
-                </ItemDescription>
-              </ItemContent>
-              {!participant.signed_in && (
-                <ItemActions>
-                  <Badge variant="secondary">Guest</Badge>
-                </ItemActions>
-              )}
-            </Item>
+                </span>
+              </div>
+              {!participant.signed_in && <span className="text-sm text-muted-foreground">Guest</span>}
+            </li>
           ))}
-        </ItemGroup>
+        </ul>
       )}
     </div>
   );

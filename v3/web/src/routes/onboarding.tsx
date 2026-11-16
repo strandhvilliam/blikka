@@ -1,10 +1,10 @@
 import { useMutation, useQueryClient, useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useId, useState } from "react";
+import { Button } from "@ui-sdk/react/button";
+import { Input } from "@ui-sdk/react/input";
+import { Progress, ProgressIndicator, ProgressTrack } from "@ui-sdk/react/progress";
 import { authClient } from "@/api/authClient.ts";
-import { Button } from "@/components/ui/Button.tsx";
-import { Input } from "@/components/ui/Input.tsx";
-import { Item, ItemActions, ItemContent, ItemDescription, ItemGroup, ItemTitle } from "@/components/ui/Item.tsx";
 import {
   acceptInvitationMutation,
   invitedBy,
@@ -99,30 +99,27 @@ function Onboarding() {
         )}
       </div>
       {/* The gate sends anyone without an org back here, so this is the only way out of the wrong account. */}
-      <p className="text-sm text-muted-foreground">
-        Signed in as {session.user.email} ·{" "}
-        <button type="button" className="underline underline-offset-4 hover:text-foreground" onClick={signOut}>
-          Sign out
-        </button>
+      <p className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
+        Signed in as {session.user.email}
+        <Button onClick={signOut}>Sign out</Button>
       </p>
     </main>
   );
 }
 
-function Progress({ progress }: { progress: [step: number, of: number] }) {
+function Steps({ progress: [step, of] }: { progress: [step: number, of: number] }) {
   return (
-    <div className="flex justify-center gap-1.5">
-      <span className="sr-only">
-        Step {progress[0]} of {progress[1]}
-      </span>
-      {Array.from({ length: progress[1] }, (_, i) => (
-        <span
-          key={i}
-          aria-hidden
-          className={`h-1.5 rounded-full transition-all ${i + 1 === progress[0] ? "w-6 bg-foreground" : "w-1.5 bg-muted-foreground/30"}`}
-        />
-      ))}
-    </div>
+    <Progress
+      aria-label="Setup"
+      value={step}
+      max={of}
+      format={(value) => `Step ${value} of ${of}`}
+      className="self-center"
+    >
+      <ProgressTrack>
+        <ProgressIndicator />
+      </ProgressTrack>
+    </Progress>
   );
 }
 
@@ -151,34 +148,32 @@ function Invitations({
     });
 
   return (
-    <div className="flex w-full max-w-sm animate-in flex-col gap-6 text-center duration-200 fade-in slide-in-from-bottom-2 motion-reduce:animate-none">
-      {progress && <Progress progress={progress} />}
+    <div className="flex w-full max-w-sm flex-col gap-6 text-center">
+      {progress && <Steps progress={progress} />}
       <div className="flex flex-col gap-2">
         <p className="text-muted-foreground">{greeting}</p>
         <h1 className="text-2xl font-semibold">You've been invited</h1>
         <p className="text-sm text-balance text-muted-foreground">Join to run events together with your team.</p>
       </div>
-      <ItemGroup>
+      <ul className="flex flex-col divide-y divide-border border-y border-border">
         {invitations.map((invitation) => (
-          <Item key={invitation.id} variant="outline" className="text-left">
-            <ItemContent>
-              <ItemTitle>{invitation.organization.name}</ItemTitle>
-              <ItemDescription className="wrap-anywhere">{invitedBy(invitation)}</ItemDescription>
-            </ItemContent>
-            <ItemActions>
-              <Button disabled={joining} onClick={() => join(invitation.id)}>
-                Join
-              </Button>
-            </ItemActions>
-          </Item>
+          <li key={invitation.id} className="flex items-center gap-4 py-3 text-left">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="font-medium">{invitation.organization.name}</span>
+              <span className="text-sm wrap-anywhere text-muted-foreground">{invitedBy(invitation)}</span>
+            </div>
+            <Button data-variant="solid" disabled={joining} onClick={() => join(invitation.id)}>
+              Join
+            </Button>
+          </li>
         ))}
-      </ItemGroup>
+      </ul>
       <div className="flex flex-col gap-2">
-        <Button variant="ghost" disabled={joining} onClick={createOwn}>
+        <Button disabled={joining} onClick={createOwn}>
           Create my own organization instead
         </Button>
         {back && (
-          <Button variant="ghost" disabled={joining} onClick={back}>
+          <Button disabled={joining} onClick={back}>
             Back
           </Button>
         )}
@@ -224,7 +219,7 @@ function Step({
 
   return (
     <form
-      className="flex w-full max-w-sm animate-in flex-col gap-6 text-center duration-200 fade-in slide-in-from-bottom-2 motion-reduce:animate-none"
+      className="flex w-full max-w-sm flex-col gap-6 text-center"
       onSubmit={async (e) => {
         e.preventDefault();
         setSubmitting(true);
@@ -236,7 +231,7 @@ function Step({
         }
       }}
     >
-      {progress && <Progress progress={progress} />}
+      {progress && <Steps progress={progress} />}
       <div className="flex flex-col gap-2">
         {greeting && <p className="text-muted-foreground">{greeting}</p>}
         <h1 id={id} className="text-2xl font-semibold">
@@ -251,16 +246,15 @@ function Step({
         placeholder={placeholder}
         required
         maxLength={100}
-        className="h-12 text-center text-lg md:text-lg"
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onValueChange={onChange}
       />
       <div className="flex flex-col gap-2">
-        <Button type="submit" size="lg" className="h-12" disabled={submitting || !value.trim()}>
+        <Button type="submit" data-variant="solid" disabled={submitting || !value.trim()}>
           Continue
         </Button>
         {back && (
-          <Button type="button" variant="ghost" disabled={submitting} onClick={back}>
+          <Button disabled={submitting} onClick={back}>
             Back
           </Button>
         )}

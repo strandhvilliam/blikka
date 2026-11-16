@@ -1,14 +1,24 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate, useRouter } from "@tanstack/react-router";
-import { useId, useState } from "react";
+import { useState } from "react";
+import { Button } from "@ui-sdk/react/button";
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxLabel,
+  ComboboxList,
+  ComboboxTrigger,
+} from "@ui-sdk/react/combobox";
+import { DatePicker, DatePickerContent, DatePickerInput, DatePickerTrigger } from "@ui-sdk/react/date-picker";
+import { Field, FieldLabel, FieldLegend, FieldSet } from "@ui-sdk/react/field";
+import { Input } from "@ui-sdk/react/input";
+import { Textarea } from "@ui-sdk/react/textarea";
+import { TimeInput } from "@ui-sdk/react/time-input";
 import { isApiError } from "@/api/client.ts";
 import { type CompetitionUpdate, deleteCompetitionMutation, updateCompetitionMutation } from "@/api/competitions.ts";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
-import { Button } from "@/components/ui/Button.tsx";
-import { Input } from "@/components/ui/Input.tsx";
-import { Label } from "@/components/ui/Label.tsx";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/NativeSelect.tsx";
-import { Textarea } from "@/components/ui/Textarea.tsx";
 import { formatIn, fromWallClock, timeZones, toWallClock } from "@/lib/timeZone.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/events/$competitionId/settings")({
@@ -49,7 +59,6 @@ function useUpdate(id: string) {
 }
 
 function Details({ competition, canWrite }: { competition: Competition; canWrite: boolean }) {
-  const id = useId();
   const update = useUpdate(competition.id);
   const [name, setName] = useState(competition.name);
   const [description, setDescription] = useState(competition.description);
@@ -62,43 +71,40 @@ function Details({ competition, canWrite }: { competition: Competition; canWrite
 
   return (
     <form
-      className="grid max-w-md gap-3"
+      className="flex max-w-md flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         update.save({ name: name.trim(), description: description.trim(), time_zone: timeZone });
       }}
       onChange={() => update.isError && update.reset()}
     >
-      <Label htmlFor={`${id}-name`}>Name</Label>
-      <Input
-        id={`${id}-name`}
-        required
-        maxLength={100}
-        disabled={!canWrite}
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-      <Label htmlFor={`${id}-description`}>Description</Label>
-      <Textarea
-        id={`${id}-description`}
-        maxLength={2000}
-        disabled={!canWrite}
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-      />
-      <Label htmlFor={`${id}-zone`}>Time zone</Label>
-      <NativeSelect
-        id={`${id}-zone`}
-        disabled={!canWrite}
+      <Field disabled={!canWrite}>
+        <FieldLabel>Name</FieldLabel>
+        <Input required maxLength={100} value={name} onValueChange={setName} />
+      </Field>
+      <Field disabled={!canWrite}>
+        <FieldLabel>Description</FieldLabel>
+        <Textarea autoResize maxLength={2000} value={description} onValueChange={setDescription} />
+      </Field>
+      <Combobox
+        items={timeZones(competition.time_zone).map((zone) => ({ value: zone, label: zone.replaceAll("_", " ") }))}
         value={timeZone}
-        onChange={(e) => setTimeZone(e.target.value)}
+        onValueChange={(zone) => zone && setTimeZone(zone)}
+        disabled={!canWrite}
+        autoHighlight
       >
-        {timeZones(competition.time_zone).map((zone) => (
-          <NativeSelectOption key={zone} value={zone}>
-            {zone.replaceAll("_", " ")}
-          </NativeSelectOption>
-        ))}
-      </NativeSelect>
+        <div className="flex flex-col gap-1.5">
+          <ComboboxLabel>Time zone</ComboboxLabel>
+          <div>
+            <ComboboxInput />
+            <ComboboxTrigger aria-label="Show time zones" />
+          </div>
+        </div>
+        <ComboboxContent>
+          <ComboboxEmpty>No time zone matches.</ComboboxEmpty>
+          <ComboboxList />
+        </ComboboxContent>
+      </Combobox>
       {update.isError && (
         <p role="alert" className="text-sm text-destructive">
           Couldn't save the details. Try again.
@@ -107,7 +113,8 @@ function Details({ competition, canWrite }: { competition: Competition; canWrite
       {canWrite && (
         <Button
           type="submit"
-          className="justify-self-start"
+          data-variant="solid"
+          className="self-start"
           disabled={update.isPending || update.isSuccess || unchanged || !name.trim()}
         >
           Save
@@ -140,8 +147,55 @@ const windowStatus = (competition: Competition, now: Date) => {
   } as const;
 };
 
+// A wall clock time like "2026-12-01T09:00" as a date picker and a time input. Choosing a date asks
+// for a time too; clearing the date clears both.
+function WallClockInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const [date, setDate] = useState(value.slice(0, 10) || null);
+  const [time, setTime] = useState(value.slice(11) || null);
+  const emit = (date: string | null, time: string | null) => onChange(date && time ? `${date}T${time}` : "");
+
+  return (
+    <FieldSet>
+      <FieldLegend>{label}</FieldLegend>
+      <div className="flex flex-wrap gap-2">
+        <DatePicker
+          value={date}
+          onValueChange={(next) => {
+            // A single-date picker never reports a range.
+            const day = Array.isArray(next) ? null : next;
+            setDate(day);
+            emit(day, time);
+          }}
+        >
+          <div className="flex gap-1">
+            <DatePickerInput aria-label={`${label}, date`} />
+            <DatePickerTrigger aria-label={`Choose the ${label.toLowerCase()} date`} />
+          </div>
+          <DatePickerContent />
+        </DatePicker>
+        <TimeInput
+          aria-label={`${label}, time`}
+          required={date !== null}
+          value={time}
+          onValueChange={(next) => {
+            setTime(next);
+            emit(date, next);
+          }}
+        />
+      </div>
+    </FieldSet>
+  );
+}
+
 function Window({ competition, canWrite }: { competition: Competition; canWrite: boolean }) {
-  const id = useId();
   const update = useUpdate(competition.id);
   const zone = competition.time_zone;
   const wallClock = (iso: string | null) => (iso ? toWallClock(new Date(iso), zone) : "");
@@ -161,24 +215,24 @@ function Window({ competition, canWrite }: { competition: Competition; canWrite:
       {canWrite && (
         <div>
           {status.state === "not-open" && (
-            <Button variant="outline" disabled={update.isPending} onClick={() => update.save({ opens_at: now() })}>
+            <Button disabled={update.isPending} onClick={() => update.save({ opens_at: now() })}>
               Open submissions now
             </Button>
           )}
           {status.state === "open" && (
-            <Button variant="outline" disabled={update.isPending} onClick={() => update.save({ closes_at: now() })}>
+            <Button disabled={update.isPending} onClick={() => update.save({ closes_at: now() })}>
               Close submissions now
             </Button>
           )}
           {status.state === "closed" && (
-            <Button variant="outline" disabled={update.isPending} onClick={() => update.save({ closes_at: null })}>
+            <Button disabled={update.isPending} onClick={() => update.save({ closes_at: null })}>
               Reopen submissions
             </Button>
           )}
         </div>
       )}
       <form
-        className="grid gap-3"
+        className="flex flex-col gap-4"
         onSubmit={(e) => {
           e.preventDefault();
           update.save({
@@ -191,28 +245,10 @@ function Window({ competition, canWrite }: { competition: Competition; canWrite:
         <p className="text-sm text-muted-foreground">
           Or schedule them, in {zone.replaceAll("_", " ")}. Leave closing empty for no deadline.
         </p>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-opens`}>Opens</Label>
-            <Input
-              id={`${id}-opens`}
-              type="datetime-local"
-              disabled={!canWrite}
-              value={opens}
-              onChange={(e) => setOpens(e.target.value)}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor={`${id}-closes`}>Closes</Label>
-            <Input
-              id={`${id}-closes`}
-              type="datetime-local"
-              disabled={!canWrite}
-              value={closes}
-              onChange={(e) => setCloses(e.target.value)}
-            />
-          </div>
-        </div>
+        <fieldset disabled={!canWrite} className="contents">
+          <WallClockInput label="Opens" value={opens} onChange={setOpens} />
+          <WallClockInput label="Closes" value={closes} onChange={setCloses} />
+        </fieldset>
         {update.isError && (
           <p role="alert" className="text-sm text-destructive">
             {isApiError(update.error, "CompetitionWindowInvalid")
@@ -223,7 +259,8 @@ function Window({ competition, canWrite }: { competition: Competition; canWrite:
         {canWrite && (
           <Button
             type="submit"
-            className="justify-self-start"
+            data-variant="solid"
+            className="self-start"
             disabled={update.isPending || update.isSuccess || unchanged}
           >
             Save
@@ -250,7 +287,7 @@ function Publishing({ competition, canWrite }: { competition: Competition; canWr
       </div>
       {canWrite && (
         <Button
-          variant={published ? "outline" : "default"}
+          data-variant={published ? undefined : "solid"}
           disabled={update.isPending}
           onClick={() => update.save({ published: !published })}
         >
@@ -281,7 +318,7 @@ function Delete({ competition }: { competition: Competition }) {
         <h2 className="font-medium">Delete event</h2>
         <p className="text-sm text-muted-foreground">Its participants and photos go with it.</p>
       </div>
-      <Button variant="destructive" onClick={() => setOpen(true)}>
+      <Button data-variant="destructive" onClick={() => setOpen(true)}>
         Delete event
       </Button>
       <ConfirmDialog
