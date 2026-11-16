@@ -1,11 +1,4 @@
-import {
-  IconArrowRight,
-  IconCalendarEvent,
-  IconChevronRight,
-  IconLink,
-  IconPlus,
-  IconSearch,
-} from "@tabler/icons-react";
+import { IconCalendarEvent, IconLink, IconPlus, IconSearch } from "@tabler/icons-react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -26,10 +19,10 @@ import { type Competition, competitionsQuery, createCompetitionMutation } from "
 import { Card } from "@/components/Card.tsx";
 import { EmptyState } from "@/components/EmptyState.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
-import { StatusBadge } from "@/components/StatusBadge.tsx";
-import { byStatus, competitionStatus } from "@/lib/competitionStatus.ts";
+import { statusDots } from "@/components/StatusBadge.tsx";
+import { type CompetitionStatus, byStatus, competitionStatus } from "@/lib/competitionStatus.ts";
 import { slugOf } from "@/lib/slug.ts";
-import { formatIn, formatWindow } from "@/lib/timeZone.ts";
+import { formatWindow } from "@/lib/timeZone.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/")({
   loader: ({ context, params }) => context.queryClient.ensureQueryData(competitionsQuery(params.organizationId)),
@@ -52,12 +45,19 @@ function Dashboard() {
   const [search, setSearch] = useState("");
 
   const sorted = byStatus(competitions).map((c) => ({ ...c, status: competitionStatus(c) }));
-  const live = sorted.filter((c) => c.status === "Live");
   const count = (value: Filter) => (value === "All" ? sorted.length : sorted.filter((c) => c.status === value).length);
   const query = search.trim().toLocaleLowerCase();
 
   const shown = sorted.filter(
     (c) => (filter === "All" || c.status === filter) && c.name.toLocaleLowerCase().includes(query),
+  );
+
+  const current = shown.filter((c) => c.status !== "Ended");
+
+  // byStatus puts the most recently closed first, so the years come out newest first. Ended means closes_at is set.
+  const endedByYear = Map.groupBy(
+    shown.filter((c) => c.status === "Ended"),
+    (c) => new Intl.DateTimeFormat("en", { year: "numeric", timeZone: c.time_zone }).format(new Date(c.closes_at!)),
   );
 
   return (
@@ -77,121 +77,143 @@ function Dashboard() {
         </Card>
       ) : (
         <>
-          {live.map((competition) => (
-            <LiveCard key={competition.id} competition={competition} />
+          <div className="flex flex-wrap items-center gap-3">
+            <InputGroup className="relative min-w-0 flex-1 basis-60">
+              <IconSearch
+                aria-hidden
+                className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+              />
+              <Input
+                className="ps-8"
+                type="search"
+                aria-label="Find an event"
+                placeholder="Find an event"
+                value={search}
+                onValueChange={setSearch}
+              />
+            </InputGroup>
+            <SegmentedControl
+              aria-label="Show"
+              value={filter}
+              onValueChange={(value) => setFilter(filters.find((f) => f.value === value)?.value ?? "All")}
+            >
+              <SegmentedControlIndicator />
+              {filters.map(({ value, label }) => (
+                <SegmentedControlItem key={value} value={value} className="gap-1.5">
+                  {label}
+                  <span className="font-mono text-[0.6875rem]">{count(value)}</span>
+                </SegmentedControlItem>
+              ))}
+            </SegmentedControl>
+          </div>
+
+          {shown.length === 0 && (
+            <Card>
+              <EmptyState
+                icon={IconSearch}
+                title="No events match"
+                description="Try another name, or show all events."
+              />
+            </Card>
+          )}
+
+          {current.length > 0 && (
+            <section className="@container flex flex-col gap-3">
+              <h2 className="flex items-center gap-2 text-sm font-medium">
+                Current
+                <span className="rounded-[6px] bg-muted px-1.5 py-px text-[0.6875rem] font-normal text-muted-foreground">
+                  Sample data
+                </span>
+              </h2>
+              <ul className="grid gap-3 @2xl:grid-cols-2 @4xl:grid-cols-3">
+                {current.map((competition) => (
+                  <li key={competition.id}>
+                    <EventCard competition={competition} />
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {[...endedByYear].map(([year, ended]) => (
+            <section key={year} className="flex flex-col gap-3">
+              <h2 className="font-mono text-sm font-medium text-muted-foreground">{year}</h2>
+              <Card className="overflow-hidden">
+                <ul>
+                  {ended.map((competition) => (
+                    <li
+                      key={competition.id}
+                      className={`relative flex h-11 items-center gap-4 border-b border-border px-4 text-sm last:border-0 hover:bg-muted/40 ${focusRing}`}
+                    >
+                      <EventLink competition={competition} className="min-w-0 flex-1 truncate" />
+                      <span className="text-muted-foreground max-sm:hidden">
+                        <span className="font-mono">{sampleEntries(competition.id)}</span> entries
+                      </span>
+                      <span className="w-44 text-end font-mono text-xs text-muted-foreground max-sm:w-auto">
+                        {formatWindow(competition.opens_at, competition.closes_at, competition.time_zone)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </Card>
+            </section>
           ))}
-
-          <Card className="overflow-hidden">
-            <div className="flex flex-wrap items-center gap-3 px-4 py-3">
-              <SegmentedControl
-                aria-label="Show"
-                value={filter}
-                onValueChange={(value) => setFilter(filters.find((f) => f.value === value)?.value ?? "All")}
-                className="me-auto"
-              >
-                <SegmentedControlIndicator />
-                {filters.map(({ value, label }) => (
-                  <SegmentedControlItem key={value} value={value} className="gap-1.5">
-                    {label}
-                    <span className="font-mono text-[0.6875rem]">{count(value)}</span>
-                  </SegmentedControlItem>
-                ))}
-              </SegmentedControl>
-              <InputGroup className="relative w-full sm:w-60">
-                <IconSearch
-                  aria-hidden
-                  className="pointer-events-none absolute start-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-                />
-                <Input
-                  className="ps-8"
-                  type="search"
-                  aria-label="Find an event"
-                  placeholder="Find an event"
-                  value={search}
-                  onValueChange={setSearch}
-                />
-              </InputGroup>
-            </div>
-
-            <table className="w-full text-sm">
-              <thead className="border-y border-border bg-page text-xs text-muted-foreground">
-                <tr>
-                  <th className="h-8 px-4 text-start font-medium">Name</th>
-                  <th className="w-32 px-3 text-start font-medium">Status</th>
-                  <th className="w-64 px-3 text-start font-medium max-md:hidden">When</th>
-                  <th className="w-12" aria-hidden />
-                </tr>
-              </thead>
-              <tbody>
-                {shown.map((competition) => (
-                  <tr
-                    key={competition.id}
-                    className="relative border-b border-border last:border-0 hover:bg-muted/40 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-ring"
-                  >
-                    <td className="h-11 px-4">
-                      <Link
-                        to="/dashboard/$organizationId/events/$competitionId"
-                        params={{ organizationId: organization.id, competitionId: competition.id }}
-                        className="font-medium wrap-anywhere no-underline outline-none after:absolute after:inset-0"
-                      >
-                        {competition.name}
-                      </Link>
-                    </td>
-                    <td className="px-3">
-                      <StatusBadge status={competition.status} />
-                    </td>
-                    <td className="px-3 font-mono text-xs text-muted-foreground max-md:hidden">
-                      {formatWindow(competition.opens_at, competition.closes_at, competition.time_zone)}
-                    </td>
-                    <td className="pe-4 text-end">
-                      <IconChevronRight aria-hidden className="ms-auto size-4 text-muted-foreground" />
-                    </td>
-                  </tr>
-                ))}
-                {shown.length === 0 && (
-                  <tr>
-                    <td colSpan={4}>
-                      <EmptyState
-                        icon={IconSearch}
-                        title="No events match"
-                        description="Try another name, or show all events."
-                      />
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </Card>
         </>
       )}
     </main>
   );
 }
 
-function LiveCard({ competition }: { competition: Competition }) {
-  const params = { organizationId: competition.organization_id, competitionId: competition.id };
+const focusRing =
+  "has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-ring";
 
+// The name links to the event, and its ::after stretches over the closest positioned parent so the whole card is the target.
+function EventLink({ competition, className = "" }: { competition: Competition; className?: string }) {
   return (
-    <Card className="flex flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4">
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <span className="flex items-center gap-2 text-xs font-medium">
-          <span aria-hidden className="size-[7px] rounded-full bg-safelight" />
-          Live now
+    <Link
+      to="/dashboard/$organizationId/events/$competitionId"
+      params={{ organizationId: competition.organization_id, competitionId: competition.id }}
+      className={`no-underline outline-none after:absolute after:inset-0 ${className}`}
+    >
+      {competition.name}
+    </Link>
+  );
+}
+
+// shortcut: a made-up count that stays the same per event, until the Api reports entries per event.
+const sampleEntries = (id: string) => [...id].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 9973, 7) % 240;
+
+function EventCard({ competition }: { competition: Competition & { status: CompetitionStatus } }) {
+  return (
+    <Card className={`relative flex h-full flex-col gap-3 p-4 hover:bg-muted/40 ${focusRing}`}>
+      <div className="flex items-start gap-3">
+        <div className="flex min-w-0 flex-1 flex-col">
+          <EventLink competition={competition} className="truncate font-medium" />
+          {competition.published_at && (
+            <span className="truncate text-sm text-muted-foreground">/e/{competition.slug}</span>
+          )}
+        </div>
+        <span className="flex shrink-0 items-center gap-1.5 pt-0.5 text-xs font-medium">
+          <span aria-hidden className={`size-2 rounded-full ${statusDots[competition.status]}`} />
+          {/* Drafts already say "Not published" below, so their dot stands alone for sighted readers. */}
+          <span className={competition.status === "Draft" ? "sr-only" : ""}>{competition.status}</span>
         </span>
-        <h2 className="text-base font-semibold wrap-anywhere">{competition.name}</h2>
-        <p className="text-sm text-muted-foreground">
-          {competition.closes_at
-            ? `Closes ${formatIn(new Date(competition.closes_at), competition.time_zone)}.`
-            : "Open, with no deadline."}
-        </p>
       </div>
-      <Button
-        className="no-underline"
-        render={<Link to="/dashboard/$organizationId/events/$competitionId" params={params} />}
-      >
-        Open
-        <IconArrowRight aria-hidden />
-      </Button>
+      <p className="mt-auto text-sm text-muted-foreground">
+        {/* A draft can't have entrants (unpublishing is refused once someone has entered). */}
+        {competition.status === "Draft" ? (
+          "Not published"
+        ) : (
+          <>
+            <span className="font-mono text-foreground">{sampleEntries(competition.id)}</span> entries
+          </>
+        )}
+        {" · "}
+        {/* Mono only for a date, not for "No date yet". */}
+        <span className={competition.opens_at || competition.closes_at ? "font-mono text-xs" : ""}>
+          {formatWindow(competition.opens_at, competition.closes_at, competition.time_zone)}
+        </span>
+      </p>
     </Card>
   );
 }
