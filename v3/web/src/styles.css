@@ -2,9 +2,10 @@
 
 @import "tailwindcss";
 @import "@ui-sdk/core/web.css" layer(components);
-@import "@fontsource-variable/inter";
+@import "@fontsource-variable/schibsted-grotesk";
+@import "@fontsource-variable/martian-mono";
 
-/* Tailwind's color names read ui-sdk's tokens, so layout markup matches the components. */
+/* Tailwind's color and font names read ui-sdk's tokens, so layout markup matches the components. */
 @theme inline {
   --color-background: var(--ui-background);
   --color-foreground: var(--ui-foreground);
@@ -13,19 +14,34 @@
   --color-border: var(--ui-border);
   --color-primary: var(--ui-primary);
   --color-destructive: var(--ui-destructive);
+  --font-sans: var(--ui-font-sans);
+  --font-mono: var(--ui-font-mono);
 }
 
-/* ui-sdk's theme. */
+/* ui-sdk's theme: the brand palette (docs/brand.md, Color), light and dark by role. web.css sets
+   color-scheme: light dark, so light-dark() follows the system. */
 :root {
-  /* The app is light only for now; web.css would otherwise follow the system theme. */
-  color-scheme: light;
-  --ui-font-sans: "Inter Variable", sans-serif;
+  /* Paper, Fixer */
+  --ui-background: light-dark(#f3f0e8, #0f0f0e);
+  /* Ink, Paper */
+  --ui-foreground: light-dark(#151515, #f3f0e8);
+  /* Chin, Tray */
+  --ui-muted: light-dark(#e7e3d8, #2a2926);
+  /* Graphite, Silver */
+  --ui-muted-foreground: light-dark(#5e5b54, #a7a49c);
+  /* Rule, Tray */
+  --ui-border: light-dark(#dad5c8, #2a2926);
+  /* A control's edge and focus ring need 3:1 against the ground: about 3.1:1 on Paper, 3.4:1 on Fixer. */
+  --ui-input: light-dark(#8a877e, #6b6860);
+  --ui-ring: light-dark(#8a877e, #6b6860);
+  --ui-ring-border: light-dark(#5e5b54, #a7a49c);
+  /* Frame white on Ink, Ink on Paper */
+  --ui-primary-foreground: light-dark(#faf9f5, #151515);
+  --ui-overlay: light-dark(rgb(243 240 232 / 0.7), rgb(15 15 14 / 0.7));
+  --ui-font-sans: "Schibsted Grotesk Variable", sans-serif;
+  --ui-font-mono: "Martian Mono Variable", monospace;
   --ui-font-size: 0.875rem;
   --ui-radius: 0.625rem;
-  /* web.css's defaults are below the 3:1 a control's edge and focus ring need against white. */
-  --ui-input: oklch(0.66 0 0);
-  --ui-ring: oklch(0.66 0 0);
-  --ui-ring-border: oklch(0.45 0 0);
 }
 
 /* web.css styles the components, not the page. */
