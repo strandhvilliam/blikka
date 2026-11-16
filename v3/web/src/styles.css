@@ -16,34 +16,33 @@
   --color-destructive: var(--ui-destructive);
   --color-card: var(--ui-card);
   /* The dashboard's sidebar and top bar, a step below the page's panel. */
-  --color-sidebar: light-dark(#f2f2f0, #090908);
+  --color-sidebar: light-dark(#f4f4f4, #090908);
   --color-safelight: #d3301f;
   --color-blue-hour: #5f7e9b;
   --font-sans: var(--ui-font-sans);
   --font-mono: var(--ui-font-mono);
 }
 
-/* ui-sdk's theme, light and dark by role. Light is near-white neutrals (the Paper beige is
-   marketing-only); dark is the brand palette (docs/brand.md, Color). web.css sets
-   color-scheme: light dark, so light-dark() follows the system. */
+/* ui-sdk's theme, light and dark by role (docs/brand.md, Color). Light is untinted gray; dark is
+   the warm brand palette. web.css sets color-scheme: light dark, so light-dark() follows the system. */
 :root {
   /* ground: near-white, Fixer */
-  --ui-background: light-dark(#fafaf9, #0f0f0e);
+  --ui-background: light-dark(#fafafa, #0f0f0e);
   /* Ink, Paper */
   --ui-foreground: light-dark(#151515, #f3f0e8);
   /* white, Tank: org app cards */
   --ui-card: light-dark(#ffffff, #1c1b19);
-  --ui-muted: light-dark(#f0efec, #2a2926);
-  /* Graphite, Silver */
-  --ui-muted-foreground: light-dark(#5e5b54, #a7a49c);
-  --ui-border: light-dark(#e6e4df, #2a2926);
-  /* A control's edge and focus ring need 3:1 against the ground: about 3.5:1 on the light ground, 3.4:1 on Fixer. */
-  --ui-input: light-dark(#8a877e, #6b6860);
-  --ui-ring: light-dark(#8a877e, #6b6860);
-  --ui-ring-border: light-dark(#5e5b54, #a7a49c);
+  --ui-muted: light-dark(#f0f0f0, #2a2926);
+  /* gray, Silver */
+  --ui-muted-foreground: light-dark(#666666, #a7a49c);
+  --ui-border: light-dark(#e5e5e5, #2a2926);
+  /* A control's edge and focus ring need 3:1 against the ground: about 3.3:1 on the light ground, 3.4:1 on Fixer. */
+  --ui-input: light-dark(#8a8a8a, #6b6860);
+  --ui-ring: light-dark(#8a8a8a, #6b6860);
+  --ui-ring-border: light-dark(#666666, #a7a49c);
   /* white on Ink, Ink on Paper */
   --ui-primary-foreground: light-dark(#ffffff, #151515);
-  --ui-overlay: light-dark(rgb(250 250 249 / 0.7), rgb(15 15 14 / 0.7));
+  --ui-overlay: light-dark(rgb(250 250 250 / 0.7), rgb(15 15 14 / 0.7));
   --ui-font-sans: "Schibsted Grotesk Variable", sans-serif;
   --ui-font-mono: "Martian Mono Variable", monospace;
   --ui-font-size: 0.875rem;
@@ -84,9 +83,23 @@ body {
     cursor: grab;
     touch-action: none;
 
-    &:is(:hover, [data-grabbed]) {
+    transition: scale 120ms ease-out;
+
+    &[data-grabbed] {
       background: var(--ui-muted);
       color: var(--ui-foreground);
+    }
+
+    /* A tap on a phone would leave it highlighted. */
+    @media (hover: hover) and (pointer: fine) {
+      &:hover {
+        background: var(--ui-muted);
+        color: var(--ui-foreground);
+      }
+    }
+
+    &:active {
+      scale: 0.94;
     }
 
     &:focus-visible {
@@ -95,15 +108,59 @@ body {
   }
 
   [data-slot="sortable-list-item"] {
-    &[data-grabbed] {
-      border-color: var(--ui-foreground);
+    /* So a settling item passes over its neighbours. */
+    position: relative;
+
+    /* A mouse can pick up a movable item from anywhere on it, without selecting its text. */
+    @media (hover: hover) and (pointer: fine) {
+      &:has(> [data-slot="sortable-list-handle"]) {
+        cursor: grab;
+        user-select: none;
+      }
     }
 
-    &[data-dragging] {
-      position: relative;
+    /* Its position is copied from where the drag started, so it would show the old one. */
+    &[data-drag-preview] [data-position] {
+      visibility: hidden;
+    }
+
+    /* Left behind while its copy is dragged: the empty slot it will drop into. */
+    &[data-dragging]:not([data-settling]) > * {
+      visibility: hidden;
+    }
+
+    &[data-settling] {
       z-index: 1;
-      box-shadow: var(--ui-shadow);
-      transform: translate(var(--drag-x, 0), var(--drag-y, 0));
+    }
+
+    /* The copy that follows the pointer, lifted off the list. It's styled inline from the item
+       when it's made, so these need !important. */
+    &[data-drag-preview] {
+      border-radius: var(--ui-radius) !important;
+      background-color: var(--ui-card) !important;
+      box-shadow:
+        0 0 0 1px var(--ui-border),
+        0 12px 32px -8px rgb(0 0 0 / 0.35);
+      scale: 1.02;
+      transition: scale 150ms cubic-bezier(0.23, 1, 0.32, 1);
+
+      @starting-style {
+        scale: 1;
+      }
     }
   }
+}
+
+/* Dialogs hang from a fixed height in the upper part of the screen rather than its middle, and
+   grow downward when an error appears instead of shifting up. */
+@layer components {
+  :is([data-slot="dialog-content"], [data-slot="alert-dialog-content"]):not([data-presentation="sheet"]) {
+    margin-block-start: clamp(1rem, 22dvh, 16rem);
+  }
+}
+
+/* The pointer keeps its closed hand over everything it passes while dragging. */
+:root:has([data-drag-preview]),
+:root:has([data-drag-preview]) * {
+  cursor: grabbing !important;
 }

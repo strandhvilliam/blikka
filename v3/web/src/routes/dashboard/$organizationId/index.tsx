@@ -1,4 +1,11 @@
-import { IconArrowRight, IconChevronRight, IconLink, IconPlus, IconSearch } from "@tabler/icons-react";
+import {
+  IconArrowRight,
+  IconCalendarEvent,
+  IconChevronRight,
+  IconLink,
+  IconPlus,
+  IconSearch,
+} from "@tabler/icons-react";
 import { useMutation, useSuspenseQuery } from "@tanstack/react-query";
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -17,6 +24,7 @@ import { Button } from "@ui-sdk/react/button";
 import { isApiError } from "@/api/client.ts";
 import { type Competition, competitionsQuery, createCompetitionMutation } from "@/api/competitions.ts";
 import { Card } from "@/components/Card.tsx";
+import { EmptyState } from "@/components/EmptyState.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
 import { StatusBadge } from "@/components/StatusBadge.tsx";
 import { byStatus, competitionStatus } from "@/lib/competitionStatus.ts";
@@ -60,11 +68,12 @@ function Dashboard() {
       </PageHeader>
 
       {competitions.length === 0 ? (
-        <Card className="flex flex-col items-center gap-1 px-6 py-16 text-center">
-          <p className="font-medium">No events yet</p>
-          <p className="text-sm text-muted-foreground">
-            Competitions, photo walks and exhibitions you create show up here.
-          </p>
+        <Card>
+          <EmptyState
+            icon={IconCalendarEvent}
+            title="No events yet"
+            description="Competitions, photo walks and exhibitions you create show up here."
+          />
         </Card>
       ) : (
         <>
@@ -131,7 +140,7 @@ function Dashboard() {
                     <td className="px-3">
                       <StatusBadge status={competition.status} />
                     </td>
-                    <td className="px-3 font-mono text-xs text-muted-foreground uppercase max-md:hidden">
+                    <td className="px-3 font-mono text-xs text-muted-foreground max-md:hidden">
                       {formatWindow(competition.opens_at, competition.closes_at, competition.time_zone)}
                     </td>
                     <td className="pe-4 text-end">
@@ -141,8 +150,12 @@ function Dashboard() {
                 ))}
                 {shown.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="px-4 py-10 text-center text-muted-foreground">
-                      No events match.
+                    <td colSpan={4}>
+                      <EmptyState
+                        icon={IconSearch}
+                        title="No events match"
+                        description="Try another name, or show all events."
+                      />
                     </td>
                   </tr>
                 )}

@@ -6,6 +6,7 @@ import { Field, FieldError, FieldLabel } from "@ui-sdk/react/field";
 import { Input } from "@ui-sdk/react/input";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
+import { Section } from "@/components/Section.tsx";
 import { deleteOrganizationMutation, renameOrganizationMutation } from "@/api/organizations.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/settings")({
@@ -16,15 +17,17 @@ function Settings() {
   const { organization } = Route.useRouteContext();
 
   return (
-    <main className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-4 py-6 md:px-8">
+    <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8">
       <PageHeader title="Settings" description="The organization's name, and deleting it." />
-      {/* key: a rename elsewhere resets the field to the new name. */}
-      <Rename
-        key={organization.name}
-        organization={organization}
-        canWrite={organization.permissions.includes("organization:write")}
-      />
-      {organization.role === "owner" && <Delete organization={organization} />}
+      <div className="flex max-w-3xl flex-col gap-6">
+        {/* key: a rename elsewhere resets the field to the new name. */}
+        <Rename
+          key={organization.name}
+          organization={organization}
+          canWrite={organization.permissions.includes("organization:write")}
+        />
+        {organization.role === "owner" && <Delete organization={organization} />}
+      </div>
     </main>
   );
 }
@@ -37,38 +40,43 @@ function Rename({ organization, canWrite }: { organization: { id: string; name: 
 
   return (
     <form
-      className="grid max-w-md gap-3"
       onSubmit={(e) => {
         e.preventDefault();
         rename.mutate(name.trim(), { onSuccess: () => router.invalidate() });
       }}
     >
-      <Field disabled={!canWrite} invalid={rename.isError ? true : undefined}>
-        <FieldLabel>Organization name</FieldLabel>
-        <Input
-          required
-          maxLength={100}
-          value={name}
-          onValueChange={(value) => {
-            setName(value);
+      <Section
+        title="Name"
+        description="Shown to members and on every event's entry page."
+        footer={
+          canWrite && (
+            <Button
+              type="submit"
+              data-variant="solid"
+              disabled={rename.isPending || rename.isSuccess || unchanged || !name.trim()}
+            >
+              Save
+            </Button>
+          )
+        }
+      >
+        <Field disabled={!canWrite} invalid={rename.isError ? true : undefined} className="max-w-md">
+          <FieldLabel className="sr-only">Organization name</FieldLabel>
+          <Input
+            required
+            maxLength={100}
+            value={name}
+            onValueChange={(value) => {
+              setName(value);
 
-            if (rename.isError) {
-              rename.reset();
-            }
-          }}
-        />
-        {rename.isError && <FieldError>Couldn't save the name. Try again.</FieldError>}
-      </Field>
-      {canWrite && (
-        <Button
-          type="submit"
-          data-variant="solid"
-          className="justify-self-start"
-          disabled={rename.isPending || rename.isSuccess || unchanged || !name.trim()}
-        >
-          Save
-        </Button>
-      )}
+              if (rename.isError) {
+                rename.reset();
+              }
+            }}
+          />
+          {rename.isError && <FieldError>Couldn't save the name. Try again.</FieldError>}
+        </Field>
+      </Section>
     </form>
   );
 }
@@ -79,14 +87,17 @@ function Delete({ organization }: { organization: { id: string; name: string } }
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="flex flex-col items-start gap-3">
-      <div>
-        <h2 className="font-medium">Delete organization</h2>
-        <p className="text-sm text-muted-foreground">Its events and everyone's access to them go with it.</p>
-      </div>
-      <Button data-variant="destructive" onClick={() => setOpen(true)}>
-        Delete organization
-      </Button>
+    <>
+      <Section
+        tone="danger"
+        title="Delete organization"
+        description="Its events and everyone's access to them go with it."
+        footer={
+          <Button data-variant="destructive" onClick={() => setOpen(true)}>
+            Delete organization
+          </Button>
+        }
+      />
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}
@@ -96,6 +107,6 @@ function Delete({ organization }: { organization: { id: string; name: string } }
         onConfirm={() => remove.mutateAsync().then(() => navigate({ to: "/dashboard" }))}
         failure="Couldn't delete the organization. Try again."
       />
-    </section>
+    </>
   );
 }

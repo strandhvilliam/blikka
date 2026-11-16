@@ -20,6 +20,7 @@ import { isApiError } from "@/api/client.ts";
 import { type CompetitionUpdate, deleteCompetitionMutation, updateCompetitionMutation } from "@/api/competitions.ts";
 import { ConfirmDialog } from "@/components/ConfirmDialog.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
+import { Section } from "@/components/Section.tsx";
 import { formatIn, fromWallClock, timeZones, toWallClock } from "@/lib/timeZone.ts";
 
 export const Route = createFileRoute("/dashboard/$organizationId/events/$competitionId/settings")({
@@ -38,7 +39,7 @@ function Settings() {
         title="Settings"
         description="When the event runs, what participants submit, and whether it's published."
       />
-      <div className="flex flex-col gap-10">
+      <div className="flex max-w-3xl flex-col gap-6">
         {/* key: a save resets the fields to what the Api stored. */}
         <Details
           key={`${competition.name}|${competition.description}|${competition.time_zone}`}
@@ -78,55 +79,62 @@ function Details({ competition, canWrite }: { competition: Competition; canWrite
 
   return (
     <form
-      className="flex max-w-md flex-col gap-4"
       onSubmit={(e) => {
         e.preventDefault();
         update.save({ name: name.trim(), description: description.trim(), time_zone: timeZone });
       }}
       onChange={() => update.isError && update.reset()}
     >
-      <Field disabled={!canWrite}>
-        <FieldLabel>Name</FieldLabel>
-        <Input required maxLength={100} value={name} onValueChange={setName} />
-      </Field>
-      <Field disabled={!canWrite}>
-        <FieldLabel>Description</FieldLabel>
-        <Textarea autoResize maxLength={2000} value={description} onValueChange={setDescription} />
-      </Field>
-      <Combobox
-        items={timeZones(competition.time_zone).map((zone) => ({ value: zone, label: zone.replaceAll("_", " ") }))}
-        value={timeZone}
-        onValueChange={(zone) => zone && setTimeZone(zone)}
-        disabled={!canWrite}
-        autoHighlight
+      <Section
+        title="Details"
+        description="What participants see on the entry page, and the time zone its times are in."
+        footer={
+          <>
+            {update.isError && (
+              <p role="alert" className="me-auto text-sm text-destructive">
+                Couldn't save the details. Try again.
+              </p>
+            )}
+            {canWrite && (
+              <Button
+                type="submit"
+                data-variant="solid"
+                disabled={update.isPending || update.isSuccess || unchanged || !name.trim()}
+              >
+                Save
+              </Button>
+            )}
+          </>
+        }
       >
-        <div className="flex flex-col gap-1.5">
-          <ComboboxLabel>Time zone</ComboboxLabel>
-          <div>
-            <ComboboxInput />
-            <ComboboxTrigger aria-label="Show time zones" />
-          </div>
-        </div>
-        <ComboboxContent>
-          <ComboboxEmpty>No time zone matches.</ComboboxEmpty>
-          <ComboboxList />
-        </ComboboxContent>
-      </Combobox>
-      {update.isError && (
-        <p role="alert" className="text-sm text-destructive">
-          Couldn't save the details. Try again.
-        </p>
-      )}
-      {canWrite && (
-        <Button
-          type="submit"
-          data-variant="solid"
-          className="self-start"
-          disabled={update.isPending || update.isSuccess || unchanged || !name.trim()}
+        <Field disabled={!canWrite}>
+          <FieldLabel>Name</FieldLabel>
+          <Input required maxLength={100} value={name} onValueChange={setName} />
+        </Field>
+        <Field disabled={!canWrite}>
+          <FieldLabel>Description</FieldLabel>
+          <Textarea autoResize maxLength={2000} value={description} onValueChange={setDescription} />
+        </Field>
+        <Combobox
+          items={timeZones(competition.time_zone).map((zone) => ({ value: zone, label: zone.replaceAll("_", " ") }))}
+          value={timeZone}
+          onValueChange={(zone) => zone && setTimeZone(zone)}
+          disabled={!canWrite}
+          autoHighlight
         >
-          Save
-        </Button>
-      )}
+          <div className="flex flex-col gap-1.5">
+            <ComboboxLabel>Time zone</ComboboxLabel>
+            <div>
+              <ComboboxInput />
+              <ComboboxTrigger aria-label="Show time zones" />
+            </div>
+          </div>
+          <ComboboxContent>
+            <ComboboxEmpty>No time zone matches.</ComboboxEmpty>
+            <ComboboxList />
+          </ComboboxContent>
+        </Combobox>
+      </Section>
     </form>
   );
 }
@@ -174,6 +182,7 @@ function WallClockInput({
       <FieldLegend>{label}</FieldLegend>
       <div className="flex flex-wrap gap-2">
         <DatePicker
+          locale="en-GB"
           value={date}
           onValueChange={(next) => {
             // A single-date picker never reports a range.
@@ -189,6 +198,8 @@ function WallClockInput({
           <DatePickerContent />
         </DatePicker>
         <TimeInput
+          locale="en-GB"
+          hourCycle={24}
           aria-label={`${label}, time`}
           required={date !== null}
           value={time}
@@ -214,67 +225,75 @@ function Window({ competition, canWrite }: { competition: Competition; canWrite:
   const now = () => new Date().toISOString();
 
   return (
-    <section className="flex max-w-md flex-col gap-4">
-      <div>
-        <h2 className="font-medium">Submissions</h2>
-        <p className="text-sm text-muted-foreground">{status.text}</p>
-      </div>
-      {canWrite && (
-        <div>
-          {status.state === "not-open" && (
-            <Button disabled={update.isPending} onClick={() => update.save({ opens_at: now() })}>
-              Open submissions now
-            </Button>
-          )}
-          {status.state === "open" && (
-            <Button disabled={update.isPending} onClick={() => update.save({ closes_at: now() })}>
-              Close submissions now
-            </Button>
-          )}
-          {status.state === "closed" && (
-            <Button disabled={update.isPending} onClick={() => update.save({ closes_at: null })}>
-              Reopen submissions
-            </Button>
-          )}
-        </div>
-      )}
-      <form
-        className="flex flex-col gap-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          update.save({
-            opens_at: opens ? fromWallClock(opens, zone).toISOString() : null,
-            closes_at: closes ? fromWallClock(closes, zone).toISOString() : null,
-          });
-        }}
-        onChange={() => update.isError && update.reset()}
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        update.save({
+          opens_at: opens ? fromWallClock(opens, zone).toISOString() : null,
+          closes_at: closes ? fromWallClock(closes, zone).toISOString() : null,
+        });
+      }}
+      onChange={() => update.isError && update.reset()}
+    >
+      <Section
+        title="Submissions"
+        description={
+          <span className="flex items-start gap-2">
+            <span
+              aria-hidden
+              className={`mt-[7px] size-1.5 shrink-0 rounded-full ${status.state === "open" ? "bg-safelight" : status.state === "closed" ? "bg-muted-foreground" : "bg-blue-hour"}`}
+            />
+            {status.text}
+          </span>
+        }
+        aside={
+          canWrite && (
+            <>
+              {status.state === "not-open" && (
+                <Button type="button" disabled={update.isPending} onClick={() => update.save({ opens_at: now() })}>
+                  Open submissions now
+                </Button>
+              )}
+              {status.state === "open" && (
+                <Button type="button" disabled={update.isPending} onClick={() => update.save({ closes_at: now() })}>
+                  Close submissions now
+                </Button>
+              )}
+              {status.state === "closed" && (
+                <Button type="button" disabled={update.isPending} onClick={() => update.save({ closes_at: null })}>
+                  Reopen submissions
+                </Button>
+              )}
+            </>
+          )
+        }
+        footer={
+          <>
+            <p className="me-auto text-sm text-muted-foreground">
+              {update.isError ? (
+                <span role="alert" className="text-destructive">
+                  {isApiError(update.error, "CompetitionWindowInvalid")
+                    ? "Submissions have to close after they open."
+                    : "Couldn't save the times. Try again."}
+                </span>
+              ) : (
+                <>Times in {zone.replaceAll("_", " ")}. Leave closing empty for no deadline.</>
+              )}
+            </p>
+            {canWrite && (
+              <Button type="submit" data-variant="solid" disabled={update.isPending || update.isSuccess || unchanged}>
+                Save
+              </Button>
+            )}
+          </>
+        }
       >
-        <p className="text-sm text-muted-foreground">
-          Or schedule them, in {zone.replaceAll("_", " ")}. Leave closing empty for no deadline.
-        </p>
-        <fieldset disabled={!canWrite} className="contents">
+        <fieldset disabled={!canWrite} className="grid gap-4 sm:grid-cols-2">
           <WallClockInput label="Opens" value={opens} onChange={setOpens} />
           <WallClockInput label="Closes" value={closes} onChange={setCloses} />
         </fieldset>
-        {update.isError && (
-          <p role="alert" className="text-sm text-destructive">
-            {isApiError(update.error, "CompetitionWindowInvalid")
-              ? "Submissions have to close after they open."
-              : "Couldn't save the times. Try again."}
-          </p>
-        )}
-        {canWrite && (
-          <Button
-            type="submit"
-            data-variant="solid"
-            className="self-start"
-            disabled={update.isPending || update.isSuccess || unchanged}
-          >
-            Save
-          </Button>
-        )}
-      </form>
-    </section>
+      </Section>
+    </form>
   );
 }
 
@@ -283,24 +302,25 @@ function Publishing({ competition, canWrite }: { competition: Competition; canWr
   const published = competition.published_at !== null;
 
   return (
-    <section className="flex flex-col items-start gap-3">
-      <div>
-        <h2 className="font-medium">{published ? "Published" : "Draft"}</h2>
-        <p className="text-sm text-muted-foreground">
-          {published
-            ? `Participants can find and enter it since ${formatIn(new Date(competition.published_at!), competition.time_zone)}.`
-            : "Only your organization can see it. Publish it to let participants enter."}
-        </p>
-      </div>
-      {canWrite && (
-        <Button
-          data-variant={published ? undefined : "solid"}
-          disabled={update.isPending}
-          onClick={() => update.save({ published: !published })}
-        >
-          {published ? "Unpublish" : "Publish"}
-        </Button>
-      )}
+    <Section
+      title={published ? "Published" : "Draft"}
+      description={
+        published
+          ? `Participants can find and enter it since ${formatIn(new Date(competition.published_at!), competition.time_zone)}.`
+          : "Only your organization can see it. Publish it to let participants enter."
+      }
+      aside={
+        canWrite && (
+          <Button
+            data-variant={published ? undefined : "solid"}
+            disabled={update.isPending}
+            onClick={() => update.save({ published: !published })}
+          >
+            {published ? "Unpublish" : "Publish"}
+          </Button>
+        )
+      }
+    >
       {update.isError && (
         <p role="alert" className="text-sm text-destructive">
           {isApiError(update.error, "CompetitionHasParticipants")
@@ -310,7 +330,7 @@ function Publishing({ competition, canWrite }: { competition: Competition; canWr
               : `Couldn't ${published ? "unpublish" : "publish"} the event. Try again.`}
         </p>
       )}
-    </section>
+    </Section>
   );
 }
 
@@ -320,14 +340,17 @@ function Delete({ competition }: { competition: Competition }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <section className="flex flex-col items-start gap-3">
-      <div>
-        <h2 className="font-medium">Delete event</h2>
-        <p className="text-sm text-muted-foreground">Its participants and photos go with it.</p>
-      </div>
-      <Button data-variant="destructive" onClick={() => setOpen(true)}>
-        Delete event
-      </Button>
+    <>
+      <Section
+        tone="danger"
+        title="Delete event"
+        description="Its participants and photos go with it."
+        footer={
+          <Button data-variant="destructive" onClick={() => setOpen(true)}>
+            Delete event
+          </Button>
+        }
+      />
       <ConfirmDialog
         open={open}
         onOpenChange={setOpen}
@@ -343,6 +366,6 @@ function Delete({ competition }: { competition: Competition }) {
         }
         failure="Couldn't delete the event. Try again."
       />
-    </section>
+    </>
   );
 }

@@ -24,7 +24,8 @@ import {
   removeMemberMutation,
   transferOwnershipMutation,
 } from "@/api/members.ts";
-
+import { Card } from "@/components/Card.tsx";
+import { Count } from "@/components/EmptyState.tsx";
 import { PageHeader } from "@/components/PageHeader.tsx";
 
 export const Route = createFileRoute("/dashboard/$organizationId/members")({
@@ -50,38 +51,53 @@ function Members() {
       <PageHeader title="Members" description="People who can run this organization's events.">
         {canManage && <Invite organizationId={organization.id} />}
       </PageHeader>
-      <ul className="flex flex-col divide-y divide-border border-y border-border">
-        {members.map((member) => (
-          <li key={member.user_id} className="flex items-center gap-3 py-3">
-            <div className="flex min-w-0 flex-1 flex-col">
-              <span className="font-medium wrap-anywhere">
-                {member.name || member.email}
-                {member.user_id === session?.user.id && <span className="text-muted-foreground"> (you)</span>}
+      <Card className="overflow-hidden">
+        <ul aria-label="Members">
+          {members.map((member) => (
+            <li
+              key={member.user_id}
+              className="flex items-center gap-3 border-b border-border px-5 py-2.5 last:border-0"
+            >
+              <Initials name={member.name || member.email} />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="text-sm font-medium wrap-anywhere">
+                  {member.name || member.email}
+                  {member.user_id === session?.user.id && <span className="text-muted-foreground"> (you)</span>}
+                </span>
+                {member.name && <span className="truncate text-sm text-muted-foreground">{member.email}</span>}
+              </div>
+              <span
+                className={`inline-flex rounded-[7px] px-2 py-0.5 text-xs font-medium ${member.role === "owner" ? "bg-muted" : "text-muted-foreground ring-1 ring-border ring-inset"}`}
+              >
+                {roles[member.role]}
               </span>
-              {member.name && <span className="text-sm wrap-anywhere text-muted-foreground">{member.email}</span>}
-            </div>
-            <span className="text-sm text-muted-foreground">{roles[member.role]}</span>
-            <MemberActions
-              member={member}
-              organization={organization}
-              isSelf={member.user_id === session?.user.id}
-              canManage={canManage}
-            />
-          </li>
-        ))}
-      </ul>
+              <div className="flex w-8 justify-end">
+                <MemberActions
+                  member={member}
+                  organization={organization}
+                  isSelf={member.user_id === session?.user.id}
+                  canManage={canManage}
+                />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Card>
       {invitations.length > 0 && (
-        <section className="flex flex-col gap-3">
-          <div>
-            <h2 className="font-medium">Invited</h2>
+        <Card className="overflow-hidden">
+          <div className="px-5 py-4">
+            <div className="flex items-center gap-2">
+              <h2 className="font-semibold">Invited</h2>
+              <Count>{invitations.length}</Count>
+            </div>
             <p className="text-sm text-muted-foreground">They join by signing in to Blikka with the invited address.</p>
           </div>
-          <ul className="flex flex-col divide-y divide-border border-y border-border">
+          <ul className="border-t border-border">
             {invitations.map((invitation) => (
               <PendingInvitation key={invitation.id} invitation={invitation} canManage={canManage} />
             ))}
           </ul>
-        </section>
+        </Card>
       )}
     </main>
   );
@@ -157,7 +173,11 @@ function MemberActions({
   return (
     <>
       <Menu>
-        <MenuTrigger ref={trigger} aria-label={`Actions for ${who}`}>
+        <MenuTrigger
+          ref={trigger}
+          aria-label={`Actions for ${who}`}
+          className="size-8 border-transparent bg-transparent p-0 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
           <IconDots aria-hidden />
         </MenuTrigger>
         <MenuContent align="end">
@@ -191,6 +211,17 @@ function MemberActions({
   );
 }
 
+function Initials({ name }: { name: string }) {
+  return (
+    <span
+      aria-hidden
+      className="grid size-8 shrink-0 place-items-center rounded-full bg-muted text-xs font-medium text-muted-foreground uppercase"
+    >
+      {name.trim().charAt(0)}
+    </span>
+  );
+}
+
 function PendingInvitation({
   invitation,
   canManage,
@@ -206,9 +237,10 @@ function PendingInvitation({
   const expired = expiresAt <= new Date();
 
   return (
-    <li className="flex items-center gap-3 py-3">
+    <li className="flex items-center gap-3 border-b border-border px-5 py-2.5 last:border-0">
+      <Initials name={invitation.email} />
       <div className="flex min-w-0 flex-1 flex-col">
-        <span className="font-medium wrap-anywhere">{invitation.email}</span>
+        <span className="truncate text-sm font-medium">{invitation.email}</span>
         <span className="text-sm text-muted-foreground">
           {expired ? "Expired" : `Expires ${formatDistanceToNow(expiresAt, { addSuffix: true })}`}
         </span>

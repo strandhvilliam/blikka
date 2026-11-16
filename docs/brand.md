@@ -6,7 +6,9 @@ Design file: [Paper](https://app.paper.design/file/01M65Y9CDET2K4TE3HVK0A171J).
 
 | Page | What it holds |
 | --- | --- |
-| Blikka — Edition 03 | The current system: cover, color in both themes, type, shape |
+| Blikka — Edition 03 · full | The current system: cover, logo, color by day and after dark, type, shape, shot data, grain |
+| Blikka — Edition 03 · neutral light | A shorter set: cover, color in both themes, type, shape |
+| Blikka — Edition 03 | The short set on the earlier beige light ground |
 | Participant flow — Edition 03 | The participant app in light and dark, including the v3 flow (Google or guest, the roll as home) |
 | Organizer — org home | Org home, running and first run, in light and dark (the `E03` boards) |
 | Blikka — Edition 02, Edition 01 | Earlier editions, kept for reference. They still show the instant print, which the system no longer uses |
@@ -23,7 +25,8 @@ Logo source files: `apps/web/public/blikka-logo*.svg`.
 - **Photos bleed in org cards.** A photo runs to the card's edge and takes its corners. Everywhere else a photo is cut square.
 - **Four radii.** Photos 0, controls 10px, org cards 12px, one pill per screen. Sheets follow the device.
 - **Grain is for marketing.** The product has none, unless it means something on that screen.
-- **A new dark surface, Tank.** It's the dark partner of Frame white, for cards and sheets.
+- **A new dark surface, Tank.** It's the dark partner of the white card, for cards and sheets.
+- **Light is neutral gray.** The beige light palette (Paper, Frame white, Chin, Rule, Graphite) is gone from the product. Paper stays as dark mode's text color.
 
 ## The thesis
 
@@ -103,13 +106,16 @@ One palette, two lights. Every surface comes in light and dark and follows the s
 
 | Role | Light | Dark |
 | --- | --- | --- |
-| Ground | Paper `#F3F0E8` | Fixer `#0F0F0E` |
-| Card and sheet | Frame white `#FAF9F5` | Tank `#1C1B19` |
-| Panel and selected nav | Chin `#E7E3D8` | Tray `#2A2926` |
-| Line | Rule `#DAD5C8` | Tray `#2A2926` |
-| Muted text | Graphite `#5E5B54` | Silver `#A7A49C` |
+| Ground | `#FAFAFA` | Fixer `#0F0F0E` |
+| Card and sheet | White `#FFFFFF` | Tank `#1C1B19` |
+| Sidebar and top bar | `#F4F4F4` | `#090908` |
+| Panel and selected nav | `#F0F0F0` | Tray `#2A2926` |
+| Line | `#E5E5E5` | Tray `#2A2926` |
+| Muted text | `#666666` | Silver `#A7A49C` |
 | Text | Ink `#151515` | Paper `#F3F0E8` |
-| Main action | Ink fill, Frame white text | Paper fill, Ink text |
+| Main action | Ink fill, white text | Paper fill, Ink text |
+
+Light is untinted gray. A tinted ground changes how a photo's white balance reads, and near white any warmth shows as cream. The warmth lives in dark, where it reads as depth.
 
 In dark, both raised surfaces get lighter than the ground: Tank for cards and sheets, Tray for panels. Tray is also the hairline color, because a darker line disappears on Fixer.
 
@@ -122,7 +128,7 @@ The accents are the same in both themes.
 | Safelight | `#D3301F` | Live or due: the live dot, the last-photo deadline, a timer running out. Once per screen. |
 | Blue hour | `#5F7E9B` | State: the current frame's tick, an open topic, an upload in progress, a jury pick. |
 
-Neither accent reaches 4.5:1 for small text in both themes (Safelight is about 3.8:1 on Fixer and 4.3:1 on Paper, Blue hour about 4.5:1 and 3.8:1). So accents are dots, ticks, outlines and fills, not small text. A live line is a Safelight dot followed by text in Ink or Paper. A tag filled with Blue hour uses text at 14 px semibold or larger.
+Neither accent reaches 4.5:1 for small text in both themes (Safelight is about 3.8:1 on Fixer and 4.8:1 on the light ground, Blue hour about 4.5:1 and 4.1:1). So accents are dots, ticks, outlines and fills, not small text. A live line is a Safelight dot followed by text in Ink or Paper. A tag filled with Blue hour uses text at 14 px semibold or larger.
 
 ## Type
 
@@ -157,7 +163,7 @@ When a line mixes them, set each part in its own face: "Hand in by" in the sans,
 A photo's EXIF is the proof someone was there. It's shown in mono, small, next to the photo and never over it.
 
 - **Data line:** one line under the photo, `ƒ/2.8 · 1/250 · ISO 400` on the left and the capture time on the right.
-- **Frame counter:** `04/08`, with the total dimmed. Beneath it, one tick per frame: done in Ink (Paper in dark), the current frame in Blue hour, the rest in Rule (Tray in dark).
+- **Frame counter:** `04/08`, with the total dimmed. Beneath it, one tick per frame: done in Ink (Paper in dark), the current frame in Blue hour, the rest in the line color (`#E5E5E5`, Tray in dark).
 - **Real numbers only.** Use the photo's own EXIF. If a value is missing, leave it out rather than invent one.
 
 ## Shape
@@ -168,7 +174,7 @@ Square photos, soft controls.
 | --- | --- |
 | 0 | Photos, anywhere a photo is the work: the roll, the frame check, results, jury, gallery, exports |
 | 10px (`--radius-control`) | Inputs, secondary buttons, tags, segmented controls, menus, selected nav. It's ui-sdk's default `--ui-radius` |
-| 12px (`--radius-card`) | Org app cards only. No shadow, a Rule hairline at most |
+| 12px (`--radius-card`) | Org app cards only. No shadow, a hairline at most |
 | Full | The one main action per screen: the shutter, Add photos, New event |
 | The device's | Bottom sheets and the viewfinder, kept concentric with the phone |
 

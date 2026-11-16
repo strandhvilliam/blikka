@@ -5,6 +5,7 @@ import {
   IconListNumbers,
   IconSelector,
   IconSettings,
+  IconUsers,
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useMatchRoute, useNavigate } from "@tanstack/react-router";
@@ -35,6 +36,12 @@ const pages = [
     to: "/dashboard/$organizationId/events/$competitionId",
     label: "Overview",
     icon: IconLayoutDashboard,
+  },
+  {
+    group: "Event",
+    to: "/dashboard/$organizationId/events/$competitionId/participants",
+    label: "Participants",
+    icon: IconUsers,
   },
   {
     group: "Setup",
