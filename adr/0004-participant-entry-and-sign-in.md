@@ -117,6 +117,17 @@ ever follows a verified email, so typing someone's address never joins their his
 Email OTP stays enabled in the Api. Not showing it to participants is a choice in the website,
 not a restriction: the endpoint stays reachable.
 
+### A participant who already entered goes straight to their entry
+
+Before showing "Google / continue as guest", `/e/<slug>` asks
+`GET /entry/participants?competition_id=…` with whatever the browser holds: the session cookie,
+and the guest token it kept for this competition. One call covers both, because the scope reads
+either. If an entry comes back, the page opens it. Only an empty list shows the choice.
+
+The website keeps one guest token per competition, since each guest entry has its own. A token
+that no longer owns anything, because a sign-in claimed the entry, comes back as an empty list:
+the website drops it and shows the choice, and signing in finds the entry.
+
 ### Returning guests do not retype their details
 
 The website remembers a guest's name and email in the browser and fills in the entry form next
