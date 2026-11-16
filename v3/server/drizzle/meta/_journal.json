@@ -64,6 +64,13 @@
       "when": 1794784244538,
       "tag": "0008_add_submissions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794868534899,
+      "tag": "0009_participants_unique_live_only",
+      "breakpoints": true
     }
   ]
 }
