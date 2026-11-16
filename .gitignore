@@ -41,6 +41,10 @@ yarn-error.log*
 *.pem
 .local/
 
+# Local Claude skills, except ui-sdk's, a link to the shared one in .agents/skills
+.claude/skills/*
+!.claude/skills/ui-sdk
+
 # sst
 .sst
 
