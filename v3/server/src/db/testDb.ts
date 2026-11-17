@@ -8,7 +8,6 @@ import { PermissionsService } from "../permissions/service.ts";
 import { Db } from "./Db.ts";
 import * as model from "./model.ts";
 
-// Tests against the local Postgres (`bun run up`), each inside a transaction that is rolled back.
 const pool = new Pool({
   connectionString: "postgres://postgres:postgres@localhost:5433/blikka",
   max: 1,
@@ -32,10 +31,8 @@ export const rolledBack = (body: (tx: Tx) => Promise<void>) =>
     });
 
 // SAFETY: a transaction runs every query a service makes on Db, and its own transaction() opens a
-// savepoint, so a test's writes stay inside the transaction that rolledBack throws away.
 export const asDb = (tx: Tx) => tx as Db["Service"];
 
-// Runs a domain service against the transaction, the way api.ts provides it per request.
 export const runner = <I, S>(
   tx: Tx,
   service: Context.Service<I, S>,

@@ -1,7 +1,6 @@
 import { NumberInput, NumberInputControl, NumberInputGroup } from "@ui-sdk/react/number-input";
 import { Radio, RadioGroup, RadioIndicator } from "@ui-sdk/react/radio";
 
-// Worded the same in the setup and in Settings (adr/0009).
 const orders = [
   { value: "all", label: "All at once, like a photo marathon" },
   { value: "sequence", label: "One at a time, the next after the previous is done" },
@@ -38,7 +37,6 @@ export function TopicOrderRadio({
   );
 }
 
-// Minutes per topic, 1 to 1440 as the Api allows. Empty is no time limit.
 export function MinutesInput({
   labelledBy,
   value,

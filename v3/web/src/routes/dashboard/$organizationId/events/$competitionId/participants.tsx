@@ -49,7 +49,6 @@ function Participants() {
             </thead>
             <tbody>
               {participants.map((participant) => (
-                // The name's link stretches over the row, so the whole row opens the entry.
                 <tr
                   key={participant.id}
                   className="relative border-b border-border last:border-0 hover:bg-muted/40 has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-ring"

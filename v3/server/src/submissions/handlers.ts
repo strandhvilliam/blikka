@@ -4,7 +4,6 @@ import { CurrentUser } from "../auth/CurrentUser.ts";
 import { Api } from "../contract.ts";
 import { SubmissionsService } from "./service.ts";
 
-// The services are built per request (api.ts), so they're read inside each handler.
 export const SubmissionsHandlers = HttpApiBuilder.group(Api, "submissions", (handlers) =>
   handlers.handle("list", ({ query }) =>
     Effect.gen(function* () {

@@ -5,11 +5,7 @@ import { Pool } from "pg";
 import { slugOf } from "../src/competitions/schemas.ts";
 import * as model from "../src/db/model.ts";
 
-// `bun run db:seed you@example.com`: an organization that has run competitions for a few years, owned
-// by that email, in the local database only. Running it again replaces everything it made before,
-// and moves the live and upcoming competitions to the current time.
-
-const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:5433/blikka"; // docker-compose.yml
+const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:5433/blikka";
 const ORGANIZATION_ID = "5eed0000-0000-7000-8000-000000000001";
 
 const ownerEmail = process.argv[2]?.toLowerCase();
@@ -19,7 +15,6 @@ if (!ownerEmail || !ownerEmail.includes("@")) {
   process.exit(1);
 }
 
-// Same data every run, apart from the dates that follow now.
 let state = 20240601;
 
 const random = () => {
@@ -45,7 +40,6 @@ const DAY = 24 * HOUR;
 const now = new Date();
 const thisHour = Math.floor(now.getTime() / HOUR) * HOUR;
 
-// The last summer that has passed, so every dated competition below is over.
 const year = now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1;
 const at = (iso: string) => new Date(iso);
 
@@ -190,7 +184,6 @@ const emailOf = (name: string, domain: string) => `${slugOf(name).replace(/-/g, 
 
 type Person = { name: string; email: string; hasAccount: boolean };
 
-// Distinct names, so distinct emails. A fifth have an account, the rest enter as guests.
 const people: Array<Person> = shuffled(FIRST_NAMES.flatMap((first) => LAST_NAMES.map((last) => `${first} ${last}`)))
   .slice(0, 900)
   .map((name) => ({
@@ -201,7 +194,6 @@ const people: Array<Person> = shuffled(FIRST_NAMES.flatMap((first) => LAST_NAMES
 
 const accountPeople = people.filter((person) => person.hasAccount);
 
-// Low indexes come up far more often, so regulars enter year after year.
 const pickPeople = (count: number) => {
   const picked = new Set<number>();
 
@@ -370,7 +362,6 @@ const competitionSeeds: Array<CompetitionSeed> = [
   },
 ];
 
-// Submissions in topic order, each later than the last, none after now or the close.
 const submissionTimes = (topicCount: number, opensAt: Date | null, closesAt: Date | null) => {
   if (!opensAt || opensAt > now || topicCount === 0) {
     return [];
@@ -405,7 +396,6 @@ const submissionTimes = (topicCount: number, opensAt: Date | null, closesAt: Dat
   });
 };
 
-// Admins who joined over the years through invitations, one of whom has since left.
 const admins: Array<{ name: string; email: string; joined: Date; left?: Date }> = [
   { name: "Ebba Lindqvist", email: "ebba.lindqvist@example.org", joined: at(`${year - 2}-02-20T10:00:00+01:00`) },
   { name: "Omar Haddad", email: "omar.haddad@example.com", joined: at(`${year - 1}-01-08T18:00:00+01:00`) },
@@ -422,7 +412,6 @@ const pool = new Pool({ connectionString: LOCAL_DATABASE_URL, max: 1 });
 const db = drizzle(pool, { schema: model, casing: "snake_case" });
 
 const result = await db.transaction(async (tx) => {
-  // Replace what an earlier run made. The seeded users go too, the owner's account stays.
   const competitionIds = tx
     .select({ id: model.competitions.id })
     .from(model.competitions)
@@ -492,7 +481,6 @@ const result = await db.transaction(async (tx) => {
   }
 
   await tx.insert(model.organizationInvitations).values([
-    // Open
     {
       organizationId: ORGANIZATION_ID,
       email: "karin.sjoberg@example.com",
@@ -500,7 +488,6 @@ const result = await db.transaction(async (tx) => {
       createdAt: new Date(thisHour - 2 * DAY),
       expiresAt: new Date(thisHour + 5 * DAY),
     },
-    // Expired, never accepted
     {
       organizationId: ORGANIZATION_ID,
       email: "per.nystrom@example.org",
@@ -508,7 +495,6 @@ const result = await db.transaction(async (tx) => {
       createdAt: new Date(thisHour - 40 * DAY),
       expiresAt: new Date(thisHour - 33 * DAY),
     },
-    // Revoked
     {
       organizationId: ORGANIZATION_ID,
       email: "fel.adress@example.net",
@@ -519,7 +505,6 @@ const result = await db.transaction(async (tx) => {
     },
   ]);
 
-  // Accounts for the participants who have one, created before their first entry.
   const userIdByEmail = new Map<string, string>();
 
   const accountRows = await tx
@@ -587,7 +572,6 @@ const result = await db.transaction(async (tx) => {
       const times = submissionTimes(topics.length, seed.opensAt, seed.closesAt);
       const opensAt = seed.opensAt ?? now;
 
-      // Most sign up in the weeks before, the rest on the day.
       const signedUp =
         random() < 0.6 ? opensAt.getTime() - between(1, 21) * DAY : opensAt.getTime() + between(0, 1) * HOUR;
 

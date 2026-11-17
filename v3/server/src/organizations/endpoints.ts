@@ -7,7 +7,6 @@ import { Authenticated } from "../auth/Authenticated.ts";
 import { Permission, PermissionDenied, Role } from "../permissions/permissions.ts";
 import { Organization, OrganizationName, OrganizationNotFound } from "./schemas.ts";
 
-// A malformed id is a 400 here rather than a Postgres error (500).
 const params = { id: Schema.String.check(Schema.isUUID()) };
 
 export class OrganizationsApi extends HttpApiGroup.make("organizations")
@@ -38,7 +37,6 @@ export class OrganizationsApi extends HttpApiGroup.make("organizations")
     }),
   )
   .add(
-    // Owner only.
     HttpApiEndpoint.delete("remove", "/organizations/:id", {
       params,
       success: HttpApiSchema.NoContent,

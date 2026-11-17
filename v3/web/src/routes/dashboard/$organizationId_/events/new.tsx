@@ -8,7 +8,6 @@ import { organizationQuery } from "@/api/organizations.ts";
 import { EventNameStep } from "@/components/EventNameStep.tsx";
 import { setupQuestions } from "@/lib/setupQuestions.ts";
 
-// Outside the organization layout (the trailing _), so the setup has the page to itself.
 export const Route = createFileRoute("/dashboard/$organizationId_/events/new")({
   beforeLoad: async ({ context, params }) => {
     const organization = await context.queryClient.ensureQueryData(organizationQuery(params.organizationId));
@@ -22,7 +21,6 @@ export const Route = createFileRoute("/dashboard/$organizationId_/events/new")({
   component: NewEvent,
 });
 
-// The name creates the event as a draft, and the setup's other questions update it (adr/0009).
 function NewEvent() {
   const { organization } = Route.useRouteContext();
   const navigate = useNavigate();

@@ -16,8 +16,6 @@ const columns = {
   competition_id: topics.competitionId,
   name: topics.name,
   position: topics.position,
-  // drizzle writes a single-table select's columns without their table, which would make this
-  // subquery's id ambiguous, so each column is named through its table.
   submissions: sql<number>`(
     select count(*)::int from ${model.submissions}
     inner join ${model.participants} on ${model.participants}.id = ${model.submissions}.participant_id
@@ -27,9 +25,6 @@ const columns = {
 
 const liveIn = (competitionId: string) => and(eq(topics.competitionId, competitionId), isNull(topics.deletedAt));
 
-// Every topic write takes this lock first, so positions are renumbered one write at a time, a
-// publish can't race the last topic's delete, and a submit (FOR SHARE) can't slip past the
-// submissions checks. Undefined when the competition was deleted.
 const lockCompetition = (tx: Tx, id: string) =>
   Effect.gen(function* () {
     const [competition] = yield* Effect.promise(() =>
@@ -117,7 +112,6 @@ export class TopicsService extends Context.Service<TopicsService>()("blikka/topi
         Effect.gen(function* () {
           const competition = yield* lockCompetition(tx, competitionId);
 
-          // Deleted since the check.
           if (!competition) {
             return yield* new CompetitionNotFound();
           }
@@ -143,7 +137,6 @@ export class TopicsService extends Context.Service<TopicsService>()("blikka/topi
         Effect.gen(function* () {
           const competition = yield* lockCompetition(tx, competitionId);
 
-          // Deleted since the check.
           if (!competition) {
             return yield* new TopicNotFound();
           }
@@ -176,7 +169,6 @@ export class TopicsService extends Context.Service<TopicsService>()("blikka/topi
               }
             }
 
-            // Shift the topics between the old and new position by one to close the gap.
             if (to < from) {
               yield* Effect.promise(() =>
                 tx
@@ -215,7 +207,6 @@ export class TopicsService extends Context.Service<TopicsService>()("blikka/topi
         Effect.gen(function* () {
           const competition = yield* lockCompetition(tx, competitionId);
 
-          // Deleted since the check.
           if (!competition) {
             return yield* new TopicNotFound();
           }
@@ -244,7 +235,6 @@ export class TopicsService extends Context.Service<TopicsService>()("blikka/topi
               .set({ deletedAt: sql`now()` })
               .where(eq(topics.id, id)),
           );
-          // Close the gap it leaves.
           yield* Effect.promise(() =>
             tx
               .update(topics)

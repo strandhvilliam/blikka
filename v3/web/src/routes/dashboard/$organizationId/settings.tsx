@@ -20,7 +20,6 @@ function Settings() {
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8">
       <PageHeader title="Settings" description="The organization's name, and deleting it." />
       <div className="flex flex-col gap-6">
-        {/* key: a rename elsewhere resets the field to the new name. */}
         <Rename
           key={organization.name}
           organization={organization}

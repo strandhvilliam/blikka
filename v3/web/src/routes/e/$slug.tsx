@@ -72,7 +72,6 @@ function EventPage() {
   );
 }
 
-// A guest's token lives in this browser (adr/0004), so the entry is only looked up once mounted.
 function Entry({ competition }: { competition: Competition }) {
   const { data: participant } = useQuery(myEntryQuery(competition.id));
 
@@ -116,7 +115,6 @@ type Topic = {
   position: number;
   name: string | null;
   status: "done" | "open" | "locked" | "missed";
-  // This participant's deadline for an open or done topic; null for none.
   closes_at: string | null;
 };
 
@@ -138,10 +136,8 @@ const progress = (competition: Competition, topics: Array<Topic>) => {
   return `${done} of ${topics.length} done`;
 };
 
-// Until its deadline, the event's close or the topic's time limit.
 const replaceable = (topic: Topic) => topic.closes_at === null || new Date(topic.closes_at) > new Date();
 
-// A locked topic's title already says so.
 const statusLabel = { done: "Done", open: "Open", locked: null, missed: "Missed" };
 
 function Topics({
@@ -170,7 +166,6 @@ function Topics({
                 Topic {topic.position} of {topics.length}
               </span>
               <span className="font-medium wrap-anywhere">{topic.name ?? "Locked"}</span>
-              {/* The event's own close is already above, so only a topic's time limit shows here. */}
               {topic.status === "open" && topic.closes_at && topic.closes_at !== competition.closes_at && (
                 <Deadline
                   closesAt={topic.closes_at}
@@ -180,7 +175,6 @@ function Topics({
                 />
               )}
             </div>
-            {/* shortcut: a button stands in for the upload until uploads ship (.local/plans/competition-slices.md). */}
             {topic.status === "open" || (topic.status === "done" && replaceable(topic)) ? (
               <Button
                 data-variant={topic.status === "open" ? "solid" : undefined}
@@ -206,8 +200,6 @@ function Topics({
 
 const hour = 60 * 60 * 1000;
 
-// "Closes 14:30", and a live "12:34 left" in the last hour. When it passes, the topics are fetched
-// again, so this one shows as missed and the next one opens.
 function Deadline({
   closesAt,
   timeZone,
@@ -231,7 +223,6 @@ function Deadline({
       return;
     }
 
-    // Every second in the last hour, otherwise once the last hour starts.
     const timer = setTimeout(() => setNow(Date.now()), left > hour ? left - hour : 1000);
 
     return () => clearTimeout(timer);
@@ -262,7 +253,6 @@ const enterError = (error: Error, signedIn: boolean) => {
     return "Entries have closed.";
   }
 
-  // Signing in with that email claims the guest entry (adr/0004).
   if (isApiError(error, "AlreadyEntered") && !signedIn) {
     return "That email has already entered. Continue with Google using it to get your entry back.";
   }
@@ -277,7 +267,6 @@ const enterError = (error: Error, signedIn: boolean) => {
 function EnterForm({ competition }: { competition: Competition }) {
   const { session } = Route.useRouteContext();
   const enter = useMutation(enterMutation(competition.id));
-  // The form only renders once mounted (Entry), so reading the browser's storage here is safe.
   const [name, setName] = useState(() => rememberedGuest().name);
   const [email, setEmail] = useState(() => rememberedGuest().email);
   const submit = (guest: { name: string; email: string } | null) => enter.mutate(guest);

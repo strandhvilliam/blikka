@@ -18,8 +18,6 @@ export function Steps({ progress: [step, of] }: { progress: [step: number, of: n
   );
 }
 
-// One question, centered. `children` gets the question's id to label its fields with. `submit`
-// returns an error message, or nothing once it has moved on.
 export function Step({
   greeting,
   question,
@@ -38,18 +36,15 @@ export function Step({
   hint: ReactNode;
   progress?: [step: number, of: number];
   back?: () => void;
-  // Moves on without saving, for a question the event works without.
   skip?: () => void;
   action?: string;
   complete: boolean;
-  // Shown until the next submit, for an error found on a later step.
   error?: string;
   submit: () => Promise<string | void> | string | void;
   children: (labelId: string) => ReactNode;
 }) {
   const id = useId();
   const [error, setError] = useState(initialError);
-  // Stays set after success too, so a second click while moving on can't submit twice.
   const [submitting, setSubmitting] = useState(false);
 
   return (

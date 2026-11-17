@@ -47,7 +47,6 @@ test("an admin removes another admin, who drops out of the list and loses access
     await run((s) => s.remove(admin, organizationId, other.id));
     expect((await run((s) => s.list(owner, organizationId))).map((m) => m.user_id)).toEqual([owner.id, admin.id]);
     expect(await run((s) => s.list(other))).toEqual([]);
-    // Gone already, and a removed member can't act any more.
     expect(await fails((s) => s.remove(admin, organizationId, other.id))).toBe("MemberNotFound");
     expect(await fails((s) => s.remove(other, organizationId, admin.id))).toBe("MemberNotFound");
   }));
@@ -85,7 +84,6 @@ test("an admin leaves by removing themselves; the owner can't leave or be remove
         ),
       );
 
-    // Kept as a record, marked removed.
     expect(row?.deletedAt).toBeInstanceOf(Date);
   }));
 
@@ -114,7 +112,6 @@ test("the owner hands ownership to an admin and becomes an admin", () =>
       [owner.id, "admin"],
       [admin.id, "owner"],
     ]);
-    // The former owner is an admin now, so they can't take it back, and can leave.
     expect(await fails((s) => s.transferOwnership(owner, organizationId, owner.id))).toBe("PermissionDenied");
     await run((s) => s.remove(owner, organizationId, owner.id));
   }));
@@ -134,9 +131,6 @@ test("only the owner transfers, never to themselves, and only to a member", () =
     expect((await run((s) => s.list(owner, organizationId))).map((m) => m.role)).toEqual(["owner"]);
   }));
 
-// The Db the service gets runs `meanwhile` right before the transfer's transaction, after the checks
-// have passed: what another request could do in between.
-// It replaces the method on the test's own transaction, which rolledBack discards.
 const racing = (tx: Tx, meanwhile: () => Promise<void>) => {
   const transaction = tx.transaction.bind(tx);
 
@@ -157,7 +151,6 @@ const roles = (tx: Tx, organizationId: string) =>
     .select({ userId: model.organizationMembers.userId, role: model.organizationMembers.role })
     .from(model.organizationMembers)
     .where(eq(model.organizationMembers.organizationId, organizationId))
-    // created_at is the same for every row in the test's transaction; uuidv7 ids sort by creation.
     .orderBy(model.organizationMembers.userId);
 
 test("a transfer to someone removed meanwhile rolls back, and the owner stays owner", () =>
@@ -209,7 +202,6 @@ test("the database refuses a second owner", () =>
   rolledBack(async (tx) => {
     const { admin, organizationId } = await setup(tx);
 
-    // A savepoint, so the failure doesn't abort the test's transaction.
     const error = await tx
       .transaction((savepoint) =>
         savepoint

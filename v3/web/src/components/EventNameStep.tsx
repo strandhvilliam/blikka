@@ -3,7 +3,6 @@ import { Input } from "@ui-sdk/react/input";
 import { Step } from "@/components/Step.tsx";
 import { slugOf } from "@/lib/slug.ts";
 
-// The setup's first question, for a new event and for renaming the draft it made.
 export function EventNameStep({
   value,
   onChange,
@@ -35,7 +34,6 @@ export function EventNameStep({
             value={value}
             onValueChange={onChange}
           />
-          {/* min-w-0 lets a long slug truncate instead of widening the page. */}
           {value.trim() && (
             <p className="flex min-w-0 items-center justify-center gap-1.5 text-sm text-muted-foreground">
               <IconLink aria-hidden className="size-4 shrink-0" />

@@ -80,7 +80,6 @@ function ParticipantDetail() {
 
               return (
                 <li key={topic.id} className="flex min-h-11 items-center gap-3 px-5 py-2 text-sm">
-                  {/* A frame number, like the roll's 04/08. */}
                   <span className="w-5 shrink-0 text-end font-mono text-xs text-muted-foreground">
                     {String(index + 1).padStart(2, "0")}
                   </span>
@@ -109,7 +108,6 @@ function ParticipantDetail() {
   );
 }
 
-// Done once submitted; after the event closes, a topic that wasn't is missed.
 function TopicStatus({ at, closed, timeZone }: { at: string | undefined; closed: boolean; timeZone: string }) {
   if (at) {
     return (

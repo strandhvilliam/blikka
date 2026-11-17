@@ -17,9 +17,6 @@ const notMoving: ReorderDraft | null = null;
 
 const easeOut = "cubic-bezier(0.23, 1, 0.32, 1)";
 
-// Moves items to their new places from where they were on screen instead of letting them jump:
-// the others as a dragged item passes them, and the dropped item from the pointer into its slot.
-// Keyboard moves stay instant.
 const slideItems = (list: HTMLElement) => {
   const doc = list.ownerDocument;
   const view = doc.defaultView;
@@ -31,7 +28,6 @@ const slideItems = (list: HTMLElement) => {
   const reduced = view.matchMedia("(prefers-reduced-motion: reduce)");
   const items = () => [...list.querySelectorAll<HTMLElement>(":scope > *")];
   const dragged = () => list.querySelector<HTMLElement>(":scope > [data-dragging]");
-  // Where each item sat in the layout after the last change, transforms aside.
   const tops = new Map<Element, number>();
 
   const remember = () => {
@@ -53,7 +49,6 @@ const slideItems = (list: HTMLElement) => {
           continue;
         }
 
-        // From where it shows now, partway through an earlier slide included.
         const shown = before + new DOMMatrixReadOnly(view.getComputedStyle(item).transform).m42;
         const from = shown - item.offsetTop;
 
@@ -73,7 +68,6 @@ const slideItems = (list: HTMLElement) => {
     remember();
   });
 
-  // Before the drag ends and takes its copy away: the item glides from the copy into its slot.
   const settle = () => {
     const item = dragged();
     const preview = doc.querySelector<HTMLElement>("[data-drag-preview]");
@@ -116,10 +110,6 @@ const slideItems = (list: HTMLElement) => {
   };
 };
 
-// A list whose items are reordered by dragging them, or by focusing the handle and pressing Space,
-// the arrows, then Space again. A mouse drags an item from anywhere but its controls; touch drags
-// by the handle only, so swiping the list still scrolls the page. Render the items in the root's
-// `order`, which follows the drag, so the others move aside while an item is picked up.
 export const sortableList = definePrimitive({
   name: "sortable-list",
   options: { value: "list", defaultValue: "list", onValueChange: "callback" },
@@ -137,8 +127,6 @@ export const sortableList = definePrimitive({
       key: "value",
       draft: "moving",
       set: (value, details) => change("value", value, details),
-      // A copy follows the pointer above the page, so the list's edges don't clip it and a long
-      // list scrolls near them, while the item itself stays behind to show where it will land.
       preview: true,
     });
 
@@ -157,7 +145,6 @@ export const sortableList = definePrimitive({
       }),
       on: {
         pointerdown: (event, { el, api, key }) => {
-          // Its controls keep their clicks, and an item without a handle can't be moved.
           if (
             event.pointerType !== "mouse" ||
             !(event.target instanceof Element) ||
@@ -190,7 +177,6 @@ export const sortableList = definePrimitive({
   agent: { actions: ["move"] },
 });
 
-// The one item a drop moved, and where it landed, from 1. Null when nothing moved.
 export const movedItem = (before: readonly string[], after: readonly string[]) => {
   const first = after.findIndex((key, index) => key !== before[index]);
 
@@ -200,7 +186,6 @@ export const movedItem = (before: readonly string[], after: readonly string[]) =
 
   const last = after.findLastIndex((key, index) => key !== before[index]);
 
-  // Moving down leaves the item at the end of the changed stretch; moving up, at its start.
   return before[first] === after[last]
     ? { key: after[last]!, position: last + 1 }
     : { key: after[first]!, position: first + 1 };

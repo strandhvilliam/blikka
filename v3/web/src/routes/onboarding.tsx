@@ -22,7 +22,6 @@ export const Route = createFileRoute("/onboarding")({
 
     return { session: context.session };
   },
-  // fetchQuery, not ensureQueryData, so an invitation sent since the last visit shows up.
   loader: ({ context }) => context.queryClient.fetchQuery(receivedInvitationsQuery),
   component: Onboarding,
 });
@@ -33,7 +32,6 @@ function Onboarding() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const createOrganization = useMutation(createOrganizationMutation);
-  // Email-code sign-ups start with an empty name; Google sign-ups bring theirs and skip the step.
   const [asksName] = useState(!session.user.name.trim());
   const [invited] = useState(invitations.length > 0);
   const afterName = invited ? "invitations" : "organization";
@@ -105,7 +103,6 @@ function Onboarding() {
           </Step>
         )}
       </div>
-      {/* The gate sends anyone without an org back here, so this is the only way out of the wrong account. */}
       <p className="flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
         Signed in as {session.user.email}
         <Button onClick={signOut}>Sign out</Button>
@@ -129,7 +126,6 @@ function Invitations({
 }) {
   const accept = useMutation(acceptInvitationMutation);
   const navigate = useNavigate();
-  // isSuccess too, so a second click while moving on can't join twice.
   const joining = accept.isPending || accept.isSuccess;
 
   const join = (id: string) =>
@@ -178,7 +174,6 @@ function Invitations({
   );
 }
 
-// The keyboard comes up with the question.
 function Answer({
   labelId,
   placeholder,

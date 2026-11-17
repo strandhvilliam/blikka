@@ -31,21 +31,14 @@ const GoogleConfig = Config.all({
 export const AuthConfig = Config.all({
   secret: Config.Redacted("BETTER_AUTH_SECRET"),
   baseURL: Config.String("BETTER_AUTH_URL"),
-  // The only origin allowed to call the Api with cookies, and to be redirected to.
   websiteURL: Config.String("WEBSITE_URL"),
-  // Required on deployed stages. Under `alchemy dev` Google sign-in is off unless both are set.
   google: Config.flatMap(ALCHEMY_DEV, (dev) =>
     dev ? Config.option(GoogleConfig) : Config.map(GoogleConfig, Option.some),
   ),
 });
 
-// Set on a custom domain, so the website's server also gets the session cookie and can render
-// signed-in pages.
 type CookieDomain = string | undefined;
 
-// emailOTP endpoints the website doesn't call. check-verification-otp counts attempts without a
-// lock, so parallel guesses at a sign-in code get past the 3-attempt limit; the rest are
-// password and email-verification flows this Api doesn't have.
 export const disabledAuthPaths = [
   "/email-otp/check-verification-otp",
   "/email-otp/verify-email",
@@ -56,14 +49,12 @@ export const disabledAuthPaths = [
 
 const MAX_CODES_PER_HOUR = 5;
 
-// A request for a code; anything else is left to Better Auth to reject.
 const decodeOtpRequest = Schema.decodeUnknownOption(Schema.Struct({ email: Schema.String }));
 
 export const makeAuth = (
   db: Db["Service"],
   config: Config.Success<typeof AuthConfig>,
   cookieDomain: CookieDomain,
-  // Never rejects: a failed claim must not fail the sign-in; the entry can still be taken over by entering.
   claimGuestEntries: (userId: string) => Promise<void>,
 ) =>
   betterAuth({
@@ -74,8 +65,6 @@ export const makeAuth = (
     trustedOrigins: [config.websiteURL],
     disabledPaths: disabledAuthPaths,
     hooks: {
-      // Each code allows 3 guesses, so the number of codes per email is what bounds guessing at
-      // someone else's. Counted per email, not per IP, so it holds against any number of IPs.
       before: createAuthMiddleware(async (ctx) => {
         const request = decodeOtpRequest(ctx.body);
 
@@ -88,7 +77,6 @@ export const makeAuth = (
         const { otpSends } = model;
         const expired = sql`${otpSends.windowStart} < now() - interval '1 hour'`;
 
-        // One statement, so parallel requests can't each read the same count.
         const [sent] = await db
           .insert(otpSends)
           .values({ email: email.toLowerCase(), count: 1, windowStart: sql`now()` })
@@ -112,7 +100,6 @@ export const makeAuth = (
       crossSubDomainCookies: { enabled: cookieDomain !== undefined, domain: cookieDomain },
       database: { generateId: "uuid" },
     },
-    // Account linking is on by default: Google and email OTP with the same verified email are one user.
     socialProviders: Option.match(config.google, {
       onNone: () => ({}),
       onSome: ({ clientId, clientSecret }) => ({
@@ -126,10 +113,8 @@ export const makeAuth = (
     },
     session: { cookieCache: { enabled: true, maxAge: 5 * 60 } },
     plugins: [
-      // Non-browser clients send the session as `Authorization: Bearer <token>`.
       bearer({ requireSignature: true }),
       emailOTP({
-        // shortcut: logs the code instead of emailing it, replace with the email service before launch.
         sendVerificationOTP: async ({ email, otp, type }) => {
           console.log(`[auth] ${type} OTP for ${email}: ${otp}`);
         },
@@ -151,8 +136,6 @@ export const AuthLive = (config: Config.Success<typeof AuthConfig>, cookieDomain
     Auth,
     Effect.gen(function* () {
       const participants = yield* ParticipantsService;
-      // Better Auth calls back outside Effect, so the claim runs with this request's context: its
-      // trace, logger and Sentry scope. Built per request (api.ts), so the context is the request's.
       const run = Effect.runPromiseWith(yield* Effect.context<SentryScope>());
 
       const claimGuestEntries = (userId: string) => {
@@ -175,8 +158,6 @@ export const getSession = Effect.fn("Auth.getSession")(function* (headers?: Head
   return yield* Effect.promise(() => auth.api.getSession({ headers: sessionHeaders }));
 });
 
-// CSRF: the session cookie is SameSite=Lax, so any subdomain of the cookie domain can still send
-// it with a POST. Browsers always send Origin on those; non-browser clients send none.
 const checkOrigin = Effect.fn("Auth.checkOrigin")(function* () {
   const auth = yield* Auth;
   const request = yield* HttpServerRequest.HttpServerRequest;
@@ -212,7 +193,6 @@ const entrySession = Effect.fn("Auth.entrySession")(function* (
 
   const headers = new Headers(request.headers);
 
-  // A guest token isn't a session, so Better Auth only sees the cookie.
   if (guestToken) {
     headers.delete("authorization");
   }
@@ -225,7 +205,6 @@ const entrySession = Effect.fn("Auth.entrySession")(function* (
 });
 
 // SAFETY: the cast swaps Auth for its per-request marker (see Authenticated.ts). It holds because the
-// middleware runs inside each request, after api.ts has provided Auth.
 export const AuthenticatedLive = Layer.succeed(Authenticated)(authenticate as Authenticated["Service"]);
 
 // SAFETY: as for AuthenticatedLive.

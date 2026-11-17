@@ -18,12 +18,10 @@ import {
   TimeLimitNeedsSequence,
 } from "./schemas.ts";
 
-// A malformed id is a 400 here rather than a Postgres error (500).
 const Id = Schema.String.check(Schema.isUUID());
 
 export class CompetitionsApi extends HttpApiGroup.make("competitions")
   .add(
-    // Only ever the caller's competitions; organization_id narrows that, and someone else's gives [].
     HttpApiEndpoint.get("list", "/competitions", {
       query: { organization_id: Schema.optionalKey(Id) },
       success: Schema.Array(Competition),

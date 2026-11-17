@@ -24,7 +24,6 @@ export function EmptyState({
   );
 }
 
-// A count beside a card's title, like "4" or "1/3".
 export function Count({ children }: { children: ReactNode }) {
   return (
     <span className="rounded-[6px] bg-muted px-1.5 py-px font-mono text-[0.6875rem] text-muted-foreground">

@@ -38,12 +38,9 @@ function Topics() {
   const { competition, organization } = Route.useRouteContext();
   const { data: topics } = useSuspenseQuery(topicsQuery(competition.id));
   const move = useMutation(updateTopicMutation(competition.id));
-  // The dropped order, shown until the Api's order comes back with it or the move fails.
   const [moved, setMoved] = useState<string[] | null>(null);
   const canWrite = organization.permissions.includes("competitions:write");
-  // The Api refuses to move topics once anyone has submitted (409), since participants go by the numbers.
   const orderFixed = topics.some((topic) => topic.submissions > 0);
-  // The Api refuses to delete it (409).
   const lastOfPublished = competition.published_at !== null && topics.length === 1;
   const byId = new Map(topics.map((topic) => [topic.id, topic]));
   const saved = topics.map((topic) => topic.id);
@@ -96,12 +93,10 @@ function Topics() {
               }
             }}
           >
-            {/* In the order the drag shows, so the numbers follow it too. */}
             {(state) =>
               state.order.map((id, index) => {
                 const topic = byId.get(id);
 
-                // A topic deleted while a move was saving.
                 if (!topic) {
                   return null;
                 }
@@ -216,7 +211,6 @@ function TopicRow({
   const remove = useMutation(deleteTopicMutation(competitionId));
   const [action, setAction] = useState<"edit" | "delete">();
   const trigger = useRef<HTMLButtonElement>(null);
-  // Why the Api would refuse the delete (409), shown under the disabled menu item.
   let undeletable: string | null = null;
 
   if (topic.submissions > 0) {
@@ -230,13 +224,11 @@ function TopicRow({
       value={topic.id}
       className="flex min-h-12 items-center gap-2 bg-card px-3 py-2 hover:bg-muted/40 data-grabbed:bg-muted data-dragging:not-data-settling:bg-muted/50"
     >
-      {/* Without a handle the row can't be picked up. */}
       {canMove && (
         <SortableListHandle value={topic.id} aria-label={`Move ${topic.name}`}>
           <IconGripVertical aria-hidden />
         </SortableListHandle>
       )}
-      {/* A frame number, like the roll's 04/08. */}
       <span data-position className="w-5 shrink-0 text-end font-mono text-xs text-muted-foreground">
         {String(index + 1).padStart(2, "0")}
       </span>
@@ -266,7 +258,6 @@ function TopicRow({
               </MenuItem>
             </MenuContent>
           </Menu>
-          {/* Mounted while closed too, so closing can hand focus back to the menu's trigger. */}
           <EditTopic
             topic={topic}
             competitionId={competitionId}
@@ -294,7 +285,6 @@ function TopicRow({
   );
 }
 
-// Only the name for now; a topic's other settings join it here.
 function EditTopic({
   topic,
   competitionId,
@@ -329,7 +319,6 @@ function EditTopic({
           className="flex flex-col gap-6"
           onSubmit={(e) => {
             e.preventDefault();
-            // The list refetches before this resolves, so the old name never flashes back.
             update.mutate({ id: topic.id, name: name.trim() }, { onSuccess: onClose });
           }}
         >

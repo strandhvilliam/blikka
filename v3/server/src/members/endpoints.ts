@@ -9,7 +9,6 @@ import { Member, MemberNotFound, OwnerCannotBeRemoved } from "./schemas.ts";
 
 const Id = Schema.String.check(Schema.isUUID());
 
-// A member is the pair (organization, user), so organization_id is required wherever one is named.
 export class MembersApi extends HttpApiGroup.make("members")
   .add(
     HttpApiEndpoint.get("list", "/members", {
@@ -19,7 +18,6 @@ export class MembersApi extends HttpApiGroup.make("members")
     }),
   )
   .add(
-    // Only "owner" for now: the owner hands over ownership and becomes an admin.
     HttpApiEndpoint.patch("update", "/members/:user_id", {
       params: { user_id: Id },
       query: { organization_id: Id },
@@ -29,7 +27,6 @@ export class MembersApi extends HttpApiGroup.make("members")
     }),
   )
   .add(
-    // Your own user_id is leaving the organization.
     HttpApiEndpoint.delete("remove", "/members/:user_id", {
       params: { user_id: Id },
       query: { organization_id: Id },

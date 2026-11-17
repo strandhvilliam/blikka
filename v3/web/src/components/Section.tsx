@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { Card } from "./Card.tsx";
 
-// A footer's confirmation once its form is saved: a Leaf dot, the word in the text color (docs/brand.md, Status).
 export function Saved() {
   return (
     <p role="status" className="me-auto flex items-center gap-2 text-sm">
@@ -11,7 +10,6 @@ export function Saved() {
   );
 }
 
-// A settings card: what it is on top, its fields in the middle, and its action in a footer bar.
 export function Section({
   title,
   description,

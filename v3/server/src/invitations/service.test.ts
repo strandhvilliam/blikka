@@ -144,7 +144,6 @@ test("only an admin of the invitation's organization can revoke it, and only whi
 
     await run((s) => s.revoke(owner, id));
     expect(await fails((s) => s.revoke(owner, id))).toBe("InvitationNotFound");
-    // A revoked invitation frees the address to be invited again, as a new invitation.
     const again = await run((s) => s.create(owner, organizationId, invitee.email));
     expect(again.id).not.toBe(id);
   }));

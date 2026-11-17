@@ -12,10 +12,6 @@ import { ParticipantsApi } from "./participants/endpoints.ts";
 import { SubmissionsApi } from "./submissions/endpoints.ts";
 import { TopicsApi } from "./topics/endpoints.ts";
 
-// Schemas only, so clients can import it without pulling in the database, Better Auth or secrets.
-// A group's `.middleware(Authenticated)` covers only the endpoints added before it.
-
-// Encoding drops every field not listed here, so the Api only ever sends these.
 export const User = Schema.Struct({
   id: Schema.String,
   email: Schema.String,

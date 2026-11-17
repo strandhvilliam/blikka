@@ -22,8 +22,6 @@ import {
 
 const Id = Schema.String.check(Schema.isUUID());
 
-// What participants call, as guests or signed in (adr/0004): the organizer's flat routes under /entry,
-// each answering only with the caller's own entries.
 export class EntryApi extends HttpApiGroup.make("entry")
   .add(
     HttpApiEndpoint.get("competition", "/competitions/:slug", {
@@ -33,7 +31,6 @@ export class EntryApi extends HttpApiGroup.make("entry")
     }),
   )
   .add(
-    // Signed in, name and email come from the account and anything sent is ignored.
     HttpApiEndpoint.post("enter", "/participants", {
       payload: Schema.Struct({
         competition_id: Id,
@@ -68,7 +65,6 @@ export class EntryApi extends HttpApiGroup.make("entry")
     }),
   )
   .add(
-    // Submitting a done topic again replaces it.
     HttpApiEndpoint.post("submit", "/submissions", {
       payload: Schema.Struct({ participant_id: Id, topic_id: Id }),
       success: EntrySubmission,

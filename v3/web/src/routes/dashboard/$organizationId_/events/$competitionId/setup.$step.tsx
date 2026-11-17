@@ -22,8 +22,6 @@ import { WallClockInput } from "@/components/WallClockInput.tsx";
 import { type SetupQuestion, isSetupQuestion, setupQuestions } from "@/lib/setupQuestions.ts";
 import { fromWallClock, toWallClock } from "@/lib/timeZone.ts";
 
-// The questions after the name, each saved to the draft on Continue (adr/0009). Outside the
-// organization layout (the trailing _), so the setup has the page to itself.
 export const Route = createFileRoute("/dashboard/$organizationId_/events/$competitionId/setup/$step")({
   beforeLoad: async ({ context, params }) => {
     const competition = await context.queryClient.ensureQueryData(competitionQuery(params.competitionId));
@@ -42,7 +40,6 @@ type StepProps = {
   competition: Competition;
   progress: [number, number];
   back?: () => void;
-  // The question after this one for these answers, or the Overview after the last.
   next: (answers?: Answers) => Promise<void>;
 };
 
@@ -52,7 +49,6 @@ function Setup() {
   const { data: competition } = useSuspenseQuery(competitionQuery(competitionId));
   const { data: topics } = useSuspenseQuery(topicsQuery(competitionId));
 
-  // beforeLoad already 404s both; this narrows them for the types.
   if (!competition || !isSetupQuestion(step)) {
     return null;
   }
@@ -123,7 +119,6 @@ function NameAnswer({ competition, progress, next }: StepProps) {
   );
 }
 
-// The topic list allows as many as the Api does.
 const maxTopics = 100;
 
 const newRow = () => ({ key: crypto.randomUUID(), id: null, name: "" });
@@ -146,8 +141,6 @@ function TopicsAnswer({ competition, progress, back, next, topics }: StepProps &
     setFocused(row.key);
   };
 
-  // Turns the saved topics into the rows: removed ones are deleted, new ones created, and each
-  // put at its row's position. Top to bottom, a move only shifts the rows below it.
   const save = async () => {
     for (const topic of topics) {
       if (!kept.some((row) => row.id === topic.id)) {
@@ -161,7 +154,6 @@ function TopicsAnswer({ competition, progress, back, next, topics }: StepProps &
 
       if (row.id === null) {
         const created = await create.mutateAsync(name);
-        // So a retry after a later failure renames this one instead of creating it again.
         setRows((current) => current.map((other) => (other.key === row.key ? { ...other, id: created.id } : other)));
 
         if (created.position !== position) {
@@ -216,7 +208,6 @@ function TopicsAnswer({ competition, progress, back, next, topics }: StepProps &
                     setRows(rows.map((other) => (other.key === row.key ? { ...other, name } : other)))
                   }
                   onKeyDown={(e) => {
-                    // Enter in a filled row starts the next one; in an empty row it continues.
                     if (e.key === "Enter" && row.name.trim() && rows.length < maxTopics) {
                       e.preventDefault();
                       addAfter(index);
@@ -263,8 +254,6 @@ function OrderAnswer({ competition, progress, back, next, topics }: StepProps & 
       submit={async () => {
         if (inSequence !== competition.topics_in_sequence) {
           try {
-            // A limit is only stored with sequence, so either way of switching starts without one; the
-            // next question asks for it.
             await update.mutateAsync({ topics_in_sequence: inSequence, minutes_per_topic: null });
           } catch {
             return "Couldn't save how the topics open. Try again.";

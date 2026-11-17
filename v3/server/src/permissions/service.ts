@@ -10,7 +10,6 @@ import { permissionsOf, PermissionDenied, rolesWith, type Permission } from "./p
 
 const members = model.organizationMembers;
 
-// A removed membership or a deleted organization grants nothing (adr/0001).
 const activeMembershipOf = (caller: User) =>
   and(eq(members.userId, caller.id), isNull(members.deletedAt), isNull(model.organizations.deletedAt));
 
@@ -18,8 +17,6 @@ export class PermissionsService extends Context.Service<PermissionsService>()("b
   make: Effect.gen(function* () {
     const db = yield* Db;
 
-    // Succeeds with the caller's role and permissions: the website hides what the Api would refuse,
-    // and the owner's invariants (adr/0001), which no permission expresses, check the role.
     const authorize = Effect.fn("PermissionsService.authorize")(function* (
       caller: User,
       permission: Permission,
@@ -46,8 +43,6 @@ export class PermissionsService extends Context.Service<PermissionsService>()("b
       return { role: membership.role, permissions };
     });
 
-    // The organizations where the caller's role grants the permission, as a subquery for `inArray`.
-    // Reads filter by it, so a row in someone else's organization looks like one that doesn't exist.
     const selectAccessibleOrganizationIds = (caller: User, permission: Permission) =>
       db
         .select({ id: members.organizationId })

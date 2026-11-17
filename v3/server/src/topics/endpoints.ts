@@ -20,7 +20,6 @@ const Id = Schema.String.check(Schema.isUUID());
 
 export class TopicsApi extends HttpApiGroup.make("topics")
   .add(
-    // In position order. Only ever topics of competitions the caller can read.
     HttpApiEndpoint.get("list", "/topics", {
       query: { competition_id: Schema.optionalKey(Id) },
       success: Schema.Array(Topic),

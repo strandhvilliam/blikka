@@ -1,9 +1,6 @@
 import { mutationOptions, queryOptions } from "@tanstack/react-query";
 import { api, unwrap } from "./client.ts";
 
-// What participants call (adr/0004): the Api's /entry routes, which answer only with the caller's own entries.
-
-// A published competition by its slug, or null for a draft or one that doesn't exist (the Api can't tell them apart).
 export const entryCompetitionQuery = (slug: string) =>
   queryOptions({
     queryKey: ["entry", "competitions", slug],
@@ -18,7 +15,6 @@ export const entryCompetitionQuery = (slug: string) =>
     },
   });
 
-// A guest's token, kept in this browser per competition. A signed-in participant needs none.
 const tokenKey = (competitionId: string) => `blikka:guest-token:${competitionId}`;
 
 const storedToken = (competitionId: string) => {
@@ -36,19 +32,15 @@ const storeToken = (competitionId: string, token: string | null) => {
     } else {
       localStorage.removeItem(tokenKey(competitionId));
     }
-  } catch {
-    // Private mode: the entry still exists, the guest just can't come back to it on this device.
-  }
+  } catch {}
 };
 
-// Sent with every /entry call about this competition's entry. The session cookie goes along anyway.
 const guestAuth = (competitionId: string) => {
   const token = storedToken(competitionId);
 
   return token ? { authorization: `Bearer ${token}` } : {};
 };
 
-// The caller's entry in this competition, or null. Runs in the browser only, where the token lives.
 export const myEntryQuery = (competitionId: string) =>
   queryOptions({
     queryKey: ["entry", "participants", { competitionId }],
@@ -62,18 +54,14 @@ export const myEntryQuery = (competitionId: string) =>
         }),
       );
 
-      // Taken over or deleted: the token no longer answers.
       if (token && entries.length === 0) {
         storeToken(competitionId, null);
       }
 
-      // shortcut: a signed-in browser holding a guest token for another email gets two; show the first until a page needs both.
       return entries[0] ?? null;
     },
   });
 
-// Rejects with a 409, tagged AlreadyEntered or EntryClosed, when the email already entered or the
-// event closed meanwhile.
 export const enterMutation = (competitionId: string) =>
   mutationOptions({
     mutationFn: (guest: GuestDetails | null) =>
@@ -91,7 +79,6 @@ export const enterMutation = (competitionId: string) =>
     },
   });
 
-// The entry's topics in order, each done, open, locked or missed. Locked ones come without a name.
 export const entryTopicsQuery = (competitionId: string, participantId: string) =>
   queryOptions({
     queryKey: ["entry", "topics", { participantId }],
@@ -104,8 +91,6 @@ export const entryTopicsQuery = (competitionId: string, participantId: string) =
       ),
   });
 
-// Marks a topic done, or replaces it. Rejects with a 409 tagged TopicNotOpen when it has locked or
-// closed meanwhile; the topics are fetched again either way.
 export const submitMutation = (competitionId: string, participantId: string) =>
   mutationOptions({
     mutationFn: (topicId: string) =>
@@ -119,7 +104,6 @@ export const submitMutation = (competitionId: string, participantId: string) =>
       client.invalidateQueries({ queryKey: entryTopicsQuery(competitionId, participantId).queryKey }),
   });
 
-// A guest's name and email, kept in this browser to fill in the next event's form (adr/0004). No auth meaning.
 const detailsKey = "blikka:guest-details";
 
 export type GuestDetails = { name: string; email: string };
@@ -135,7 +119,5 @@ export const rememberedGuest = (): GuestDetails => {
 const rememberGuest = (guest: GuestDetails) => {
   try {
     localStorage.setItem(detailsKey, JSON.stringify(guest));
-  } catch {
-    // Private mode: the form starts empty next time.
-  }
+  } catch {}
 };

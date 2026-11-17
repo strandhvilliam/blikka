@@ -3,7 +3,6 @@ import { availableTopics } from "./availableTopics.ts";
 
 const now = new Date("2026-12-01T12:00:00Z");
 
-// Minutes from now, so a test reads as a timeline.
 const at = (minutes: number) => new Date(now.getTime() + minutes * 60_000);
 const hourAgo = at(-60);
 const inAnHour = at(60);
@@ -47,9 +46,7 @@ test("an open window opens every topic not yet submitted, with or without a dead
 
 test("once the window closes, a topic not submitted is missed and a submitted one stays done", () => {
   expect(statuses({ closesAt: now, submitted: { b: hourAgo } })).toEqual(["missed", "done", "missed"]);
-  // Closed by hand before it ever opened.
   expect(statuses({ opensAt: null, closesAt: hourAgo })).toEqual(["missed", "missed", "missed"]);
-  // Partway through a sequence.
   expect(statuses({ closesAt: now, topicsInSequence: true, submitted: { a: hourAgo } })).toEqual([
     "done",
     "missed",
@@ -70,19 +67,16 @@ test("a time limit runs from entry, and finishing early unlocks the next topic a
     { status: "locked", closesAt: null },
     { status: "locked", closesAt: null },
   ]);
-  // Submitted 5 minutes in: b unlocked then and has its own 30 minutes.
   expect(run({ ...limited, submitted: { a: at(-15) } })[1]).toEqual({ id: "b", status: "open", closesAt: at(15) });
 });
 
 test("a topic whose time runs out is missed and the next one unlocks at its deadline", () => {
   const limited = { topicsInSequence: true, minutesPerTopic: 30 };
-  // Entered 40 minutes ago: a ran out 10 minutes ago, b has 20 left.
   expect(run({ ...limited, entered: at(-40) }).map(({ status, closesAt }) => ({ status, closesAt }))).toEqual([
     { status: "missed", closesAt: null },
     { status: "open", closesAt: at(20) },
     { status: "locked", closesAt: null },
   ]);
-  // Open and entered 100 minutes ago without submitting: everything ran out.
   expect(statuses({ ...limited, opensAt: at(-100), entered: at(-100) })).toEqual(["missed", "missed", "missed"]);
 });
 

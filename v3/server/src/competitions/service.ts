@@ -39,14 +39,12 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
       const db = yield* Db;
       const { authorize, selectAccessibleOrganizationIds } = yield* PermissionsService;
 
-      // Every read starts here, so filters can only narrow what the caller may see.
       const readable = (caller: User) =>
         and(
           inArray(model.competitions.organizationId, selectAccessibleOrganizationIds(caller, "competitions:read")),
           isNull(model.competitions.deletedAt),
         );
 
-      // For resources under a competition, as a subquery for `inArray`.
       const selectReadableIds = (caller: User) =>
         db.select({ id: model.competitions.id }).from(model.competitions).where(readable(caller));
 
@@ -62,7 +60,6 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
             .select(columns)
             .from(model.competitions)
             .where(and(...filters))
-            // uuidv7 ids sort by creation time.
             .orderBy(model.competitions.id),
         );
       });
@@ -108,7 +105,6 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
       const writable = Effect.fn("CompetitionsService.writable")(function* (caller: User, id: string) {
         const competition = yield* get(caller, id);
         yield* authorize(caller, "competitions:write", competition.organization_id).pipe(
-          // Left the organization since the read.
           Effect.catchTag("OrganizationNotFound", () => Effect.fail(new CompetitionNotFound())),
         );
 
@@ -133,17 +129,13 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
         const minutesPerTopic =
           patch.minutes_per_topic === undefined ? current.minutes_per_topic : patch.minutes_per_topic;
 
-        // Applies to everyone at once, people partway through included: unlock times are worked out
-        // from these each time (adr/0009).
         if (minutesPerTopic !== null && !inSequence) {
           return yield* new TimeLimitNeedsSequence();
         }
 
-        // Left undefined, published_at stays as it is.
         let publishedAt: SQL | null | undefined;
 
         if (patch.published === true) {
-          // Publishing again keeps the first published_at.
           publishedAt = sql`coalesce(${model.competitions.publishedAt}, now())`;
         } else if (patch.published === false) {
           publishedAt = null;
@@ -151,7 +143,6 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
 
         return yield* transaction(db, (tx) =>
           Effect.gen(function* () {
-            // Topic deletes and entries lock this row too, so neither can slip past the checks below.
             const [locked] = yield* Effect.promise(() =>
               tx
                 .select({ slug: model.competitions.slug, publishedAt: model.competitions.publishedAt })
@@ -160,12 +151,10 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
                 .for("update"),
             );
 
-            // A draft's link follows its name; a published one's was shared, so it stays.
             const renamedSlug = patch.name === undefined ? undefined : slugOf(patch.name);
             let slug: string | undefined;
 
             if (renamedSlug && locked && locked.publishedAt === null && renamedSlug !== locked.slug) {
-              // shortcut: two drafts renamed to the same slug at once fail the unique constraint (500) instead of a 409; catch 23505 if that shows up.
               const [taken] = yield* Effect.promise(() =>
                 tx
                   .select({ id: model.competitions.id })
@@ -211,7 +200,6 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
             const [competition] = yield* Effect.promise(() =>
               tx
                 .update(model.competitions)
-                // drizzle leaves out undefined keys, so fields not sent stay as they are.
                 .set({
                   name: patch.name,
                   slug,
@@ -228,7 +216,6 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
                 .returning(columns),
             );
 
-            // Deleted since the check.
             if (!competition) {
               return yield* new CompetitionNotFound();
             }

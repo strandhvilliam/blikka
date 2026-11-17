@@ -53,15 +53,12 @@ const pages = [
   },
 ] as const;
 
-// A switcher in the top bar's breadcrumb, shared with the organization's.
 export const breadcrumbTrigger =
   "h-8 min-w-0 justify-start gap-2 border-transparent bg-transparent px-2 hover:bg-foreground/5 data-open:bg-foreground/5";
 
-// Sidebar link look, shared with the organization's pages.
 export const navLinkClass =
   "h-8 w-full px-2 font-normal text-muted-foreground hover:bg-foreground/5 hover:text-foreground data-current:bg-foreground/[0.07] data-current:font-medium data-current:text-foreground";
 
-// The event's pages, which take the sidebar's place of the organization's while inside an event.
 export function EventNav({ competition }: { competition: Competition }) {
   const params = { organizationId: competition.organization_id, competitionId: competition.id };
   const current = useCurrentPage(competition);
@@ -96,7 +93,6 @@ export function EventNav({ competition }: { competition: Competition }) {
   );
 }
 
-// A page deeper than these (none yet) shows Overview as current and switches events to it.
 function useCurrentPage(competition: Competition) {
   const matchRoute = useMatchRoute();
   const params = { organizationId: competition.organization_id, competitionId: competition.id };
@@ -104,7 +100,6 @@ function useCurrentPage(competition: Competition) {
   return pages.find((page) => matchRoute({ to: page.to, params })) ?? pages[0];
 }
 
-// Switches to another of the organization's events, staying on the same page.
 export function EventPicker({ competition, className }: { competition: Competition; className: string }) {
   const page = useCurrentPage(competition);
   const { data: competitions = [] } = useQuery(competitionsQuery(competition.organization_id));

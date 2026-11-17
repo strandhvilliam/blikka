@@ -43,7 +43,6 @@ function Members() {
   const { organization, session } = Route.useRouteContext();
   const { data: members } = useSuspenseQuery(membersQuery(organization.id));
   const { data: invitations } = useSuspenseQuery(invitationsQuery(organization.id));
-  // Cosmetic: the Api refuses these without the permission either way.
   const canManage = organization.permissions.includes("members:write");
 
   return (
@@ -105,7 +104,6 @@ function Members() {
 
 type Action = "transfer" | "remove" | "leave";
 
-// What the caller may do to this member. Cosmetic like canManage: the Api enforces the same rules (adr/0001).
 function MemberActions({
   member,
   organization,
@@ -122,7 +120,6 @@ function MemberActions({
   const transfer = useMutation(transferOwnershipMutation(organization.id));
   const remove = useMutation(removeMemberMutation(organization.id));
   const leave = useMutation(leaveOrganizationMutation(organization.id));
-  // Kept after closing, so the dialog keeps its words while it animates out.
   const [action, setAction] = useState<Action>();
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);

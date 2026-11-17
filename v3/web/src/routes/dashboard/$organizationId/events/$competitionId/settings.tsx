@@ -24,8 +24,6 @@ type Competition = ReturnType<typeof Route.useRouteContext>["competition"];
 function Settings() {
   const { competition, organization } = Route.useRouteContext();
   const canWrite = organization.permissions.includes("competitions:write");
-  // Out here, not in the sections: a save changes a section's key, and the remount would drop the
-  // success that shows "Saved".
   const details = useUpdate(competition.id);
   const times = useUpdate(competition.id);
   const order = useUpdate(competition.id);
@@ -37,7 +35,6 @@ function Settings() {
         description="When the event runs, what participants submit, and whether it's published."
       />
       <div className="flex flex-col gap-6">
-        {/* key: a save resets the fields to what the Api stored. */}
         <Details
           key={`${competition.name}|${competition.description}|${competition.time_zone}`}
           competition={competition}
@@ -111,7 +108,6 @@ function Details({
             )}
             {update.isSuccess && unchanged && <Saved />}
             {canWrite && (
-              // Once saved, the fields match what's stored, so `unchanged` also stops a second submit.
               <Button type="submit" data-variant="solid" disabled={update.isPending || unchanged || !name.trim()}>
                 Save
               </Button>
@@ -264,7 +260,6 @@ function Order({
   const minutesId = useId();
   const [inSequence, setInSequence] = useState(competition.topics_in_sequence);
   const [minutes, setMinutes] = useState(competition.minutes_per_topic);
-  // The Api refuses a time limit without sequence, so all at once clears it.
   const minutesPerTopic = inSequence ? minutes : null;
 
   const unchanged = inSequence === competition.topics_in_sequence && minutesPerTopic === competition.minutes_per_topic;

@@ -3,9 +3,7 @@ import { randomBytes } from "node:crypto";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-// `bun run up`: checks and fixes everything `alchemy dev` needs, then starts it. Safe to run every time.
-
-const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:5433/blikka"; // docker-compose.yml
+const LOCAL_DATABASE_URL = "postgres://postgres:postgres@localhost:5433/blikka";
 
 process.chdir(join(import.meta.dirname, ".."));
 
@@ -25,7 +23,6 @@ if (!run("bun", ["install"])) {
 
 ok("deps", "installed");
 
-// Missing keys are appended; values already in .env are never changed.
 const defaults = {
   DATABASE_URL: () => LOCAL_DATABASE_URL,
   BETTER_AUTH_SECRET: () => randomBytes(32).toString("base64"),
@@ -66,7 +63,6 @@ if (existsSync("server/drizzle")) {
 
 console.log("→ starting alchemy dev");
 
-// alchemy dev handles Ctrl+C itself; stay alive until it has shut down.
 process.on("SIGINT", () => {});
 
 spawn("bun", ["run", "dev"], { stdio: "inherit" }).on("exit", (code) => process.exit(code ?? 1));

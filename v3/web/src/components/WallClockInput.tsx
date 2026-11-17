@@ -3,8 +3,6 @@ import { DatePicker, DatePickerContent, DatePickerInput, DatePickerTrigger } fro
 import { FieldLegend, FieldSet } from "@ui-sdk/react/field";
 import { TimeInput } from "@ui-sdk/react/time-input";
 
-// A wall clock time like "2026-12-01T09:00" as a date picker and a time input. Choosing a date asks
-// for a time too; clearing the date clears both.
 export function WallClockInput({
   label,
   value,
@@ -26,7 +24,6 @@ export function WallClockInput({
           locale="en-GB"
           value={date}
           onValueChange={(next) => {
-            // A single-date picker never reports a range.
             const day = Array.isArray(next) ? null : next;
             setDate(day);
             emit(day, time);

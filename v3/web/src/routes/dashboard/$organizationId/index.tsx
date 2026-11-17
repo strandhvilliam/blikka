@@ -43,7 +43,6 @@ function Dashboard() {
 
   const current = shown.filter((c) => c.status !== "Ended");
 
-  // byStatus puts the most recently closed first, so the years come out newest first. Ended means closes_at is set.
   const endedByYear = Map.groupBy(
     shown.filter((c) => c.status === "Ended"),
     (c) => new Intl.DateTimeFormat("en", { year: "numeric", timeZone: c.time_zone }).format(new Date(c.closes_at!)),
@@ -52,7 +51,6 @@ function Dashboard() {
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 py-6 md:px-8">
       <PageHeader title="Events" description={`Competitions, photo walks and exhibitions run by ${organization.name}.`}>
-        {/* Cosmetic: the Api refuses the create without this permission either way. */}
         {organization.permissions.includes("competitions:write") && (
           <Button
             data-variant="solid"
@@ -165,7 +163,6 @@ function Dashboard() {
 const focusRing =
   "has-[a:focus-visible]:outline-2 has-[a:focus-visible]:-outline-offset-2 has-[a:focus-visible]:outline-ring";
 
-// The name links to the event, and its ::after stretches over the closest positioned parent so the whole card is the target.
 function EventLink({ competition, className = "" }: { competition: Competition; className?: string }) {
   return (
     <Link
@@ -178,7 +175,6 @@ function EventLink({ competition, className = "" }: { competition: Competition; 
   );
 }
 
-// shortcut: a made-up count that stays the same per event, until the Api reports entries per event.
 const sampleEntries = (id: string) => [...id].reduce((hash, char) => (hash * 31 + char.charCodeAt(0)) % 9973, 7) % 240;
 
 function EventCard({ competition }: { competition: Competition & { status: CompetitionStatus } }) {
@@ -193,12 +189,10 @@ function EventCard({ competition }: { competition: Competition & { status: Compe
         </div>
         <span className="flex shrink-0 items-center gap-1.5 pt-0.5 text-xs font-medium">
           <span aria-hidden className={`size-2 rounded-full ${statusDots[competition.status]}`} />
-          {/* Drafts already say "Not published" below, so their dot stands alone for sighted readers. */}
           <span className={competition.status === "Draft" ? "sr-only" : ""}>{competition.status}</span>
         </span>
       </div>
       <p className="mt-auto text-sm text-muted-foreground">
-        {/* A draft can't have entrants (unpublishing is refused once someone has entered). */}
         {competition.status === "Draft" ? (
           "Not published"
         ) : (
@@ -207,7 +201,6 @@ function EventCard({ competition }: { competition: Competition & { status: Compe
           </>
         )}
         {" · "}
-        {/* Mono only for a date, not for "No date yet". */}
         <span className={competition.opens_at || competition.closes_at ? "font-mono text-xs" : ""}>
           {formatWindow(competition.opens_at, competition.closes_at, competition.time_zone)}
         </span>

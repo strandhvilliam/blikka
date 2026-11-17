@@ -10,10 +10,8 @@ import { Participant } from "./schemas.ts";
 
 const Id = Schema.String.check(Schema.isUUID());
 
-// The organizer's routes (adr/0006). Participants have their own, under /entry (adr/0004).
 export class ParticipantsApi extends HttpApiGroup.make("participants")
   .add(
-    // Only ever entries in the caller's competitions; competition_id narrows that.
     HttpApiEndpoint.get("list", "/participants", {
       query: { competition_id: Schema.optionalKey(Id) },
       success: Schema.Array(Participant),
@@ -28,7 +26,6 @@ export class ParticipantsApi extends HttpApiGroup.make("participants")
     }),
   )
   .add(
-    // Soft-deletes the entry. Its submissions stay, but stop counting.
     HttpApiEndpoint.delete("remove", "/participants/:id", {
       params: { id: Id },
       success: HttpApiSchema.NoContent,

@@ -40,7 +40,6 @@ function Event() {
           </span>
         }
       />
-      {/* A draft can't have entrants (unpublishing is refused once someone has entered), so it only gets the checklist. */}
       {competition.published_at ? (
         <Published competition={competition} participants={participants} topics={topics} />
       ) : (
@@ -83,7 +82,6 @@ function Published({
   );
 }
 
-// A card whose title row leads to the page behind it.
 function Panel({
   title,
   link,
@@ -138,7 +136,6 @@ function windowState(competition: Competition, now: Date) {
 function EntryCard({ competition }: { competition: Competition }) {
   const params = { organizationId: competition.organization_id, competitionId: competition.id };
   const path = `/e/${competition.slug}`;
-  // The origin is filled in after mount, so the server and browser render the same.
   const [origin, setOrigin] = useState("");
   // oxlint-disable-next-line react/set-state-in-effect -- set after hydration on purpose, see above
   useEffect(() => setOrigin(window.location.origin), []);
@@ -152,7 +149,6 @@ function EntryCard({ competition }: { competition: Competition }) {
         <h2 className="font-semibold">Entry page</h2>
       </div>
       <div className="flex flex-col gap-6 p-5 sm:flex-row">
-        {/* Black on white in both themes, so phones read it off any screen. */}
         <div className="grid size-36 shrink-0 place-items-center rounded-[10px] border border-border bg-white p-2 max-sm:hidden">
           {origin && <QRCodeSVG value={origin + path} size={124} marginSize={0} title="Entry page QR code" />}
         </div>
@@ -201,13 +197,11 @@ function Detail({ label, className = "", children }: { label: string; className?
 
 const DAYS = 14;
 
-// "2026-11-12", the day a moment falls on in the event's time zone.
 const dayKey = (date: Date, timeZone: string) => new Intl.DateTimeFormat("en-CA", { timeZone }).format(date);
 
 const dayLabel = (key: string) =>
   new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(key));
 
-// The last DAYS days up to today, or up to the closing day once closed.
 const lastDays = (competition: Competition, now: Date) => {
   const closes = competition.closes_at ? new Date(competition.closes_at) : null;
   const end = new Date(dayKey(closes && closes < now ? closes : now, competition.time_zone));
@@ -285,7 +279,6 @@ function Entries({ competition, participants }: { competition: Competition; part
   );
 }
 
-// "12m", "3h", "5d", then the date: a list of times reads at a glance when they're all short.
 const shortAgo = (iso: string, now: Date, timeZone: string) => {
   const minutes = Math.floor((now.getTime() - new Date(iso).getTime()) / 60_000);
 
@@ -347,7 +340,6 @@ function ByTopic({ topics, participants }: { topics: Topic[]; participants: numb
         return (
           <li key={topic.id} className="flex flex-col gap-1.5">
             <div className="flex items-baseline gap-3 text-sm">
-              {/* A frame number, like the roll's 04/08. */}
               <span className="w-5 shrink-0 text-end font-mono text-xs text-muted-foreground">
                 {String(index + 1).padStart(2, "0")}
               </span>
@@ -378,7 +370,6 @@ function Checklist({ competition, topics }: { competition: Competition; topics: 
       done: topics > 0,
       title: "Add topics",
       description: "What participants photograph. One is enough for a single theme.",
-      // Into the setup, which carries on through the questions after it.
       action: "Add topics",
       link: (
         <Link

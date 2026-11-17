@@ -4,7 +4,6 @@ import { EntryCaller } from "../auth/EntrySession.ts";
 import { Api } from "../contract.ts";
 import { EntryService } from "./service.ts";
 
-// The services are built per request (api.ts), so they're read inside each handler.
 export const EntryHandlers = HttpApiBuilder.group(Api, "entry", (handlers) =>
   handlers
     .handle("competition", ({ params }) =>

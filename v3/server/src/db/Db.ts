@@ -25,7 +25,7 @@ export const Database = Effect.gen(function* () {
     dev: {
       scheme: "postgres",
       host: "localhost",
-      port: 5433, // docker-compose.yml
+      port: 5433,
       database: "blikka",
       user: "postgres",
       password: Redacted.make("postgres"),
@@ -38,11 +38,8 @@ export class Db extends Context.Service<Db, NodePgDatabase<typeof model>>()("bli
 
 export type Tx = Parameters<Parameters<Db["Service"]["transaction"]>[0]>[0];
 
-// Runs `body` in a transaction. Any failure, a typed error or a defect, rolls it back and comes out
-// as it went in. Takes `db` rather than reading Db, so service methods don't start requiring it.
 export const transaction = <A, E, R>(db: Db["Service"], body: (tx: Tx) => Effect.Effect<A, E, R>) =>
   Effect.gen(function* () {
-    // The caller's spans and services, so the body runs as part of the request.
     const context = yield* Effect.context<R>();
 
     const exit = yield* Effect.promise(async (): Promise<Exit.Exit<A, E>> => {
@@ -54,7 +51,7 @@ export const transaction = <A, E, R>(db: Db["Service"], body: (tx: Tx) => Effect
 
           if (Exit.isFailure(exit)) {
             failure = exit;
-            tx.rollback(); // throws, which is how drizzle rolls back
+            tx.rollback();
           }
 
           return exit;
@@ -64,14 +61,13 @@ export const transaction = <A, E, R>(db: Db["Service"], body: (tx: Tx) => Effect
           return failure;
         }
 
-        throw error; // a database error stays a defect
+        throw error;
       }
     });
 
     return yield* exit;
   });
 
-// Per request: Workers can't share sockets across requests, and Hyperdrive does the real pooling.
 export const DbLive = (hyperdrive: Cloudflare.Hyperdrive.ConnectClient) =>
   Layer.effect(
     Db,

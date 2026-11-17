@@ -14,8 +14,6 @@ import type { Competition } from "@/api/competitions.ts";
 
 const iconButton = "size-8 border-transparent bg-transparent p-0 text-muted-foreground hover:text-foreground";
 
-// The page participants enter at: open it, copy its link, or show its QR code. Only once published,
-// since a draft's page turns everyone away.
 export function EntryLinks({ competition }: { competition: Competition }) {
   const [copied, setCopied] = useState(false);
   const path = `/e/${competition.slug}`;
@@ -51,7 +49,6 @@ export function EntryLinks({ competition }: { competition: Competition }) {
         <DialogContent className="items-start">
           <DialogTitle>Entry QR code</DialogTitle>
           <DialogDescription>Participants scan it to open the entry page.</DialogDescription>
-          {/* Black on white in both themes, so phones read it off any screen or print. */}
           <QRCodeSVG
             value={window.location.origin + path}
             size={240}

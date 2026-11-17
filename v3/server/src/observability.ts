@@ -11,8 +11,6 @@ import * as Option from "effect/Option";
 import * as Redacted from "effect/Redacted";
 import { sentryProject } from "../../sentry-project.ts";
 
-// Datasets are shared by every stage (Axiom plan dataset limit); stages are told apart by
-// service.name. Adopt so each stage can take them over, retain so destroying a stage keeps them.
 const TRACES = "blikka-traces";
 const LOGS = "blikka-logs";
 
@@ -53,8 +51,6 @@ export const SentryDsn = Config.all({
   dev: ALCHEMY_DEV,
 }).pipe(Config.map(({ dsn, dev }) => (dev ? Option.none() : dsn)));
 
-// Plan-time only: the bundler folds `__ALCHEMY_RUNTIME__` to true in the Worker, which drops this
-// branch and keeps the source-map plugin out of the deployed bundle.
 export const SentrySourceMaps = Effect.gen(function* () {
   if (!globalThis.__ALCHEMY_RUNTIME__) {
     const { dev, authToken } = yield* Config.all({

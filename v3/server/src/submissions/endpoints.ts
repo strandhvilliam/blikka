@@ -7,10 +7,8 @@ import { Submission } from "./schemas.ts";
 
 const Id = Schema.String.check(Schema.isUUID());
 
-// The organizer's routes (adr/0006). Participants submit under /entry (adr/0004).
 export class SubmissionsApi extends HttpApiGroup.make("submissions")
   .add(
-    // Only ever submissions of entries the caller can read; participant_id narrows that.
     HttpApiEndpoint.get("list", "/submissions", {
       query: { participant_id: Schema.optionalKey(Id) },
       success: Schema.Array(Submission),

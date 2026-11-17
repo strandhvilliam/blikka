@@ -18,7 +18,6 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
       const db = yield* Db;
       const { authorize } = yield* PermissionsService;
 
-      // Effect.promise: database failures are defects (500), not domain errors.
       const list = Effect.fn("OrganizationsService.list")(function* (caller: User) {
         return yield* Effect.promise(() =>
           db
@@ -32,12 +31,10 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
                 isNull(model.organizations.deletedAt),
               ),
             )
-            // uuidv7 ids sort by creation time.
             .orderBy(model.organizations.id),
         );
       });
 
-      // Any signed-in user may create an organization; Authenticated already guarantees that.
       const create = Effect.fn("OrganizationsService.create")(function* (caller: User, name: string) {
         return yield* transaction(db, (tx) =>
           Effect.gen(function* () {
@@ -77,7 +74,6 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
             .returning(columns),
         );
 
-        // Deleted since the check.
         if (!organization) {
           return yield* new OrganizationNotFound();
         }
@@ -85,7 +81,6 @@ export class OrganizationsService extends Context.Service<OrganizationsService>(
         return organization;
       });
 
-      // Only the owner deletes (adr/0008). Everything under the organization goes with it, since reads skip it.
       const remove = Effect.fn("OrganizationsService.remove")(function* (caller: User, id: string) {
         const { role } = yield* authorize(caller, "organization:write", id);
 

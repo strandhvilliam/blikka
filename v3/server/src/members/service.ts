@@ -27,7 +27,6 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
     const db = yield* Db;
     const { authorize, selectAccessibleOrganizationIds } = yield* PermissionsService;
 
-    // Every read starts here, so filters can only narrow what the caller may see.
     const readable = (caller: User) =>
       and(
         inArray(members.organizationId, selectAccessibleOrganizationIds(caller, "members:read")),
@@ -67,13 +66,11 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
       return member;
     });
 
-    // Not a member any more since the read: the member is out of reach, like any other.
     const authorizeWrite = (caller: User, organizationId: string) =>
       authorize(caller, "members:write", organizationId).pipe(
         Effect.catchTag("OrganizationNotFound", () => Effect.fail(new MemberNotFound())),
       );
 
-    // Removing yourself is leaving, which needs no permission.
     const remove = Effect.fn("MembersService.remove")(function* (caller: User, organizationId: string, userId: string) {
       const member = yield* get(caller, organizationId, userId);
 
@@ -91,7 +88,6 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
             tx
               .update(members)
               .set({ deletedAt: sql`now()` })
-              // Not the owner: a transfer may have made them owner since the read.
               .where(and(membership(organizationId, userId), ne(members.role, "owner")))
               .returning({ userId: members.userId }),
           );
@@ -100,7 +96,6 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
             return yield* new MemberNotFound();
           }
 
-          // Their open invitations go with them, so nobody joins on the word of someone no longer here (adr/0007).
           const { organizationInvitations: invitations } = model;
 
           yield* Effect.promise(() =>
@@ -120,7 +115,6 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
       );
     });
 
-    // The owner hands ownership to another member and becomes an admin. Nobody changes their own role (adr/0001).
     const transferOwnership = Effect.fn("MembersService.transferOwnership")(function* (
       caller: User,
       organizationId: string,
@@ -135,7 +129,6 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
 
       yield* transaction(db, (tx) =>
         Effect.gen(function* () {
-          // Demote first: the index allows one owner at a time.
           const [demoted] = yield* Effect.promise(() =>
             tx
               .update(members)
@@ -156,7 +149,6 @@ export class MembersService extends Context.Service<MembersService>()("blikka/me
               .returning({ userId: members.userId }),
           );
 
-          // Removed since the read: failing undoes the demotion, so the organization keeps its owner.
           if (!promoted) {
             return yield* new MemberNotFound();
           }

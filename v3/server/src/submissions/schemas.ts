@@ -1,6 +1,5 @@
 import * as Schema from "effect/Schema";
 
-// The organizer's view of a delivered topic. Participants see theirs as EntrySubmission.
 export const Submission = Schema.Struct({
   id: Schema.String,
   participant_id: Schema.String,

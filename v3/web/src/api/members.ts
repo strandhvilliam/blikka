@@ -8,8 +8,6 @@ export const membersQuery = (organizationId: string) =>
     queryFn: () => unwrap(api().GET("/members", { params: { query: { organization_id: organizationId } } })),
   });
 
-// Only the owner may, and they become an admin (adr/0008). The caller then calls
-// router.invalidate() (see refreshOrganization).
 export const transferOwnershipMutation = (organizationId: string) =>
   mutationOptions({
     mutationFn: (userId: string) =>
@@ -32,7 +30,6 @@ export const removeMemberMutation = (organizationId: string) =>
       client.invalidateQueries({ queryKey: membersQuery(organizationId).queryKey }),
   });
 
-// Removes the caller themselves, after which they can't read the organization.
 export const leaveOrganizationMutation = (organizationId: string) =>
   mutationOptions({
     mutationFn: (userId: string) => removeMember(organizationId, userId),
@@ -45,7 +42,6 @@ async function removeMember(organizationId: string, userId: string) {
     params: { path: { user_id: userId }, query: { organization_id: organizationId } },
   });
 
-  // 404: removed by someone else meanwhile, which is what was asked for.
   if (!response.ok && response.status !== 404) {
     throw new ApiError(response);
   }

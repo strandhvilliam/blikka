@@ -21,7 +21,6 @@ import {
 
 const { participants, submissions } = model;
 
-// What a participant sees of their own entry (EntryParticipant).
 const entryColumns = {
   id: participants.id,
   competition_id: participants.competitionId,
@@ -33,7 +32,6 @@ const entryColumns = {
 const hex = (bytes: ArrayBuffer | Uint8Array) =>
   Array.from(new Uint8Array(bytes), (b) => b.toString(16).padStart(2, "0")).join("");
 
-// Only the hash is stored, so a database leak doesn't hand out guest entries (adr/0004).
 const hashToken = async (token: string) => {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
 
@@ -42,8 +40,6 @@ const hashToken = async (token: string) => {
 
 type GuestDetails = { name?: string | undefined; email?: string | undefined };
 
-// Fails unless the competition is published and not past closes_at. Shared, so entries don't wait
-// on each other, but an unpublish (FOR UPDATE) waits for them.
 const lockOpenCompetition = (tx: Tx, competitionId: string) =>
   Effect.gen(function* () {
     const [competition] = yield* Effect.promise(() =>
@@ -69,13 +65,11 @@ const lockOpenCompetition = (tx: Tx, competitionId: string) =>
     }
   });
 
-// What participants do, as guests or signed in (adr/0004). Every read is scoped to the caller's own entries.
 export class EntryService extends Context.Service<EntryService>()("blikka/entry/EntryService", {
   make: Effect.gen(function* () {
     const db = yield* Db;
     const { claimGuestEntries } = yield* ParticipantsService;
 
-    // Without a caller: only published competitions exist here.
     const getPublished = Effect.fn("EntryService.getPublished")(function* (slug: string) {
       const [competition] = yield* Effect.promise(() =>
         db
@@ -105,7 +99,6 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       return competition;
     });
 
-    // A guest gets a token, returned only here.
     const enterAsGuest = Effect.fn("EntryService.enterAsGuest")(function* (competitionId: string, guest: GuestDetails) {
       const { name, email } = guest;
 
@@ -137,10 +130,7 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       );
     });
 
-    // Signed in, the entry comes from the account and entering again returns it.
     const enterSignedIn = Effect.fn("EntryService.enterSignedIn")(function* (user: User, competitionId: string) {
-      // A guest entry made with the user's verified email after they signed in becomes theirs here,
-      // by the same rule as at sign-in.
       yield* claimGuestEntries(user.id);
 
       return yield* transaction(db, (tx) =>
@@ -176,7 +166,6 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
               .values({
                 competitionId,
                 userId: user.id,
-                // Accounts made with an emailed code have no name.
                 name: user.name || user.email,
                 email: user.email.toLowerCase(),
               })
@@ -188,7 +177,6 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
             return { participant: created, guest_token: null };
           }
 
-          // The same user entering twice at once: the other request created it.
           const raced = yield* findOwn;
 
           if (!raced) {
@@ -212,7 +200,6 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       return yield* enterAsGuest(competitionId, guest);
     });
 
-    // Every entry route reads through this: the entries the session's user or the guest token owns.
     const owned = Effect.fn("EntryService.owned")(function* (caller: EntryCaller["Service"]) {
       const { user, guestToken } = caller;
       const owners: Array<SQL> = [];
@@ -226,7 +213,6 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
         owners.push(eq(participants.guestTokenHash, tokenHash));
       }
 
-      // Neither a session nor a token owns nothing; an empty or() would match every row.
       if (owners.length === 0) {
         return sql`false`;
       }
@@ -273,8 +259,6 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       return row;
     });
 
-    // What availableTopics reads for one participant: their competition's window and pace, its live
-    // topics in order, and their submissions. Reads through `tx` inside a transaction: Db has one connection.
     const progress = Effect.fn("EntryService.progress")(function* (
       participant: EntryParticipant,
       tx: Tx | Db["Service"] = db,
@@ -291,7 +275,6 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
           .where(and(eq(model.competitions.id, participant.competition_id), isNull(model.competitions.deletedAt))),
       );
 
-      // The organizer deleted the event: the entry goes with it.
       if (!competition) {
         return yield* new ParticipantNotFound();
       }
@@ -326,14 +309,12 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       return topics.map((topic) => ({
         id: topic.id,
         position: topic.position,
-        // Locked topics go without their name (adr/0009).
         name: topic.status === "locked" ? null : topic.name,
         status: topic.status,
         closes_at: topic.closesAt,
       }));
     });
 
-    // A participant marks a topic done. The upload slice attaches the file.
     const submit = Effect.fn("EntryService.submit")(function* (
       caller: EntryCaller["Service"],
       participantId: string,
@@ -343,8 +324,6 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
 
       return yield* transaction(db, (tx) =>
         Effect.gen(function* () {
-          // Shared, so submits don't wait on each other, but a topic delete or move (FOR UPDATE)
-          // waits for this one and then sees its submission.
           yield* Effect.promise(() =>
             tx
               .select({ id: model.competitions.id })
@@ -355,8 +334,6 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
 
           const { competition, submissions: submitted } = yield* progress(participant, tx);
 
-          // Judged as if this topic had no submission, so a replace is allowed exactly while a first
-          // submit would be.
           const others = submitted.filter((submission) => submission.topicId !== topicId);
 
           const topic = availableTopics(competition, { createdAt: participant.created_at }, others, new Date()).find(

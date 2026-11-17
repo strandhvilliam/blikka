@@ -24,11 +24,9 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
     const db = yield* Db;
     const { authorize, selectAccessibleOrganizationIds } = yield* PermissionsService;
 
-    // Expired ones included, so an admin sees who to invite again.
     const manageable = (caller: User) =>
       and(inArray(invitations.organizationId, selectAccessibleOrganizationIds(caller, "members:read")), open);
 
-    // Only a verified email proves the address is the caller's (adr/0007).
     const addressedToCaller = (caller: User) => {
       const verifiedEmail = db
         .select({ email: sql<string>`lower(${model.user.email})` })
@@ -88,7 +86,6 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           .returning(columns),
       );
 
-      // shortcut: logs instead of emailing, send it with the email service once there is one.
       yield* Effect.logInfo(
         `[invitations] ${caller.email} invited ${email} to organization ${organizationId}. ` +
           `They join by signing in with ${email}.`,
@@ -133,7 +130,6 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
             tx
               .insert(model.organizationMembers)
               .values({ organizationId: invitation.organizationId, userId: caller.id, role: "admin" })
-              // Someone removed earlier joins again; an active member is left as they are.
               .onConflictDoUpdate({
                 target: [model.organizationMembers.organizationId, model.organizationMembers.userId],
                 set: { role: "admin", deletedAt: null, createdAt: sql`now()` },
@@ -174,7 +170,6 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
         return yield* new InvitationNotFound();
       }
 
-      // Not a member any more since the read: the invitation is out of reach, like any other.
       yield* authorize(caller, "members:write", invitation.organizationId).pipe(
         Effect.catchTag("OrganizationNotFound", () => Effect.fail(new InvitationNotFound())),
       );
@@ -187,7 +182,6 @@ export class InvitationsService extends Context.Service<InvitationsService>()("b
           .returning({ id: invitations.id }),
       );
 
-      // Accepted or revoked by someone else since the read.
       if (!revoked) {
         return yield* new InvitationNotFound();
       }

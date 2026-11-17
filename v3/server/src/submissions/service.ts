@@ -14,8 +14,6 @@ export class SubmissionsService extends Context.Service<SubmissionsService>()("b
     const db = yield* Db;
     const { selectAccessibleOrganizationIds } = yield* PermissionsService;
 
-    // The organizer's view (adr/0006): submissions of entries that weren't deleted, in competitions
-    // of organizations the caller can read submissions in.
     const list = Effect.fn("SubmissionsService.list")(function* (caller: User, participantId?: string) {
       const organizationIds = selectAccessibleOrganizationIds(caller, "submissions:read");
 

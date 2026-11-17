@@ -36,7 +36,6 @@ test("organizers list their competitions' entries; outsiders get none", () =>
     expect(entry).toMatchObject({ name: "Ada", signed_in: false });
     const stranger = await createUser(tx, "Stranger");
     expect(await run((p) => p.list(stranger, competitionId))).toEqual([]);
-    // The token hash never leaves the service.
     const [row] = await tx.select().from(model.participants).where(eq(model.participants.competitionId, competitionId));
     expect(row!.guestTokenHash).toHaveLength(64);
     expect(entry).not.toHaveProperty("guestTokenHash");

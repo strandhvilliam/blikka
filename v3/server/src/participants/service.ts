@@ -11,7 +11,6 @@ import { PermissionsService } from "../permissions/service.ts";
 
 const { participants } = model;
 
-// The organizer's view of an entry (Participant). Participants read theirs through entry/service.ts.
 const columns = {
   id: participants.id,
   competition_id: participants.competitionId,
@@ -19,7 +18,6 @@ const columns = {
   email: participants.email,
   signed_in: sql<boolean>`${participants.userId} is not null`,
   created_at: participants.createdAt,
-  // Columns named through their tables, as in topics/service.ts.
   submissions: sql<number>`(
     select count(*)::int from ${model.submissions}
     inner join ${model.topics} on ${model.topics}.id = ${model.submissions}.topic_id
@@ -34,8 +32,6 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
       const db = yield* Db;
       const { authorize, selectAccessibleOrganizationIds } = yield* PermissionsService;
 
-      // The organizer's view (adr/0006): entries in competitions of organizations the caller can
-      // read participants in.
       const readable = (caller: User) => {
         const organizationIds = selectAccessibleOrganizationIds(caller, "participants:read");
 
@@ -80,7 +76,6 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
         return participant;
       });
 
-      // Unpublishing counts only entries that weren't deleted, and the email can enter again.
       const remove = Effect.fn("ParticipantsService.remove")(function* (caller: User, id: string) {
         const [entry] = yield* Effect.promise(() =>
           db
@@ -95,7 +90,6 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
         }
 
         yield* authorize(caller, "participants:write", entry.organizationId).pipe(
-          // Left the organization since the read.
           Effect.catchTag("OrganizationNotFound", () => Effect.fail(new ParticipantNotFound())),
         );
 
@@ -107,9 +101,6 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
         );
       });
 
-      // Every sign-in, and entering signed in, claims the guest entries made with the user's verified
-      // email, in every competition, and cuts off their guest tokens (adr/0004). A claimed entry takes
-      // the account's name, unless the account has none. Skips a competition the user already has an entry in.
       const claimGuestEntries = Effect.fn("ParticipantsService.claimGuestEntries")(function* (userId: string) {
         const { user } = model;
 
@@ -120,12 +111,10 @@ export class ParticipantsService extends Context.Service<ParticipantsService>()(
             .where(and(eq(user.id, userId), eq(user.emailVerified, true))),
         );
 
-        // Nothing to claim until the email is verified.
         if (!account) {
           return;
         }
 
-        // Left undefined, the entry keeps the name it was made with.
         let name: string | undefined;
 
         if (account.name !== "") {

@@ -18,12 +18,9 @@ export const receivedInvitationsQuery = queryOptions({
   queryFn: () => unwrap(api().GET("/invitations/received")),
 });
 
-// Always with the address: the name is free text, so it alone doesn't say who is inviting.
 export const invitedBy = ({ invited_by: { name, email } }: ReceivedInvitations[number]) =>
   `Invited by ${name ? `${name} (${email})` : email}`;
 
-// Rejects with a 409 when they're already a member. Refetches either way: a failure can mean the
-// list changed elsewhere.
 export const createInvitationMutation = (organizationId: string) =>
   mutationOptions({
     mutationFn: (email: string) =>
@@ -31,7 +28,6 @@ export const createInvitationMutation = (organizationId: string) =>
     onSettled: (_data, _error, _email, _result, { client }) => refetchMembership(client, organizationId),
   });
 
-// Refetches either way: a failure means it was accepted or revoked elsewhere.
 export const revokeInvitationMutation = (organizationId: string) =>
   mutationOptions({
     mutationFn: (id: string) => unwrap(api().DELETE("/invitations/{id}", { params: { path: { id } } })),
@@ -44,8 +40,6 @@ const refetchMembership = (client: QueryClient, organizationId: string) =>
     client.invalidateQueries({ queryKey: membersQuery(organizationId).queryKey }),
   ]);
 
-// Joins the organization. A failure means the invitation was revoked or expired meanwhile, and the
-// refetch drops it.
 export const acceptInvitationMutation = mutationOptions({
   mutationFn: (id: string) => unwrap(api().POST("/invitations/{id}/accept", { params: { path: { id } } })),
   onSuccess: (_data, _id, _result, { client }) => client.invalidateQueries({ queryKey: organizationsQuery.queryKey }),

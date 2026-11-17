@@ -6,11 +6,9 @@ import { defineConfig, loadEnv } from "vite";
 import { sentryProject } from "../sentry-project.ts";
 
 export default defineConfig(({ mode }) => {
-  // Source maps are uploaded only when a token is set (deploys), never under `alchemy dev`. The .env is in v3/.
   const { SENTRY_AUTH_TOKEN } = loadEnv(mode, `${import.meta.dirname}/..`, "SENTRY_");
 
   return {
-    // Hidden: generated for the upload, not referenced from the shipped files.
     resolve: { tsconfigPaths: true },
     build: { sourcemap: SENTRY_AUTH_TOKEN ? "hidden" : false },
     plugins: [
@@ -21,7 +19,6 @@ export default defineConfig(({ mode }) => {
         ...sentryProject,
         authToken: SENTRY_AUTH_TOKEN,
         disable: !SENTRY_AUTH_TOKEN,
-        // The browser's maps would otherwise be served as public assets.
         sourcemaps: { filesToDeleteAfterUpload: [`${import.meta.dirname}/dist/client/**/*.map`] },
       }),
     ],

@@ -13,8 +13,6 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
-// Better Auth core tables. Column names follow Better Auth's field names so the adapter maps 1:1.
-
 export const user = pgTable("user", {
   id: uuid()
     .primaryKey()
@@ -23,7 +21,6 @@ export const user = pgTable("user", {
   email: text().notNull().unique(),
   emailVerified: boolean().notNull().default(false),
   image: text(),
-  // 'user' | 'superadmin'. Set by hand in the DB, never through the auth API (input: false).
   platformRole: text().notNull().default("user"),
   createdAt: timestamp().notNull().defaultNow(),
   updatedAt: timestamp().notNull().defaultNow(),
@@ -87,9 +84,6 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
-// Sign-in codes sent to an email in its current hour. Auth.ts caps it, so a stranger can't keep
-// asking for new codes to guess at.
-// shortcut: one row per address ever asked for a code, never deleted; prune rows older than an hour once it grows.
 export const otpSends = pgTable("otp_sends", {
   email: text().primaryKey(),
   count: integer().notNull(),
@@ -106,7 +100,6 @@ export const organizations = pgTable("organizations", {
   deletedAt: timestamp(),
 });
 
-// Users who run an organization, not participants.
 export const organizationMembers = pgTable(
   "organization_members",
   {
@@ -118,20 +111,17 @@ export const organizationMembers = pgTable(
       .references(() => user.id),
     role: text().$type<"owner" | "admin">().notNull().default("admin"),
     createdAt: timestamp().notNull().defaultNow(),
-    // Removed or left. Joining again clears it (adr/0008).
     deletedAt: timestamp(),
   },
   (table) => [
     primaryKey({ columns: [table.organizationId, table.userId] }),
     index("organization_members_user_id_idx").on(table.userId),
-    // Exactly one owner (adr/0001); a transfer demotes before it promotes.
     uniqueIndex("organization_members_one_owner")
       .on(table.organizationId)
       .where(sql`${table.role} = 'owner' and ${table.deletedAt} is null`),
   ],
 );
 
-// No token: whoever signs in with this verified email accepts it (adr/0007-organization-invitations.md).
 export const organizationInvitations = pgTable(
   "organization_invitations",
   {
@@ -141,7 +131,6 @@ export const organizationInvitations = pgTable(
     organizationId: uuid()
       .notNull()
       .references(() => organizations.id),
-    // Lowercase.
     email: text().notNull(),
     invitedBy: uuid()
       .notNull()
@@ -172,14 +161,10 @@ export const competitions = pgTable(
     name: text().notNull(),
     description: text().notNull().default(""),
     timeZone: text().notNull().default("Europe/Stockholm"),
-    // Null is a draft participants can't see or enter (adr/0009).
     publishedAt: timestamp({ withTimezone: true }),
-    // Null opensAt: not open yet. Null closesAt: no deadline.
     opensAt: timestamp({ withTimezone: true }),
     closesAt: timestamp({ withTimezone: true }),
-    // Topics unlock one at a time, each once the previous is done or its time ran out (adr/0009).
     topicsInSequence: boolean().notNull().default(false),
-    // Null: no time limit. Counted from when the topic unlocked for the participant.
     minutesPerTopic: integer(),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
@@ -187,9 +172,7 @@ export const competitions = pgTable(
   },
   (table) => [
     index("competitions_organization_id_idx").on(table.organizationId),
-    // The service checks this first; the constraint catches two edits racing.
     check("competitions_window_check", gt(table.closesAt, table.opensAt)),
-    // A time limit only means one topic at a time; the service checks this first, as above.
     check(
       "competitions_minutes_per_topic_check",
       sql`${table.minutesPerTopic} is null or (${table.topicsInSequence} and ${table.minutesPerTopic} between 1 and 1440)`,
@@ -207,8 +190,6 @@ export const topics = pgTable(
       .notNull()
       .references(() => competitions.id),
     name: text().notNull(),
-    // 1..n among the competition's live topics, renumbered on delete and move. Not unique, since
-    // Postgres checks that per row while a move shifts its neighbours.
     position: integer().notNull(),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
@@ -226,24 +207,18 @@ export const participants = pgTable(
     competitionId: uuid()
       .notNull()
       .references(() => competitions.id),
-    // Null for guests; set when they sign in with the same verified email.
     userId: uuid().references(() => user.id, { onDelete: "set null" }),
-    // Copied from the account on entry, so guests and users read the same.
     name: text().notNull(),
     email: text().notNull(),
-    // SHA-256 of the guest token (adr/0004). Null once a user owns the entry.
     guestTokenHash: text(),
-    // With a time zone: the first topic unlocks at entry (adr/0009).
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
     deletedAt: timestamp(),
   },
   (table) => [
-    // Both leave deleted entries out, so someone whose entry the organizer deleted can enter again.
     uniqueIndex("participants_competition_id_email_unique")
       .on(table.competitionId, table.email)
       .where(isNull(table.deletedAt)),
-    // One entry per user per competition, even if their account email changed in between.
     uniqueIndex("participants_competition_id_user_id_unique")
       .on(table.competitionId, table.userId)
       .where(sql`${table.userId} is not null and ${table.deletedAt} is null`),
@@ -252,8 +227,6 @@ export const participants = pgTable(
   ],
 );
 
-// A participant delivered this topic (adr/0009). No deletedAt: unlock times read these rows, so a
-// participant replaces a submission but never deletes it.
 export const submissions = pgTable(
   "submissions",
   {
@@ -266,13 +239,10 @@ export const submissions = pgTable(
     topicId: uuid()
       .notNull()
       .references(() => topics.id),
-    // The first submit. Unlocking reads this, so a replace never locks a later topic again.
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    // The last replace.
     updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    // One per topic until max_photos_per_topic (adr/0009).
     unique("submissions_participant_id_topic_id_unique").on(table.participantId, table.topicId),
     index("submissions_topic_id_idx").on(table.topicId),
   ],

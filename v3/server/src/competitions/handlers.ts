@@ -4,7 +4,6 @@ import { CurrentUser } from "../auth/CurrentUser.ts";
 import { Api } from "../contract.ts";
 import { CompetitionsService } from "./service.ts";
 
-// CompetitionsService is built per request (api.ts), so it's read inside each handler.
 export const CompetitionsHandlers = HttpApiBuilder.group(Api, "competitions", (handlers) =>
   handlers
     .handle("list", ({ query }) =>

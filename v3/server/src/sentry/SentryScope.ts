@@ -10,9 +10,6 @@ import * as HttpServerRequest from "effect/http/HttpServerRequest";
 import * as HttpServerRespondable from "effect/http/HttpServerRespondable";
 import * as HttpServerResponse from "effect/http/HttpServerResponse";
 
-// Effect's scheduler can run fibers of concurrent requests in the same tick, so Sentry's
-// AsyncLocalStorage lookup of the current scope can't be trusted inside a fiber. The request's
-// scopes are read once where it can (inside `wrapRequestHandler`) and passed down as a service.
 export class SentryScope extends Context.Service<
   SentryScope,
   { readonly isolationScope: Sentry.Scope; readonly scope: Sentry.Scope }
@@ -34,14 +31,12 @@ export const captureException = Effect.fn("Sentry.captureException")(function* (
   );
 });
 
-// Logs the cause and sends it to Sentry.
 export const reportCause = (cause: Cause.Cause<unknown>) =>
   Effect.gen(function* () {
     yield* Effect.logError(cause);
     yield* captureException(Cause.squash(cause));
   });
 
-// A defect, or a failure that isn't one of the Api's own error responses.
 const isUnexpected = (cause: Cause.Cause<unknown>) =>
   cause.reasons.some((reason) => {
     if (Cause.isFailReason(reason)) {
@@ -52,7 +47,6 @@ const isUnexpected = (cause: Cause.Cause<unknown>) =>
   });
 
 export const withSentry = (options: Sentry.CloudflareOptions) => {
-  // What `Sentry.withSentry` sets up for a plain handler: without it each request shares one scope.
   Sentry.setAsyncLocalStorageAsyncContextStrategy();
 
   return <E, R>(self: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) =>
@@ -73,9 +67,7 @@ export const withSentry = (options: Sentry.CloudflareOptions) => {
       );
 
       const response = yield* Effect.promise((signal) =>
-        // captureErrors: false — `handled` reports, where expected errors can be told apart.
         wrapRequestHandler({ options, request, context: execution.raw, captureErrors: false }, () => {
-          // Read here, inside the handler, where Sentry has set up this request's scopes.
           const scopes = {
             isolationScope: Sentry.getIsolationScope(),
             scope: Sentry.getCurrentScope(),

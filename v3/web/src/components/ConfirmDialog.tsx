@@ -7,8 +7,6 @@ import {
   AlertDialogTitle,
 } from "@ui-sdk/react/alert-dialog";
 
-// Asks before an action that can't be taken back from the website. The dialog stays open while
-// onConfirm runs, closes once it resolves, and shows `failure` if it rejects.
 export function ConfirmDialog<T>({
   open,
   onOpenChange,
@@ -26,7 +24,6 @@ export function ConfirmDialog<T>({
   action: string;
   onConfirm: () => Promise<T>;
   failure: string;
-  // Where focus goes once it closes, for a dialog opened from a menu item that's gone by then.
   finalFocus?: () => HTMLElement | null;
 }) {
   return (

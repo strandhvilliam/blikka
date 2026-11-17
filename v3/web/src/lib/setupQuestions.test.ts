@@ -3,7 +3,6 @@ import { setupQuestions } from "./setupQuestions.ts";
 
 test("one topic skips how they open and the time limit", () => {
   expect(setupQuestions({ topics: 1, inSequence: false })).toEqual(["name", "topics", "window"]);
-  // An answer left from when there were more topics doesn't bring them back.
   expect(setupQuestions({ topics: 1, inSequence: true })).toEqual(["name", "topics", "window"]);
 });
 

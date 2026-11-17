@@ -8,7 +8,6 @@ import { Separator } from "@ui-sdk/react/separator";
 import { authClient } from "@/api/authClient.ts";
 import { sessionQuery } from "@/api/session.ts";
 
-// Better Auth's emailOTP default.
 const OTP_LENGTH = 6;
 
 export const Route = createFileRoute("/login")({
@@ -42,7 +41,6 @@ function Login() {
     setOtpSent(true);
   };
 
-  // Stays submitting after success, so the auto-submit and a click can't both sign in.
   const verifyOtp = async (code: string) => {
     setSubmitting(true);
     const { error } = await authClient.signIn.emailOtp({ email, otp: code });

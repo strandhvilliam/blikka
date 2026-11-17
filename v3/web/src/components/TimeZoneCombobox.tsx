@@ -19,7 +19,6 @@ export function TimeZoneCombobox({
   onChange: (zone: string) => void;
   disabled?: boolean;
 }) {
-  // Built once from the first value, which stays listed even if this browser doesn't know it.
   const [items] = useState(() => timeZones(value).map((zone) => ({ value: zone, label: zone.replaceAll("_", " ") })));
 
   return (

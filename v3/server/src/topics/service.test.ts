@@ -20,7 +20,6 @@ const setup = async (tx: Tx) => {
 
   const s = runner(tx, TopicsService, TopicsService.layer);
 
-  // One at a time: they share a transaction, and the order is the point.
   const add = async (...names: string[]) => {
     const added = [];
 
@@ -97,12 +96,10 @@ test("a topic with submissions can't be deleted, and once anyone has submitted t
     expect((await run((t) => t.list(owner, competitionId))).map((t) => t.submissions)).toEqual([1, 0, 0]);
     expect(await fails((t) => t.remove(owner, light!.id))).toBe("TopicHasSubmissions");
     expect(await fails((t) => t.update(owner, water!.id, { position: 1 }))).toBe("TopicOrderLocked");
-    // Renaming, and a move to where it already is, change no numbers.
     await run((t) => t.update(owner, light!.id, { name: "Daylight", position: 1 }));
     await run((t) => t.remove(owner, water!.id));
     expect(await names()).toEqual(["1:Daylight", "2:Shadow"]);
 
-    // A deleted entry's submissions stop counting.
     const participants = runner(tx, ParticipantsService, ParticipantsService.layer);
     await participants.run((p) => p.remove(owner, ada.participant.id));
     await run((t) => t.update(owner, shadow!.id, { position: 1 }));

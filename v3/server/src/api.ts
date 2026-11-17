@@ -86,9 +86,7 @@ export default class Api extends Cloudflare.Worker<Api>()(
     const cors = HttpRouter.cors({ allowedOrigins: [authConfig.websiteURL], credentials: true });
     const handler = yield* HttpRouter.toHttpEffect(Layer.mergeAll(Routes, cors));
 
-    // Built per request, like the Db they read.
     const services = Layer.mergeAll(
-      // Auth claims guest entries on sign-in (adr/0004), through ParticipantsService.
       AuthLive(authConfig, cookieDomain).pipe(Layer.provideMerge(ParticipantsService.layer)),
       OrganizationsService.layer,
       CompetitionsService.layer,

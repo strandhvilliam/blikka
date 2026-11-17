@@ -38,7 +38,6 @@ import { colorScheme } from "@/lib/colorScheme.ts";
 import { EntryLinks } from "@/components/EntryLinks.tsx";
 import { EventNav, EventPicker, breadcrumbTrigger, navLinkClass } from "@/components/EventNav.tsx";
 
-// Loads the organization once for every page under it, which read it from their route context.
 export const Route = createFileRoute("/dashboard/$organizationId")({
   beforeLoad: async ({ context, params }) => {
     const organization = await context.queryClient.ensureQueryData(organizationQuery(params.organizationId));
@@ -58,21 +57,15 @@ const pages = [
   { to: "/dashboard/$organizationId/settings", label: "Settings", icon: IconSettings },
 ] as const;
 
-// One sidebar on the left, a top bar, and the page in a panel beside them. The sidebar lists the
-// organization's pages, or the event's while inside one. On phones it opens from the top bar.
 function OrganizationLayout() {
   const { competitionId } = useParams({ strict: false });
-  // Filled by the event route's beforeLoad. Read from the query, not that route's context, so a
-  // rename in its settings shows here too. Null when the event route throws notFound.
   const { data: competition } = useQuery({ ...competitionQuery(competitionId ?? ""), enabled: !!competitionId });
   const event = competitionId ? competition : undefined;
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    // Body text is 14px across the dashboard, like ui-sdk's components (--ui-font-size).
     <div className="flex h-svh flex-col overflow-hidden bg-sidebar text-sm">
       <header className="flex h-12 shrink-0 items-center gap-1 pe-3">
-        {/* As wide as the sidebar, so the breadcrumb starts where the page does. */}
         <div className="flex shrink-0 items-center ps-2 md:w-60 md:ps-5">
           <Drawer side="left" open={menuOpen} onOpenChange={setMenuOpen}>
             <DrawerTrigger
@@ -82,7 +75,6 @@ function OrganizationLayout() {
               <IconMenu2 aria-hidden />
             </DrawerTrigger>
             <DrawerBackdrop className="bg-black/30" />
-            {/* A link pressed in it leads away, so the drawer closes behind it. */}
             <DrawerContent
               className="h-full max-h-none w-72 max-w-[85vw] gap-0 rounded-none border-0 bg-sidebar p-0 pt-3"
               onClick={(e) => e.target instanceof Element && e.target.closest("a") && setMenuOpen(false)}
@@ -155,7 +147,6 @@ function Sidebar({ competition }: { competition: Competition | null | undefined 
   );
 }
 
-// Where you are, and the switchers to go elsewhere: the organization, then the event inside one.
 function Breadcrumb({ competition }: { competition: Competition | null | undefined }) {
   const { organization } = Route.useRouteContext();
   const { data: invitations } = useQuery(receivedInvitationsQuery);
@@ -199,7 +190,6 @@ function Breadcrumb({ competition }: { competition: Competition | null | undefin
   );
 }
 
-// The camera mark from apps/web/public/blikka-logo.svg, in the text color: Ink on light, Paper on dark.
 function BlikkaMark({ className }: { className?: string }) {
   return (
     <svg role="img" aria-label="Blikka" viewBox="0 0 358 299" fill="currentColor" className={className}>
@@ -241,7 +231,6 @@ function OrganizationMenuGroup({ organizationId }: { organizationId: string }) {
   );
 }
 
-// Invitations to accept, then a new organization.
 function JoinMenuGroups() {
   const { data: invitations } = useQuery(receivedInvitationsQuery);
   const accept = useMutation(acceptInvitationMutation);

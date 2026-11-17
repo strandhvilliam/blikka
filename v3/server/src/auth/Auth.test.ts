@@ -146,7 +146,6 @@ test("the emailOTP endpoints the website doesn't use are 404, and the two it use
     expect(await status(path)).toBe(404);
   }
 
-  // Reached: refused for the missing body, not for the path.
   expect(await status("/email-otp/send-verification-otp")).not.toBe(404);
   expect(await status("/sign-in/email-otp")).not.toBe(404);
 });
@@ -167,7 +166,6 @@ test("EntrySession hands a prefixed bearer to the handler as a guest token, and 
     guest_token: "blikka_pgt_abc",
   });
   expect(sessionLookups).toEqual([null]);
-  // Any other bearer is a session token.
   const session = await request("POST", "/enter", { authorization: "Bearer ok" });
   expect(await session.json()).toEqual({ user: { id: "u1", email: "a@b.c", name: "A" }, guest_token: null });
 });
@@ -178,9 +176,6 @@ test("EntrySession refuses a cookie write from another origin, and the handler d
   expect(handlerRuns).toBe(0);
 });
 
-// Reading CurrentUser without the middleware doesn't compile, but a handler that never reads it would
-// silently be public. Add a deliberately public endpoint here as "group.endpoint".
-// Participants enter and read their entry as guests too (adr/0004), behind EntrySession instead.
 const publicEndpoints: ReadonlyArray<string> = [
   "entry.competition",
   "entry.enter",
