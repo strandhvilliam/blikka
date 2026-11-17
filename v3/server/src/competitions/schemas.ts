@@ -1,5 +1,4 @@
 import * as Schema from "effect/Schema";
-import { TopicName } from "../topics/schemas.ts";
 
 export const Competition = Schema.Struct({
   id: Schema.String,
@@ -11,6 +10,8 @@ export const Competition = Schema.Struct({
   published_at: Schema.NullOr(Schema.Date),
   opens_at: Schema.NullOr(Schema.Date),
   closes_at: Schema.NullOr(Schema.Date),
+  topics_in_sequence: Schema.Boolean,
+  minutes_per_topic: Schema.NullOr(Schema.Int),
 });
 
 export type Competition = typeof Competition.Type;
@@ -31,15 +32,14 @@ export const TimeZone = Schema.String.check(
   }),
 );
 
-// The setup's answers, created in one go so an abandoned setup leaves nothing behind (adr/0009).
-// The topics are in the order participants get them.
+// Up to a day; longer schedules are what topic windows are for.
+export const MinutesPerTopic = Schema.Int.check(Schema.isGreaterThanOrEqualTo(1), Schema.isLessThanOrEqualTo(1440));
+
+// The setup's first answer. Every later one updates the draft, or creates its topics (adr/0009).
 export const CompetitionCreate = Schema.Struct({
   organization_id: Schema.String.check(Schema.isUUID()),
   name: CompetitionName,
   time_zone: TimeZone,
-  opens_at: Schema.optionalKey(Schema.Date),
-  closes_at: Schema.optionalKey(Schema.Date),
-  topics: Schema.Array(TopicName).check(Schema.isMinLength(1), Schema.isMaxLength(100)),
 });
 
 export type CompetitionCreate = typeof CompetitionCreate.Type;
@@ -51,6 +51,8 @@ export const CompetitionUpdate = Schema.Struct({
   time_zone: Schema.optionalKey(TimeZone),
   opens_at: Schema.optionalKey(Schema.NullOr(Schema.Date)),
   closes_at: Schema.optionalKey(Schema.NullOr(Schema.Date)),
+  topics_in_sequence: Schema.optionalKey(Schema.Boolean),
+  minutes_per_topic: Schema.optionalKey(Schema.NullOr(MinutesPerTopic)),
   published: Schema.optionalKey(Schema.Boolean),
 });
 
@@ -76,6 +78,13 @@ export class CompetitionWindowInvalid extends Schema.TaggedError<CompetitionWind
   { httpApiStatus: 400 },
 ) {}
 
+// A time limit only means something when topics open one at a time (adr/0009).
+export class TimeLimitNeedsSequence extends Schema.TaggedError<TimeLimitNeedsSequence>()(
+  "TimeLimitNeedsSequence",
+  {},
+  { httpApiStatus: 400 },
+) {}
+
 // "Malmö Fotomaraton 2026!" -> "malmo-fotomaraton-2026".
 // shortcut: a name with no Latin letters or digits gives "event", so only one such name can exist; keep Unicode letters in the slug once that bites.
 export const slugOf = (name: string): string =>
@@ -88,7 +97,8 @@ export const slugOf = (name: string): string =>
     .replace(/^-+|-+$/g, "") || "event";
 
 // The slug comes from the name and is unique across all organizations, deleted competitions
-// included, so a taken slug is a taken name. Names have no constraint of their own.
+// included, so a taken slug is a taken name. Names have no constraint of their own. Renaming a
+// draft moves its slug too; once published, the link stays.
 export class CompetitionNameTaken extends Schema.TaggedError<CompetitionNameTaken>()(
   "CompetitionNameTaken",
   {},

@@ -378,15 +378,26 @@ function Checklist({ competition, topics }: { competition: Competition; topics: 
       done: topics > 0,
       title: "Add topics",
       description: "What participants photograph. One is enough for a single theme.",
-      action: "Topics",
-      link: <Link to="/dashboard/$organizationId/events/$competitionId/topics" params={params} />,
+      // Into the setup, which carries on through the questions after it.
+      action: "Add topics",
+      link: (
+        <Link
+          to="/dashboard/$organizationId/events/$competitionId/setup/$step"
+          params={{ ...params, step: "topics" }}
+        />
+      ),
     },
     {
       done: competition.opens_at !== null,
       title: "Set when submissions open",
       description: "Or open them by hand when the event starts.",
-      action: "Settings",
-      link: settings,
+      action: "Set times",
+      link: (
+        <Link
+          to="/dashboard/$organizationId/events/$competitionId/setup/$step"
+          params={{ ...params, step: "window" }}
+        />
+      ),
     },
     {
       done: false,

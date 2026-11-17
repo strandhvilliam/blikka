@@ -1,6 +1,6 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { authClient } from "@/api/authClient.ts";
 import { isApiError } from "@/api/client.ts";
 import {
@@ -111,7 +111,14 @@ function YourEntry({
   );
 }
 
-type Topic = { id: string; position: number; name: string | null; status: "done" | "open" | "locked" | "missed" };
+type Topic = {
+  id: string;
+  position: number;
+  name: string | null;
+  status: "done" | "open" | "locked" | "missed";
+  // This participant's deadline for an open or done topic; null for none.
+  closes_at: string | null;
+};
 
 const progress = (competition: Competition, topics: Array<Topic>) => {
   const done = topics.filter((topic) => topic.status === "done").length;
@@ -130,6 +137,9 @@ const progress = (competition: Competition, topics: Array<Topic>) => {
 
   return `${done} of ${topics.length} done`;
 };
+
+// Until its deadline, the event's close or the topic's time limit.
+const replaceable = (topic: Topic) => topic.closes_at === null || new Date(topic.closes_at) > new Date();
 
 // A locked topic's title already says so.
 const statusLabel = { done: "Done", open: "Open", locked: null, missed: "Missed" };
@@ -160,9 +170,18 @@ function Topics({
                 Topic {topic.position} of {topics.length}
               </span>
               <span className="font-medium wrap-anywhere">{topic.name ?? "Locked"}</span>
+              {/* The event's own close is already above, so only a topic's time limit shows here. */}
+              {topic.status === "open" && topic.closes_at && topic.closes_at !== competition.closes_at && (
+                <Deadline
+                  closesAt={topic.closes_at}
+                  timeZone={competition.time_zone}
+                  competitionId={competition.id}
+                  participantId={participantId}
+                />
+              )}
             </div>
             {/* shortcut: a button stands in for the upload until uploads ship (.local/plans/competition-slices.md). */}
-            {topic.status === "open" || (topic.status === "done" && !isClosed(competition)) ? (
+            {topic.status === "open" || (topic.status === "done" && replaceable(topic)) ? (
               <Button
                 data-variant={topic.status === "open" ? "solid" : undefined}
                 disabled={submit.isPending}
@@ -182,6 +201,59 @@ function Topics({
         </p>
       )}
     </div>
+  );
+}
+
+const hour = 60 * 60 * 1000;
+
+// "Closes 14:30", and a live "12:34 left" in the last hour. When it passes, the topics are fetched
+// again, so this one shows as missed and the next one opens.
+function Deadline({
+  closesAt,
+  timeZone,
+  competitionId,
+  participantId,
+}: {
+  closesAt: string;
+  timeZone: string;
+  competitionId: string;
+  participantId: string;
+}) {
+  const queryClient = useQueryClient();
+  const deadline = new Date(closesAt).getTime();
+  const [now, setNow] = useState(() => Date.now());
+  const left = deadline - now;
+
+  useEffect(() => {
+    if (left <= 0) {
+      void queryClient.invalidateQueries({ queryKey: entryTopicsQuery(competitionId, participantId).queryKey });
+
+      return;
+    }
+
+    // Every second in the last hour, otherwise once the last hour starts.
+    const timer = setTimeout(() => setNow(Date.now()), left > hour ? left - hour : 1000);
+
+    return () => clearTimeout(timer);
+  }, [left, queryClient, competitionId, participantId]);
+
+  if (left > hour) {
+    return (
+      <span className="text-sm text-muted-foreground">
+        Closes <span className="font-mono text-xs">{formatIn(new Date(closesAt), timeZone)}</span>
+      </span>
+    );
+  }
+
+  const seconds = Math.max(0, Math.ceil(left / 1000));
+
+  return (
+    <span className="text-sm text-muted-foreground">
+      <span className="font-mono text-xs text-foreground">
+        {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
+      </span>{" "}
+      left
+    </span>
   );
 }
 

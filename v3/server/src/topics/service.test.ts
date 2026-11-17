@@ -15,7 +15,6 @@ const setup = async (tx: Tx) => {
       organization_id: organizationId,
       name: `Marathon ${crypto.randomUUID()}`,
       time_zone: "Europe/Stockholm",
-      topics: [],
     }),
   );
 

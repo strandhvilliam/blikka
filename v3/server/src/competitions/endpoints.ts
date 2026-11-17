@@ -15,6 +15,7 @@ import {
   CompetitionNotFound,
   CompetitionUpdate,
   CompetitionWindowInvalid,
+  TimeLimitNeedsSequence,
 } from "./schemas.ts";
 
 // A malformed id is a 400 here rather than a Postgres error (500).
@@ -33,7 +34,7 @@ export class CompetitionsApi extends HttpApiGroup.make("competitions")
     HttpApiEndpoint.post("create", "/competitions", {
       payload: CompetitionCreate,
       success: HttpApiSchema.status(201)(Competition),
-      error: [OrganizationNotFound, PermissionDenied, CompetitionNameTaken, CompetitionWindowInvalid],
+      error: [OrganizationNotFound, PermissionDenied, CompetitionNameTaken],
     }),
   )
   .add(
@@ -53,6 +54,8 @@ export class CompetitionsApi extends HttpApiGroup.make("competitions")
         CompetitionNotFound,
         PermissionDenied,
         CompetitionWindowInvalid,
+        TimeLimitNeedsSequence,
+        CompetitionNameTaken,
         CompetitionHasNoTopics,
         CompetitionHasParticipants,
       ],

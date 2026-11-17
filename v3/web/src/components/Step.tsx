@@ -26,6 +26,7 @@ export function Step({
   hint,
   progress,
   back,
+  skip,
   action = "Continue",
   complete,
   error: initialError,
@@ -37,6 +38,8 @@ export function Step({
   hint: ReactNode;
   progress?: [step: number, of: number];
   back?: () => void;
+  // Moves on without saving, for a question the event works without.
+  skip?: () => void;
   action?: string;
   complete: boolean;
   // Shown until the next submit, for an error found on a later step.
@@ -77,6 +80,11 @@ export function Step({
         <Button type="submit" data-variant="solid" disabled={submitting || !complete}>
           {action}
         </Button>
+        {skip && (
+          <Button disabled={submitting} onClick={skip}>
+            Skip
+          </Button>
+        )}
         {back && (
           <Button disabled={submitting} onClick={back}>
             Back

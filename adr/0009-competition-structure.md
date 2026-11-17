@@ -49,8 +49,10 @@ values, and code never asks which format a competition is.
 - `max_photos_per_topic`, default 1.
 - `topics_in_sequence`, default false. When true, a participant's next topic unlocks once they
   have submitted to the previous one.
-- `minutes_per_topic`, nullable. A time limit per topic, counted from when that topic unlocked for
-  the participant.
+- `minutes_per_topic`, nullable, 1 to 1440. A time limit per topic, counted from when that topic
+  unlocked for the participant. It needs `topics_in_sequence`; the Api refuses it otherwise.
+  Changing either setting applies to everyone at once, people partway through included, since
+  unlock times are worked out from them each time.
 
 `topics` has `competition_id`, `name`, `position` and a nullable `opens_at` and `closes_at`. A null
 window means the competition's. A competition needs at least one topic to be published, and its
@@ -115,9 +117,10 @@ and a question only appears when it applies:
 6. Do participants pick a class, and a category?
 
 Question 3 sets two settings with one answer. The rarer combination of sequence and topic windows
-is still reachable in Settings. The browser keeps the answers until the last step, and one
-`POST /competitions` creates the competition with its topics in a transaction, so an abandoned
-setup leaves nothing behind.
+is still reachable in Settings. The name creates the competition as a draft, and every later answer
+is saved as it's given, through the same endpoints Settings and Topics use. So any question after
+the name can be skipped, an abandoned setup leaves a draft, and the Overview's checklist links back
+to what's missing. A draft's link follows its name; once published, the link stays.
 
 Features the old app tied to the marathon (contact sheets, the verification mode, staff laptop
 upload) become settings an organizer turns on, not parts of a mode.
@@ -153,6 +156,9 @@ one extends `availableTopics`. None of them rewrites existing rows.
 - **Submissions without a topic for themeless events.** One fewer row for those events, but every
   feature that groups submissions by topic would need a second case.
 - **Hiding locked topics in the website only.** The names would still be in the Api response.
+- **Keeping the answers in the browser and creating everything at the end.** An abandoned setup
+  would leave nothing behind, but a taken name only shows up at the end, nothing can be skipped,
+  and nothing is left to come back to.
 - **Templates in the setup ("Photo marathon", "Live", "Topic by topic").** Familiar names, but a
   list to name and maintain, and combinations outside it have no template. Plain answers with an
   example ("All at once, like a photo marathon") give organizers the familiar word without one.

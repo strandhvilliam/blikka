@@ -273,15 +273,20 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       return row;
     });
 
-    // What availableTopics reads for one participant: their competition's window, its live topics
-    // in order, and their submissions. Reads through `tx` inside a transaction: Db has one connection.
+    // What availableTopics reads for one participant: their competition's window and pace, its live
+    // topics in order, and their submissions. Reads through `tx` inside a transaction: Db has one connection.
     const progress = Effect.fn("EntryService.progress")(function* (
       participant: EntryParticipant,
       tx: Tx | Db["Service"] = db,
     ) {
       const [competition] = yield* Effect.promise(() =>
         tx
-          .select({ opensAt: model.competitions.opensAt, closesAt: model.competitions.closesAt })
+          .select({
+            opensAt: model.competitions.opensAt,
+            closesAt: model.competitions.closesAt,
+            topicsInSequence: model.competitions.topicsInSequence,
+            minutesPerTopic: model.competitions.minutesPerTopic,
+          })
           .from(model.competitions)
           .where(and(eq(model.competitions.id, participant.competition_id), isNull(model.competitions.deletedAt))),
       );
@@ -301,7 +306,7 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
 
       const submitted = yield* Effect.promise(() =>
         tx
-          .select({ topicId: submissions.topicId })
+          .select({ topicId: submissions.topicId, createdAt: submissions.createdAt })
           .from(submissions)
           .where(eq(submissions.participantId, participant.id)),
       );
@@ -316,14 +321,16 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
       const participant = yield* requireParticipantOwner(caller, participantId);
       const { competition, submissions } = yield* progress(participant);
 
-      return availableTopics(competition, submissions, new Date()).map((topic) => {
-        // Locked topics go without their name (adr/0009).
-        if (topic.status === "locked") {
-          return { ...topic, name: null };
-        }
+      const topics = availableTopics(competition, { createdAt: participant.created_at }, submissions, new Date());
 
-        return topic;
-      });
+      return topics.map((topic) => ({
+        id: topic.id,
+        position: topic.position,
+        // Locked topics go without their name (adr/0009).
+        name: topic.status === "locked" ? null : topic.name,
+        status: topic.status,
+        closes_at: topic.closesAt,
+      }));
     });
 
     // A participant marks a topic done. The upload slice attaches the file.
@@ -351,7 +358,10 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
           // Judged as if this topic had no submission, so a replace is allowed exactly while a first
           // submit would be.
           const others = submitted.filter((submission) => submission.topicId !== topicId);
-          const topic = availableTopics(competition, others, new Date()).find((topic) => topic.id === topicId);
+
+          const topic = availableTopics(competition, { createdAt: participant.created_at }, others, new Date()).find(
+            (topic) => topic.id === topicId,
+          );
 
           if (!topic) {
             return yield* new TopicNotFound();

@@ -15,6 +15,7 @@ import {
   type CompetitionUpdate,
   CompetitionWindowInvalid,
   slugOf,
+  TimeLimitNeedsSequence,
 } from "./schemas.ts";
 
 const columns = {
@@ -27,6 +28,8 @@ const columns = {
   published_at: model.competitions.publishedAt,
   opens_at: model.competitions.opensAt,
   closes_at: model.competitions.closesAt,
+  topics_in_sequence: model.competitions.topicsInSequence,
+  minutes_per_topic: model.competitions.minutesPerTopic,
 };
 
 export class CompetitionsService extends Context.Service<CompetitionsService>()(
@@ -82,45 +85,24 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
       const create = Effect.fn("CompetitionsService.create")(function* (caller: User, input: CompetitionCreate) {
         yield* authorize(caller, "competitions:write", input.organization_id);
 
-        if (input.opens_at && input.closes_at && input.closes_at <= input.opens_at) {
-          return yield* new CompetitionWindowInvalid();
+        const [competition] = yield* Effect.promise(() =>
+          db
+            .insert(model.competitions)
+            .values({
+              organizationId: input.organization_id,
+              name: input.name,
+              slug: slugOf(input.name),
+              timeZone: input.time_zone,
+            })
+            .onConflictDoNothing({ target: model.competitions.slug })
+            .returning(columns),
+        );
+
+        if (!competition) {
+          return yield* new CompetitionNameTaken();
         }
 
-        return yield* transaction(db, (tx) =>
-          Effect.gen(function* () {
-            const [competition] = yield* Effect.promise(() =>
-              tx
-                .insert(model.competitions)
-                .values({
-                  organizationId: input.organization_id,
-                  name: input.name,
-                  slug: slugOf(input.name),
-                  timeZone: input.time_zone,
-                  opensAt: input.opens_at,
-                  closesAt: input.closes_at,
-                })
-                .onConflictDoNothing({ target: model.competitions.slug })
-                .returning(columns),
-            );
-
-            if (!competition) {
-              return yield* new CompetitionNameTaken();
-            }
-
-            // The Api requires a topic; tests create competitions without one to reach CompetitionHasNoTopics.
-            if (input.topics.length > 0) {
-              yield* Effect.promise(() =>
-                tx
-                  .insert(model.topics)
-                  .values(
-                    input.topics.map((name, index) => ({ competitionId: competition.id, name, position: index + 1 })),
-                  ),
-              );
-            }
-
-            return competition;
-          }),
-        );
+        return competition;
       });
 
       const writable = Effect.fn("CompetitionsService.writable")(function* (caller: User, id: string) {
@@ -146,6 +128,17 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
           return yield* new CompetitionWindowInvalid();
         }
 
+        const inSequence = patch.topics_in_sequence ?? current.topics_in_sequence;
+
+        const minutesPerTopic =
+          patch.minutes_per_topic === undefined ? current.minutes_per_topic : patch.minutes_per_topic;
+
+        // Applies to everyone at once, people partway through included: unlock times are worked out
+        // from these each time (adr/0009).
+        if (minutesPerTopic !== null && !inSequence) {
+          return yield* new TimeLimitNeedsSequence();
+        }
+
         // Left undefined, published_at stays as it is.
         let publishedAt: SQL | null | undefined;
 
@@ -159,13 +152,33 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
         return yield* transaction(db, (tx) =>
           Effect.gen(function* () {
             // Topic deletes and entries lock this row too, so neither can slip past the checks below.
-            yield* Effect.promise(() =>
+            const [locked] = yield* Effect.promise(() =>
               tx
-                .select({ id: model.competitions.id })
+                .select({ slug: model.competitions.slug, publishedAt: model.competitions.publishedAt })
                 .from(model.competitions)
                 .where(eq(model.competitions.id, id))
                 .for("update"),
             );
+
+            // A draft's link follows its name; a published one's was shared, so it stays.
+            const renamedSlug = patch.name === undefined ? undefined : slugOf(patch.name);
+            let slug: string | undefined;
+
+            if (renamedSlug && locked && locked.publishedAt === null && renamedSlug !== locked.slug) {
+              // shortcut: two drafts renamed to the same slug at once fail the unique constraint (500) instead of a 409; catch 23505 if that shows up.
+              const [taken] = yield* Effect.promise(() =>
+                tx
+                  .select({ id: model.competitions.id })
+                  .from(model.competitions)
+                  .where(eq(model.competitions.slug, renamedSlug)),
+              );
+
+              if (taken) {
+                return yield* new CompetitionNameTaken();
+              }
+
+              slug = renamedSlug;
+            }
 
             if (patch.published) {
               const [topic] = yield* Effect.promise(() =>
@@ -201,10 +214,13 @@ export class CompetitionsService extends Context.Service<CompetitionsService>()(
                 // drizzle leaves out undefined keys, so fields not sent stay as they are.
                 .set({
                   name: patch.name,
+                  slug,
                   description: patch.description,
                   timeZone: patch.time_zone,
                   opensAt: patch.opens_at,
                   closesAt: patch.closes_at,
+                  topicsInSequence: patch.topics_in_sequence,
+                  minutesPerTopic: patch.minutes_per_topic,
                   publishedAt,
                   updatedAt: sql`now()`,
                 })

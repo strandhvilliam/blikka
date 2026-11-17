@@ -177,6 +177,10 @@ export const competitions = pgTable(
     // Null opensAt: not open yet. Null closesAt: no deadline.
     opensAt: timestamp({ withTimezone: true }),
     closesAt: timestamp({ withTimezone: true }),
+    // Topics unlock one at a time, each once the previous is done or its time ran out (adr/0009).
+    topicsInSequence: boolean().notNull().default(false),
+    // Null: no time limit. Counted from when the topic unlocked for the participant.
+    minutesPerTopic: integer(),
     createdAt: timestamp().notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
     deletedAt: timestamp(),
@@ -185,6 +189,11 @@ export const competitions = pgTable(
     index("competitions_organization_id_idx").on(table.organizationId),
     // The service checks this first; the constraint catches two edits racing.
     check("competitions_window_check", gt(table.closesAt, table.opensAt)),
+    // A time limit only means one topic at a time; the service checks this first, as above.
+    check(
+      "competitions_minutes_per_topic_check",
+      sql`${table.minutesPerTopic} is null or (${table.topicsInSequence} and ${table.minutesPerTopic} between 1 and 1440)`,
+    ),
   ],
 );
 
@@ -224,7 +233,8 @@ export const participants = pgTable(
     email: text().notNull(),
     // SHA-256 of the guest token (adr/0004). Null once a user owns the entry.
     guestTokenHash: text(),
-    createdAt: timestamp().notNull().defaultNow(),
+    // With a time zone: the first topic unlocks at entry (adr/0009).
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp().notNull().defaultNow(),
     deletedAt: timestamp(),
   },

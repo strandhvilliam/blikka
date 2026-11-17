@@ -29,6 +29,8 @@ export const EntryTopic = Schema.Struct({
   // Null while locked, so it can't be read from the network.
   name: Schema.NullOr(Schema.String),
   status: Schema.Literals(["done", "open", "locked", "missed"]),
+  // When an open or done topic stops taking photos for this participant; null for no deadline.
+  closes_at: Schema.NullOr(Schema.Date),
 });
 
 // A topic the participant delivered. No file yet: uploads attach one later.

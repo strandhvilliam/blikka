@@ -71,6 +71,13 @@
       "when": 1794868534899,
       "tag": "0009_participants_unique_live_only",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794868811390,
+      "tag": "0010_topics_in_sequence",
+      "breakpoints": true
     }
   ]
 }

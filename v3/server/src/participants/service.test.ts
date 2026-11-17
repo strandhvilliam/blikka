@@ -17,9 +17,10 @@ const setup = async (tx: Tx) => {
       organization_id: organizationId,
       name: `Marathon ${crypto.randomUUID()}`,
       time_zone: "Europe/Stockholm",
-      topics: ["Open"],
     }),
   );
+
+  await tx.insert(model.topics).values({ competitionId, name: "Open", position: 1 });
 
   await competitions.run((c) => c.update(owner, competitionId, { published: true }));
   const entering = runner(tx, EntryService, EntryService.layer);

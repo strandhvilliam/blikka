@@ -416,13 +416,17 @@ export interface components {
             /** @enum {string} */
             _tag: "CompetitionHasNoTopics";
         };
-        CompetitionWindowInvalidEncoded: {
-            /** @enum {string} */
-            _tag: "CompetitionWindowInvalid";
-        };
         CompetitionNameTakenEncoded: {
             /** @enum {string} */
             _tag: "CompetitionNameTaken";
+        };
+        TimeLimitNeedsSequenceEncoded: {
+            /** @enum {string} */
+            _tag: "TimeLimitNeedsSequence";
+        };
+        CompetitionWindowInvalidEncoded: {
+            /** @enum {string} */
+            _tag: "CompetitionWindowInvalid";
         };
     };
     responses: never;
@@ -757,6 +761,8 @@ export interface operations {
                         published_at: string | null;
                         opens_at: string | null;
                         closes_at: string | null;
+                        topics_in_sequence: boolean;
+                        minutes_per_topic: number | null;
                     }[];
                 };
             };
@@ -797,9 +803,6 @@ export interface operations {
                     organization_id: string;
                     name: string;
                     time_zone: string;
-                    opens_at?: string;
-                    closes_at?: string;
-                    topics: string[];
                 };
             };
         };
@@ -820,16 +823,9 @@ export interface operations {
                         published_at: string | null;
                         opens_at: string | null;
                         closes_at: string | null;
+                        topics_in_sequence: boolean;
+                        minutes_per_topic: number | null;
                     };
-                };
-            };
-            /** @description CompetitionWindowInvalid */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["CompetitionWindowInvalidEncoded"];
                 };
             };
             /** @description Unauthorized */
@@ -895,6 +891,8 @@ export interface operations {
                         published_at: string | null;
                         opens_at: string | null;
                         closes_at: string | null;
+                        topics_in_sequence: boolean;
+                        minutes_per_topic: number | null;
                     };
                 };
             };
@@ -999,6 +997,8 @@ export interface operations {
                     time_zone?: string;
                     opens_at?: string | null;
                     closes_at?: string | null;
+                    topics_in_sequence?: boolean;
+                    minutes_per_topic?: number | null;
                     published?: boolean;
                 };
             };
@@ -1020,16 +1020,18 @@ export interface operations {
                         published_at: string | null;
                         opens_at: string | null;
                         closes_at: string | null;
+                        topics_in_sequence: boolean;
+                        minutes_per_topic: number | null;
                     };
                 };
             };
-            /** @description BadRequest | CompetitionWindowInvalid */
+            /** @description BadRequest | CompetitionWindowInvalid | TimeLimitNeedsSequence */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionWindowInvalidEncoded"];
+                    "application/json": components["schemas"]["CompetitionWindowInvalidEncoded"] | components["schemas"]["TimeLimitNeedsSequenceEncoded"];
                 };
             };
             /** @description Unauthorized */
@@ -1057,13 +1059,13 @@ export interface operations {
                     "application/json": components["schemas"]["CompetitionNotFoundEncoded"];
                 };
             };
-            /** @description CompetitionHasNoTopics | CompetitionHasParticipants */
+            /** @description CompetitionNameTaken | CompetitionHasNoTopics | CompetitionHasParticipants */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CompetitionHasNoTopicsEncoded"] | components["schemas"]["CompetitionHasParticipantsEncoded"];
+                    "application/json": components["schemas"]["CompetitionNameTakenEncoded"] | components["schemas"]["CompetitionHasNoTopicsEncoded"] | components["schemas"]["CompetitionHasParticipantsEncoded"];
                 };
             };
         };
@@ -1547,6 +1549,7 @@ export interface operations {
                         name: string | null;
                         /** @enum {string} */
                         status: "done" | "open" | "locked" | "missed";
+                        closes_at: string | null;
                     }[];
                 };
             };

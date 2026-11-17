@@ -19,9 +19,10 @@ const setup = async (tx: Tx) => {
       organization_id: organizationId,
       name: `Marathon ${crypto.randomUUID()}`,
       time_zone: "Europe/Stockholm",
-      topics: ["Open"],
     }),
   );
+
+  await tx.insert(model.topics).values({ competitionId, name: "Open", position: 1 });
 
   const publish = (published: boolean) => competitions.run((c) => c.update(owner, competitionId, { published }));
   await publish(true);
@@ -178,7 +179,7 @@ test("topics stay locked and nameless until submissions open; then a participant
 
     const ada = guest(guest_token);
     const [open] = await run((p) => p.listTopics(ada, participant.id));
-    expect(open).toEqual({ id: open!.id, position: 1, name: null, status: "locked" });
+    expect(open).toEqual({ id: open!.id, position: 1, name: null, status: "locked", closes_at: null });
     expect(await fails((p) => p.submit(ada, participant.id, open!.id))).toBe("TopicNotOpen");
 
     await tx.insert(model.topics).values({ competitionId, name: "Street", position: 2 });
@@ -197,6 +198,36 @@ test("topics stay locked and nameless until submissions open; then a participant
     await competitions.run((c) => c.update(owner, competitionId, { closes_at: new Date(Date.now() - 1000) }));
     expect((await run((p) => p.listTopics(ada, participant.id))).map((t) => t.status)).toEqual(["done", "missed"]);
     expect(await fails((p) => p.submit(ada, participant.id, open!.id))).toBe("TopicNotOpen");
+  }));
+
+test("in sequence, the next topic unlocks on submit, each with its own time limit from when it unlocked", () =>
+  rolledBack(async (tx) => {
+    const { run, fails, competitions, owner, competitionId } = await setup(tx);
+    await tx.insert(model.topics).values({ competitionId, name: "Street", position: 2 });
+
+    await competitions.run((c) =>
+      c.update(owner, competitionId, {
+        opens_at: new Date(Date.now() - 60 * 60 * 1000),
+        topics_in_sequence: true,
+        minutes_per_topic: 30,
+      }),
+    );
+
+    const { participant, guest_token } = await run((p) =>
+      p.enter(null, competitionId, { name: "Ada", email: "ada@example.com" }),
+    );
+
+    const ada = guest(guest_token);
+    const [first, second] = await run((p) => p.listTopics(ada, participant.id));
+    expect(first).toMatchObject({ name: "Open", status: "open" });
+    expect(first!.closes_at).toEqual(new Date(participant.created_at.getTime() + 30 * 60 * 1000));
+    expect(second).toMatchObject({ name: null, status: "locked", closes_at: null });
+    expect(await fails((p) => p.submit(ada, participant.id, second!.id))).toBe("TopicNotOpen");
+
+    const submitted = await run((p) => p.submit(ada, participant.id, first!.id));
+    const [, unlocked] = await run((p) => p.listTopics(ada, participant.id));
+    expect(unlocked).toMatchObject({ name: "Street", status: "open" });
+    expect(unlocked!.closes_at).toEqual(new Date(submitted.created_at.getTime() + 30 * 60 * 1000));
   }));
 
 test("only the entry's owner sees its topics or submits, and only to a topic of its competition", () =>
