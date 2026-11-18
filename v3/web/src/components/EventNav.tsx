@@ -5,6 +5,7 @@ import {
   IconListNumbers,
   IconSelector,
   IconSettings,
+  IconTrophy,
   IconUsers,
 } from "@tabler/icons-react";
 import { useQuery } from "@tanstack/react-query";
@@ -45,6 +46,11 @@ const pages = [
     to: "/dashboard/$organizationId/events/$competitionId/topics",
     label: "Topics",
     icon: IconListNumbers,
+  },
+  {
+    to: "/dashboard/$organizationId/events/$competitionId/judging",
+    label: "Judging",
+    icon: IconTrophy,
   },
   {
     to: "/dashboard/$organizationId/events/$competitionId/settings",

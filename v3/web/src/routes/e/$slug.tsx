@@ -1,19 +1,22 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createFileRoute, notFound } from "@tanstack/react-router";
+import { Link, createFileRoute, notFound } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { authClient } from "@/api/authClient.ts";
+import { ballotsQuery } from "@/api/ballots.ts";
 import { isApiError } from "@/api/client.ts";
 import {
   enterMutation,
   entryCompetitionQuery,
   entryTopicsQuery,
   myEntryQuery,
+  participantBallotAuth,
   rememberedGuest,
   submitMutation,
 } from "@/api/entry.ts";
 import { Button } from "@ui-sdk/react/button";
 import { Input } from "@ui-sdk/react/input";
 import { Separator } from "@ui-sdk/react/separator";
+import { roundState } from "@/api/rounds.ts";
 import { formatIn } from "@/lib/timeZone.ts";
 
 export const Route = createFileRoute("/e/$slug")({
@@ -106,6 +109,36 @@ function YourEntry({
         <p className="text-sm text-muted-foreground wrap-anywhere">{participant.name || participant.email}</p>
       </div>
       {topics && <Topics competition={competition} participantId={participant.id} topics={topics} />}
+      <Ballots competition={competition} />
+    </div>
+  );
+}
+
+function Ballots({ competition }: { competition: Competition }) {
+  const { data: ballots = [] } = useQuery(ballotsQuery(participantBallotAuth(competition.id), competition.id));
+  const open = ballots.filter((ballot) => roundState(ballot) === "Open");
+
+  if (open.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="font-medium">Voting is open</p>
+      <ul className="flex flex-col divide-y divide-border border-y border-border text-left">
+        {open.map((ballot) => (
+          <li key={ballot.id} className="flex items-center gap-3 py-3">
+            <span className="min-w-0 flex-1 font-medium wrap-anywhere">{ballot.round_name}</span>
+            <Link
+              to="/e/$slug/vote/$ballotId"
+              params={{ slug: competition.slug, ballotId: ballot.id }}
+              className="text-sm font-medium"
+            >
+              {ballot.submitted_at ? "See your votes" : "Vote"}
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

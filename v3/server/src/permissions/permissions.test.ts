@@ -13,8 +13,8 @@ test("each role's exact permissions", () => {
     "participants:write",
     "submissions:read",
     "submissions:write",
-    "jury:read",
-    "jury:write",
+    "judging:read",
+    "judging:write",
   ];
 
   expect(ROLE_PERMISSIONS).toEqual({ owner: admin, admin });
@@ -26,7 +26,7 @@ test("no role denies every permission", () => {
   }
 });
 
-test("rolesWith lists the roles a permission belongs to, and none for the jury's", () => {
+test("rolesWith lists the roles a permission belongs to", () => {
   expect(rolesWith("competitions:read")).toEqual(["owner", "admin"]);
-  expect(rolesWith("jury:rate")).toEqual([]);
+  expect(rolesWith("judging:write")).toEqual(["owner", "admin"]);
 });

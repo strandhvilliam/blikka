@@ -3,14 +3,17 @@ import * as HttpApi from "effect/http-api/HttpApi";
 import * as HttpApiEndpoint from "effect/http-api/HttpApiEndpoint";
 import * as HttpApiGroup from "effect/http-api/HttpApiGroup";
 import { Authenticated } from "./auth/Authenticated.ts";
+import { BallotsApi } from "./ballots/endpoints.ts";
 import { CompetitionsApi } from "./competitions/endpoints.ts";
 import { InvitationsApi } from "./invitations/endpoints.ts";
 import { MembersApi } from "./members/endpoints.ts";
 import { OrganizationsApi } from "./organizations/endpoints.ts";
 import { EntryApi } from "./entry/endpoints.ts";
 import { ParticipantsApi } from "./participants/endpoints.ts";
+import { RoundsApi } from "./rounds/endpoints.ts";
 import { SubmissionsApi } from "./submissions/endpoints.ts";
 import { TopicsApi } from "./topics/endpoints.ts";
+import { VotersApi } from "./voters/endpoints.ts";
 
 export const User = Schema.Struct({
   id: Schema.String,
@@ -33,4 +36,7 @@ export class Api extends HttpApi.make("blikka")
   .add(ParticipantsApi)
   .add(SubmissionsApi)
   .add(InvitationsApi)
-  .add(MembersApi) {}
+  .add(MembersApi)
+  .add(RoundsApi)
+  .add(VotersApi)
+  .add(BallotsApi) {}

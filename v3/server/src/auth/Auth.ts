@@ -20,6 +20,7 @@ import * as model from "../db/model.ts";
 import { ParticipantsService } from "../participants/service.ts";
 import { reportCause, SentryScope } from "../sentry/SentryScope.ts";
 import { Authenticated } from "./Authenticated.ts";
+import { BallotCaller, BallotSession, JUROR_TOKEN_PREFIX } from "./BallotSession.ts";
 import { CurrentUser } from "./CurrentUser.ts";
 import { EntryCaller, EntrySession, GUEST_TOKEN_PREFIX } from "./EntrySession.ts";
 
@@ -182,26 +183,39 @@ const authenticate = Effect.fn("Auth.authenticate")(function* (
   return yield* Effect.provideService(httpEffect, CurrentUser, session.user);
 });
 
-const entrySession = Effect.fn("Auth.entrySession")(function* (
-  httpEffect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled, EntryCaller>,
-) {
+const tokenCaller = Effect.fn("Auth.tokenCaller")(function* () {
   yield* checkOrigin();
   const request = yield* HttpServerRequest.HttpServerRequest;
   const bearerMatch = request.headers["authorization"]?.match(/^Bearer (\S+)$/);
   const bearer = bearerMatch?.[1];
   const guestToken = bearer?.startsWith(GUEST_TOKEN_PREFIX) ? bearer : null;
+  const jurorToken = bearer?.startsWith(JUROR_TOKEN_PREFIX) ? bearer : null;
 
   const headers = new Headers(request.headers);
 
-  if (guestToken) {
+  if (guestToken || jurorToken) {
     headers.delete("authorization");
   }
 
   const session = yield* getSession(headers);
 
-  const caller = { user: session?.user ?? null, guestToken };
+  return { user: session?.user ?? null, guestToken, jurorToken };
+});
 
-  return yield* Effect.provideService(httpEffect, EntryCaller, caller);
+const entrySession = Effect.fn("Auth.entrySession")(function* (
+  httpEffect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled, EntryCaller>,
+) {
+  const { user, guestToken } = yield* tokenCaller();
+
+  return yield* Effect.provideService(httpEffect, EntryCaller, { user, guestToken });
+});
+
+const ballotSession = Effect.fn("Auth.ballotSession")(function* (
+  httpEffect: Effect.Effect<HttpServerResponse.HttpServerResponse, Types.unhandled, BallotCaller>,
+) {
+  const caller = yield* tokenCaller();
+
+  return yield* Effect.provideService(httpEffect, BallotCaller, caller);
 });
 
 // SAFETY: the cast swaps Auth for its per-request marker (see Authenticated.ts). It holds because the
@@ -209,3 +223,6 @@ export const AuthenticatedLive = Layer.succeed(Authenticated)(authenticate as Au
 
 // SAFETY: as for AuthenticatedLive.
 export const EntrySessionLive = Layer.succeed(EntrySession)(entrySession as EntrySession["Service"]);
+
+// SAFETY: as for AuthenticatedLive.
+export const BallotSessionLive = Layer.succeed(BallotSession)(ballotSession as BallotSession["Service"]);

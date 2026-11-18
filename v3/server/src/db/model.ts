@@ -1,11 +1,13 @@
 import { gt, isNull, sql } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   boolean,
   check,
   index,
   integer,
   pgTable,
   primaryKey,
+  smallint,
   text,
   timestamp,
   unique,
@@ -245,5 +247,108 @@ export const submissions = pgTable(
   (table) => [
     unique("submissions_participant_id_topic_id_unique").on(table.participantId, table.topicId),
     index("submissions_topic_id_idx").on(table.topicId),
+  ],
+);
+
+export const judgingRounds = pgTable(
+  "judging_rounds",
+  {
+    id: uuid()
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    competitionId: uuid()
+      .notNull()
+      .references(() => competitions.id),
+    name: text().notNull(),
+    method: text().$type<"pick" | "rating">().notNull(),
+    maxVotes: integer(),
+    favorite: boolean().notNull().default(false),
+    scale: integer(),
+    voters: text().$type<"jury" | "participants">().notNull(),
+    topicId: uuid().references(() => topics.id),
+    sourceRoundId: uuid().references((): AnyPgColumn => judgingRounds.id),
+    opensAt: timestamp({ withTimezone: true }),
+    closesAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp().notNull().defaultNow(),
+    updatedAt: timestamp().notNull().defaultNow(),
+    deletedAt: timestamp(),
+  },
+  (table) => [
+    index("judging_rounds_competition_id_idx").on(table.competitionId),
+    check(
+      "judging_rounds_method_check",
+      sql`(${table.method} = 'pick' and ${table.maxVotes} between 1 and 100 and ${table.scale} is null) or (${table.method} = 'rating' and ${table.scale} in (5, 10) and ${table.maxVotes} is null and not ${table.favorite})`,
+    ),
+    check("judging_rounds_voters_check", sql`${table.voters} in ('jury', 'participants')`),
+    check(
+      "judging_rounds_window_check",
+      sql`${table.closesAt} is null or (${table.opensAt} is not null and ${table.closesAt} > ${table.opensAt})`,
+    ),
+  ],
+);
+
+export const judgingEntries = pgTable(
+  "judging_entries",
+  {
+    roundId: uuid()
+      .notNull()
+      .references(() => judgingRounds.id),
+    submissionId: uuid()
+      .notNull()
+      .references(() => submissions.id),
+  },
+  (table) => [
+    primaryKey({ columns: [table.roundId, table.submissionId] }),
+    index("judging_entries_submission_id_idx").on(table.submissionId),
+  ],
+);
+
+export const judgingVoters = pgTable(
+  "judging_voters",
+  {
+    id: uuid()
+      .primaryKey()
+      .default(sql`uuidv7()`),
+    roundId: uuid()
+      .notNull()
+      .references(() => judgingRounds.id),
+    participantId: uuid().references(() => participants.id),
+    name: text().notNull(),
+    email: text().notNull(),
+    tokenHash: text().unique(),
+    submittedAt: timestamp({ withTimezone: true }),
+    revokedAt: timestamp({ withTimezone: true }),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("judging_voters_round_id_idx").on(table.roundId),
+    uniqueIndex("judging_voters_round_id_participant_id_unique").on(table.roundId, table.participantId),
+    uniqueIndex("judging_voters_round_id_email_unique")
+      .on(table.roundId, table.email)
+      .where(sql`${table.participantId} is null and ${table.revokedAt} is null`),
+  ],
+);
+
+export const judgingVotes = pgTable(
+  "judging_votes",
+  {
+    voterId: uuid()
+      .notNull()
+      .references(() => judgingVoters.id),
+    submissionId: uuid()
+      .notNull()
+      .references(() => submissions.id),
+    value: smallint().notNull(),
+    favorite: boolean().notNull().default(false),
+    note: text(),
+    createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.voterId, table.submissionId] }),
+    index("judging_votes_submission_id_idx").on(table.submissionId),
+    uniqueIndex("judging_votes_one_favorite")
+      .on(table.voterId)
+      .where(sql`${table.favorite}`),
   ],
 );

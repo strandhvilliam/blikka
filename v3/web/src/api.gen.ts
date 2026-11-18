@@ -340,17 +340,261 @@ export interface paths {
         patch: operations["members.update"];
         trace?: never;
     };
+    "/rounds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["rounds.list"];
+        put?: never;
+        post: operations["rounds.create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rounds/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["rounds.get"];
+        put?: never;
+        post?: never;
+        delete: operations["rounds.remove"];
+        options?: never;
+        head?: never;
+        patch: operations["rounds.update"];
+        trace?: never;
+    };
+    "/rounds/{id}/open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rounds.open"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/rounds/{id}/results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["rounds.results"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/voters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["voters.list"];
+        put?: never;
+        post: operations["voters.invite"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/voters/{id}/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["voters.renewToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/voters/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["voters.revoke"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ballots": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ballots.list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ballots/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["ballots.get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ballots/{id}/votes/{submission_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["ballots.vote"];
+        post?: never;
+        delete: operations["ballots.unvote"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/ballots/{id}/submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["ballots.submit"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        OwnerCannotBeRemovedEncoded: {
+        BallotSubmittedEncoded: {
             /** @enum {string} */
-            _tag: "OwnerCannotBeRemoved";
+            _tag: "BallotSubmitted";
+        };
+        RoundNotOpenEncoded: {
+            /** @enum {string} */
+            _tag: "RoundNotOpen";
+        };
+        BallotNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "BallotNotFound";
+        };
+        VoteLimitReachedEncoded: {
+            /** @enum {string} */
+            _tag: "VoteLimitReached";
+        };
+        EntryNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "EntryNotFound";
+        };
+        VoteInvalidEncoded: {
+            /** @enum {string} */
+            _tag: "VoteInvalid";
         };
         PermissionDeniedEncoded: {
             /** @enum {string} */
             _tag: "PermissionDenied";
+        };
+        VoterNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "VoterNotFound";
+        };
+        VoterAlreadyInvitedEncoded: {
+            /** @enum {string} */
+            _tag: "VoterAlreadyInvited";
+        };
+        NotJuryRoundEncoded: {
+            /** @enum {string} */
+            _tag: "NotJuryRound";
+        };
+        RoundNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "RoundNotFound";
+        };
+        RoundHasNoEntriesEncoded: {
+            /** @enum {string} */
+            _tag: "RoundHasNoEntries";
+        };
+        RoundStartedEncoded: {
+            /** @enum {string} */
+            _tag: "RoundStarted";
+        };
+        RoundWindowInvalidEncoded: {
+            /** @enum {string} */
+            _tag: "RoundWindowInvalid";
+        };
+        RoundEntriesInvalidEncoded: {
+            /** @enum {string} */
+            _tag: "RoundEntriesInvalid";
+        };
+        SourceRoundNotClosedEncoded: {
+            /** @enum {string} */
+            _tag: "SourceRoundNotClosed";
+        };
+        TopicNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "TopicNotFound";
+        };
+        CompetitionNotFoundEncoded: {
+            /** @enum {string} */
+            _tag: "CompetitionNotFound";
+        };
+        OwnerCannotBeRemovedEncoded: {
+            /** @enum {string} */
+            _tag: "OwnerCannotBeRemoved";
         };
         MemberNotFoundEncoded: {
             /** @enum {string} */
@@ -376,10 +620,6 @@ export interface components {
             /** @enum {string} */
             _tag: "TopicNotOpen";
         };
-        TopicNotFoundEncoded: {
-            /** @enum {string} */
-            _tag: "TopicNotFound";
-        };
         AlreadyEnteredEncoded: {
             /** @enum {string} */
             _tag: "AlreadyEntered";
@@ -391,10 +631,6 @@ export interface components {
         GuestDetailsRequiredEncoded: {
             /** @enum {string} */
             _tag: "GuestDetailsRequired";
-        };
-        CompetitionNotFoundEncoded: {
-            /** @enum {string} */
-            _tag: "CompetitionNotFound";
         };
         TopicHasSubmissionsEncoded: {
             /** @enum {string} */
@@ -581,7 +817,7 @@ export interface operations {
                         name: string;
                         /** @enum {string} */
                         role: "owner" | "admin";
-                        permissions: ("organization:read" | "organization:write" | "members:read" | "members:write" | "competitions:read" | "competitions:write" | "participants:read" | "participants:write" | "submissions:read" | "submissions:write" | "jury:read" | "jury:write" | "jury:rate")[];
+                        permissions: ("organization:read" | "organization:write" | "members:read" | "members:write" | "competitions:read" | "competitions:write" | "participants:read" | "participants:write" | "submissions:read" | "submissions:write" | "judging:read" | "judging:write")[];
                     };
                 };
             };
@@ -2295,6 +2531,1136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "rounds.list": {
+        parameters: {
+            query?: {
+                competition_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        competition_id: string;
+                        name: string;
+                        rules: {
+                            /** @enum {string} */
+                            method: "pick";
+                            max_votes: number;
+                            favorite: boolean;
+                        } | {
+                            /** @enum {string} */
+                            method: "rating";
+                            /** @enum {number} */
+                            scale: 5 | 10;
+                        };
+                        /** @enum {string} */
+                        voters: "jury" | "participants";
+                        topic_id: string | null;
+                        source_round_id: string | null;
+                        opens_at: string | null;
+                        closes_at: string | null;
+                        entries: number;
+                        voted: number;
+                    }[];
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "rounds.create": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    competition_id: string;
+                    name: string;
+                    rules: {
+                        /** @enum {string} */
+                        method: "pick";
+                        max_votes: number;
+                        favorite: boolean;
+                    } | {
+                        /** @enum {string} */
+                        method: "rating";
+                        /** @enum {number} */
+                        scale: 5 | 10;
+                    };
+                    /** @enum {string} */
+                    voters: "jury" | "participants";
+                    topic_id?: string | null;
+                    /** Format: uuid */
+                    source_round_id?: string;
+                    submission_ids?: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        competition_id: string;
+                        name: string;
+                        rules: {
+                            /** @enum {string} */
+                            method: "pick";
+                            max_votes: number;
+                            favorite: boolean;
+                        } | {
+                            /** @enum {string} */
+                            method: "rating";
+                            /** @enum {number} */
+                            scale: 5 | 10;
+                        };
+                        /** @enum {string} */
+                        voters: "jury" | "participants";
+                        topic_id: string | null;
+                        source_round_id: string | null;
+                        opens_at: string | null;
+                        closes_at: string | null;
+                        entries: number;
+                        voted: number;
+                    };
+                };
+            };
+            /** @description RoundEntriesInvalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundEntriesInvalidEncoded"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description CompetitionNotFound | TopicNotFound | RoundNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CompetitionNotFoundEncoded"] | components["schemas"]["TopicNotFoundEncoded"] | components["schemas"]["RoundNotFoundEncoded"];
+                };
+            };
+            /** @description SourceRoundNotClosed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceRoundNotClosedEncoded"];
+                };
+            };
+        };
+    };
+    "rounds.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        competition_id: string;
+                        name: string;
+                        rules: {
+                            /** @enum {string} */
+                            method: "pick";
+                            max_votes: number;
+                            favorite: boolean;
+                        } | {
+                            /** @enum {string} */
+                            method: "rating";
+                            /** @enum {number} */
+                            scale: 5 | 10;
+                        };
+                        /** @enum {string} */
+                        voters: "jury" | "participants";
+                        topic_id: string | null;
+                        source_round_id: string | null;
+                        opens_at: string | null;
+                        closes_at: string | null;
+                        entries: number;
+                        voted: number;
+                    };
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RoundNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "rounds.remove": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description <No Content> */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description RoundNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "rounds.update": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    name?: string;
+                    closes_at?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        competition_id: string;
+                        name: string;
+                        rules: {
+                            /** @enum {string} */
+                            method: "pick";
+                            max_votes: number;
+                            favorite: boolean;
+                        } | {
+                            /** @enum {string} */
+                            method: "rating";
+                            /** @enum {number} */
+                            scale: 5 | 10;
+                        };
+                        /** @enum {string} */
+                        voters: "jury" | "participants";
+                        topic_id: string | null;
+                        source_round_id: string | null;
+                        opens_at: string | null;
+                        closes_at: string | null;
+                        entries: number;
+                        voted: number;
+                    };
+                };
+            };
+            /** @description BadRequest | RoundWindowInvalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundWindowInvalidEncoded"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description RoundNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "rounds.open": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    closes_at?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        competition_id: string;
+                        name: string;
+                        rules: {
+                            /** @enum {string} */
+                            method: "pick";
+                            max_votes: number;
+                            favorite: boolean;
+                        } | {
+                            /** @enum {string} */
+                            method: "rating";
+                            /** @enum {number} */
+                            scale: 5 | 10;
+                        };
+                        /** @enum {string} */
+                        voters: "jury" | "participants";
+                        topic_id: string | null;
+                        source_round_id: string | null;
+                        opens_at: string | null;
+                        closes_at: string | null;
+                        entries: number;
+                        voted: number;
+                    };
+                };
+            };
+            /** @description BadRequest | RoundWindowInvalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundWindowInvalidEncoded"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description RoundNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundNotFoundEncoded"];
+                };
+            };
+            /** @description RoundStarted | RoundHasNoEntries */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundStartedEncoded"] | components["schemas"]["RoundHasNoEntriesEncoded"];
+                };
+            };
+        };
+    };
+    "rounds.results": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        submission_id: string;
+                        participant_id: string;
+                        participant_name: string;
+                        topic_id: string;
+                        topic_name: string;
+                        topic_position: number;
+                        votes: number;
+                        favorites: number;
+                        average: number | null;
+                        rank: number;
+                    }[];
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description RoundNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "voters.list": {
+        parameters: {
+            query?: {
+                round_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        round_id: string;
+                        participant_id: string | null;
+                        name: string;
+                        email: string;
+                        votes: number;
+                        submitted_at: string | null;
+                        created_at: string;
+                    }[];
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "voters.invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    /** Format: uuid */
+                    round_id: string;
+                    name: string;
+                    email: string;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        voter: {
+                            id: string;
+                            round_id: string;
+                            participant_id: string | null;
+                            name: string;
+                            email: string;
+                            votes: number;
+                            submitted_at: string | null;
+                            created_at: string;
+                        };
+                        token: string;
+                    };
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description RoundNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundNotFoundEncoded"];
+                };
+            };
+            /** @description NotJuryRound | VoterAlreadyInvited */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotJuryRoundEncoded"] | components["schemas"]["VoterAlreadyInvitedEncoded"];
+                };
+            };
+        };
+    };
+    "voters.renewToken": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        voter: {
+                            id: string;
+                            round_id: string;
+                            participant_id: string | null;
+                            name: string;
+                            email: string;
+                            votes: number;
+                            submitted_at: string | null;
+                            created_at: string;
+                        };
+                        token: string;
+                    };
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description VoterNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoterNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "voters.revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description <No Content> */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description PermissionDenied | Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PermissionDeniedEncoded"];
+                };
+            };
+            /** @description VoterNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoterNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "ballots.list": {
+        parameters: {
+            query?: {
+                competition_id?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        round_id: string;
+                        round_name: string;
+                        rules: {
+                            /** @enum {string} */
+                            method: "pick";
+                            max_votes: number;
+                            favorite: boolean;
+                        } | {
+                            /** @enum {string} */
+                            method: "rating";
+                            /** @enum {number} */
+                            scale: 5 | 10;
+                        };
+                        opens_at: string | null;
+                        closes_at: string | null;
+                        competition_id: string;
+                        competition_name: string;
+                        time_zone: string;
+                        votes: number;
+                        submitted_at: string | null;
+                    }[];
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "ballots.get": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ballot: {
+                            id: string;
+                            round_id: string;
+                            round_name: string;
+                            rules: {
+                                /** @enum {string} */
+                                method: "pick";
+                                max_votes: number;
+                                favorite: boolean;
+                            } | {
+                                /** @enum {string} */
+                                method: "rating";
+                                /** @enum {number} */
+                                scale: 5 | 10;
+                            };
+                            opens_at: string | null;
+                            closes_at: string | null;
+                            competition_id: string;
+                            competition_name: string;
+                            time_zone: string;
+                            votes: number;
+                            submitted_at: string | null;
+                        };
+                        entries: {
+                            submission_id: string;
+                            number: number;
+                            topic_name: string;
+                            topic_position: number;
+                        }[];
+                        votes: {
+                            submission_id: string;
+                            value: number;
+                            favorite: boolean;
+                            note: string | null;
+                        }[];
+                    };
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BallotNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BallotNotFoundEncoded"];
+                };
+            };
+        };
+    };
+    "ballots.vote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    value?: number;
+                    favorite?: boolean;
+                    note?: string | null;
+                };
+            };
+        };
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        submission_id: string;
+                        value: number;
+                        favorite: boolean;
+                        note: string | null;
+                    };
+                };
+            };
+            /** @description BadRequest | VoteInvalid */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoteInvalidEncoded"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BallotNotFound | EntryNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BallotNotFoundEncoded"] | components["schemas"]["EntryNotFoundEncoded"];
+                };
+            };
+            /** @description RoundNotOpen | BallotSubmitted | VoteLimitReached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundNotOpenEncoded"] | components["schemas"]["BallotSubmittedEncoded"] | components["schemas"]["VoteLimitReachedEncoded"];
+                };
+            };
+        };
+    };
+    "ballots.unvote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                submission_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description <No Content> */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BallotNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BallotNotFoundEncoded"];
+                };
+            };
+            /** @description RoundNotOpen | BallotSubmitted */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundNotOpenEncoded"] | components["schemas"]["BallotSubmittedEncoded"];
+                };
+            };
+        };
+    };
+    "ballots.submit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Success */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        id: string;
+                        round_id: string;
+                        round_name: string;
+                        rules: {
+                            /** @enum {string} */
+                            method: "pick";
+                            max_votes: number;
+                            favorite: boolean;
+                        } | {
+                            /** @enum {string} */
+                            method: "rating";
+                            /** @enum {number} */
+                            scale: 5 | 10;
+                        };
+                        opens_at: string | null;
+                        closes_at: string | null;
+                        competition_id: string;
+                        competition_name: string;
+                        time_zone: string;
+                        votes: number;
+                        submitted_at: string | null;
+                    };
+                };
+            };
+            /** @description BadRequest */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description BallotNotFound */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BallotNotFoundEncoded"];
+                };
+            };
+            /** @description RoundNotOpen | BallotSubmitted */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoundNotOpenEncoded"] | components["schemas"]["BallotSubmittedEncoded"];
                 };
             };
         };
