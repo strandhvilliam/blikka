@@ -8,18 +8,24 @@ import * as HttpEffect from "effect/http/HttpEffect";
 import * as HttpRouter from "effect/http/HttpRouter";
 import * as HttpServer from "effect/http/HttpServer";
 import { Hostnames } from "../../domain.ts";
-import { Auth, AuthConfig, AuthenticatedLive, AuthLive, EntrySessionLive } from "./auth/Auth.ts";
+import { Auth, AuthConfig, AuthenticatedLive, AuthLive, BallotSessionLive, EntrySessionLive } from "./auth/Auth.ts";
 import { CurrentUser } from "./auth/CurrentUser.ts";
+import { BallotsHandlers } from "./ballots/handlers.ts";
+import { BallotsService } from "./ballots/service.ts";
 import { CompetitionsHandlers } from "./competitions/handlers.ts";
 import { CompetitionsService } from "./competitions/service.ts";
 import { EntryHandlers } from "./entry/handlers.ts";
 import { EntryService } from "./entry/service.ts";
 import { ParticipantsHandlers } from "./participants/handlers.ts";
 import { ParticipantsService } from "./participants/service.ts";
+import { RoundsHandlers } from "./rounds/handlers.ts";
+import { RoundsService } from "./rounds/service.ts";
 import { SubmissionsHandlers } from "./submissions/handlers.ts";
 import { SubmissionsService } from "./submissions/service.ts";
 import { TopicsHandlers } from "./topics/handlers.ts";
 import { TopicsService } from "./topics/service.ts";
+import { VotersHandlers } from "./voters/handlers.ts";
+import { VotersService } from "./voters/service.ts";
 import { Api as Contract } from "./contract.ts";
 import { Database, DbLive } from "./db/Db.ts";
 import { InvitationsHandlers } from "./invitations/handlers.ts";
@@ -46,7 +52,10 @@ const Handlers = Layer.mergeAll(
   SubmissionsHandlers,
   InvitationsHandlers,
   MembersHandlers,
-).pipe(Layer.provide(Layer.mergeAll(AuthenticatedLive, EntrySessionLive)));
+  RoundsHandlers,
+  VotersHandlers,
+  BallotsHandlers,
+).pipe(Layer.provide(Layer.mergeAll(AuthenticatedLive, EntrySessionLive, BallotSessionLive)));
 
 const AuthRoute = HttpRouter.add(
   "*",
@@ -95,6 +104,9 @@ export default class Api extends Cloudflare.Worker<Api>()(
       SubmissionsService.layer,
       InvitationsService.layer,
       MembersService.layer,
+      RoundsService.layer,
+      VotersService.layer,
+      BallotsService.layer,
     ).pipe(Layer.provide(PermissionsService.layer), Layer.provide(DbLive(hyperdrive)));
 
     return {

@@ -41,6 +41,11 @@ const guestAuth = (competitionId: string) => {
   return token ? { authorization: `Bearer ${token}` } : {};
 };
 
+export const participantBallotAuth = (competitionId: string) => ({
+  key: `participant:${competitionId}`,
+  headers: guestAuth(competitionId),
+});
+
 export const myEntryQuery = (competitionId: string) =>
   queryOptions({
     queryKey: ["entry", "participants", { competitionId }],

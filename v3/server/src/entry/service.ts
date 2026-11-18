@@ -3,6 +3,7 @@ import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import { type EntryCaller, GUEST_TOKEN_PREFIX } from "../auth/EntrySession.ts";
+import { hashToken, newToken } from "../auth/tokens.ts";
 import { CompetitionNotFound } from "../competitions/schemas.ts";
 import type { User } from "../contract.ts";
 import { Db, transaction, type Tx } from "../db/Db.ts";
@@ -27,15 +28,6 @@ const entryColumns = {
   name: participants.name,
   email: participants.email,
   created_at: participants.createdAt,
-};
-
-const hex = (bytes: ArrayBuffer | Uint8Array) =>
-  Array.from(new Uint8Array(bytes), (b) => b.toString(16).padStart(2, "0")).join("");
-
-const hashToken = async (token: string) => {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
-
-  return hex(digest);
 };
 
 type GuestDetails = { name?: string | undefined; email?: string | undefined };
@@ -106,7 +98,7 @@ export class EntryService extends Context.Service<EntryService>()("blikka/entry/
         return yield* new GuestDetailsRequired();
       }
 
-      const token = GUEST_TOKEN_PREFIX + hex(crypto.getRandomValues(new Uint8Array(32)));
+      const token = newToken(GUEST_TOKEN_PREFIX);
       const guestTokenHash = yield* Effect.promise(() => hashToken(token));
 
       return yield* transaction(db, (tx) =>

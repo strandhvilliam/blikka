@@ -11,9 +11,8 @@ export const Permission = Schema.Literals([
   "participants:write",
   "submissions:read",
   "submissions:write",
-  "jury:read",
-  "jury:write",
-  "jury:rate",
+  "judging:read",
+  "judging:write",
 ]);
 
 export type Permission = typeof Permission.Type;
@@ -33,8 +32,8 @@ const admin: ReadonlyArray<Permission> = [
   "participants:write",
   "submissions:read",
   "submissions:write",
-  "jury:read",
-  "jury:write",
+  "judging:read",
+  "judging:write",
 ];
 
 export const ROLE_PERMISSIONS: Record<Role, ReadonlyArray<Permission>> = {
